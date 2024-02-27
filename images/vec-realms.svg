@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="90.196449mm"
+   height="12.752917mm"
+   viewBox="0 0 90.196449 12.752917"
+   version="1.1"
+   id="svg1"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs1">
+    <rect
+       x="124.86315"
+       y="99.890518"
+       width="328.39008"
+       height="46.199364"
+       id="rect1" />
+    <filter
+       style="color-interpolation-filters:sRGB"
+       id="filter17"
+       x="-0.023731092"
+       y="-0.15242495"
+       width="1.0398365"
+       height="1.391455">
+      <feFlood
+         result="flood"
+         in="SourceGraphic"
+         flood-opacity="0.498039"
+         flood-color="rgb(0,0,0)"
+         id="feFlood16" />
+      <feGaussianBlur
+         result="blur"
+         in="SourceGraphic"
+         stdDeviation="2.200000"
+         id="feGaussianBlur16" />
+      <feOffset
+         result="offset"
+         in="blur"
+         dx="-2.500000"
+         dy="3.000000"
+         id="feOffset16" />
+      <feComposite
+         result="comp1"
+         operator="in"
+         in="flood"
+         in2="offset"
+         id="feComposite16" />
+      <feComposite
+         result="comp2"
+         operator="over"
+         in="SourceGraphic"
+         in2="comp1"
+         id="feComposite17" />
+    </filter>
+  </defs>
+  <g
+     id="layer1"
+     transform="translate(-30.978284,-27.25839)">
+    <text
+       xml:space="preserve"
+       transform="scale(0.26458333)"
+       id="text1"
+       style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;white-space:pre;shape-inside:url(#rect1);display:inline;fill:#000000;fill-opacity:1;stroke:none;filter:url(#filter17)"><tspan
+         x="124.86328"
+         y="136.38384"
+         id="tspan3"><tspan
+           style="font-family:Splendors;-inkscape-font-specification:Splendors;fill:#806600"
+           id="tspan1">Vectorized Realms</tspan></tspan></text>
+  </g>
+</svg>
