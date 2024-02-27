@@ -15,14 +15,24 @@ The first step is to recreate the drawing style of various map regions in svg fo
 
 Major region types include:
 * Ocean/Continental Shelf
+  Color gradient from light to darker blue with three plateaus based on distance, blue coastline.
 * Plain Land
+  Minor color variation between two light brown tones with dark brown dots randomly placed in the area. 
 * Grasslands
+  Light green filter placed over plain land.
 * Forests/Jungles
+  Brown winding outline followed by dark green band with many dot sprinkles. Filled with two varying light green tones and more sparse dots. (Jungle and forest use slightly different greens)   
 * Sandy/Rocky Deserts
+  Sharp color boundary, but very sparse outline reinforced by a narrow band of dots. Filled with dandom groups of dots of varying sizes. (Sandy/Rocky denoted by different yellow/brown tones) 
 * Barrens/Badlands
+  Double outline with many breaks, otherwise similar to rocky desert with additional smalls hill markers.
 * Hills
+  Round brown shapes with some shading to give a 3D impression, with radial lines along the flanks. 
 * Cliffs
+  Narrow brown bands with a strong cliff line on one side and slightly distorted lines down the flank.
 * Mountains/High Mountains/Volcanos
+  Brown area with a ridge line splitting it into two sides of shading. The darker side has continuous flank lines, while the brighter one has sparse short lines near the ridge and outlines.
+  High mountains have white shading close to the ridge. 
 * Glaciers
 * Ice
 * Rivers/Lakes
