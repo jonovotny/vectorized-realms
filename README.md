@@ -38,15 +38,20 @@ Major region types include:
 
   ![Forest example](images/040-forest.PNG)
 
+  ![Jungle example](images/050-jungle.PNG)
+
 * Sandy/Rocky Deserts
 
   Sharp color boundary, but very sparse outline reinforced by a narrow band of dots. Filled with dandom groups of dots of varying sizes. (Sandy/Rocky denoted by different yellow/brown tones)
+
+  ![Sandy desert example](images/060-desert-sandy.PNG)
 
   ![Rocky desert example](images/070-desert-rocky.PNG)
 
 * Barrens/Badlands
 
   Double outline with many breaks, otherwise similar to rocky desert with additional smalls hill markers.
+
   ![Badlands example](images/080-badlands.PNG)
 
 * Hills
@@ -63,12 +68,13 @@ Major region types include:
 
 * Marsh/Swamp
 
-![Marsh example](images/110-marsh.PNG)
-![Swamp example](images/120-swamp.PNG)
+  ![Marsh example](images/110-marsh.PNG)
+
+  ![Swamp example](images/120-swamp.PNG)
 
 * Moor
 
-![Moor example](images/130-moor.PNG)
+  ![Moor example](images/130-moor.PNG)
 
 * Mountains/High Mountains/Volcanos
 
@@ -76,11 +82,16 @@ Major region types include:
   High mountains have white shading close to the ridge.
 
   ![Low Mountains example](images/140-mountain-low.PNG)
+
   ![High Mountains example](images/150-mountain-high.PNG)
 
-* Glaciers
+  ![Volcano example](images/160-volcano.PNG)
 
-* Ice
+* Glaciers/Ice
+
+  ![Glacier example](images/170-glacier.PNG)
+
+  ![Ice example](images/170-ice.PNG)
 
 * Rivers/Lakes
 
