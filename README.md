@@ -75,7 +75,7 @@ Major region types include:
   Brown area with a ridge line splitting it into two sides of shading. The darker side has continuous flank lines, while the brighter one has sparse short lines near the ridge and outlines.
   High mountains have white shading close to the ridge.
 
-  ![Low Mountains example](images/140-mountain-high.PNG)
+  ![Low Mountains example](images/140-mountain-low.PNG)
   ![High Mountains example](images/150-mountain-high.PNG)
 
 * Glaciers
