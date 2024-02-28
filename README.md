@@ -15,25 +15,75 @@ The first step is to recreate the drawing style of various map regions in svg fo
 
 Major region types include:
 * Ocean/Continental Shelf
+
   Color gradient from light to darker blue with three plateaus based on distance, blue coastline.
+
+  ![Ocean example](images/010-ocean.PNG)
+
 * Plain Land
-  Minor color variation between two light brown tones with dark brown dots randomly placed in the area. 
+
+  Minor color variation between two light brown tones with dark brown dots randomly placed in the area.
+
+  ![Plains example](images/020-plains.PNG)
+
 * Grasslands
+
   Light green filter placed over plain land.
+
+  ![Grasslands example](images/030-grasslands.PNG)
+
 * Forests/Jungles
-  Brown winding outline followed by dark green band with many dot sprinkles. Filled with two varying light green tones and more sparse dots. (Jungle and forest use slightly different greens)   
+
+  Brown winding outline followed by dark green band with many dot sprinkles. Filled with two varying light green tones and more sparse dots. (Jungle and forest use slightly different greens)
+
+  ![Forest example](images/040-forest.PNG)
+
 * Sandy/Rocky Deserts
-  Sharp color boundary, but very sparse outline reinforced by a narrow band of dots. Filled with dandom groups of dots of varying sizes. (Sandy/Rocky denoted by different yellow/brown tones) 
+
+  Sharp color boundary, but very sparse outline reinforced by a narrow band of dots. Filled with dandom groups of dots of varying sizes. (Sandy/Rocky denoted by different yellow/brown tones)
+
+  ![Rocky desert example](images/070-desert-rocky.PNG)
+
 * Barrens/Badlands
+
   Double outline with many breaks, otherwise similar to rocky desert with additional smalls hill markers.
+  ![Badlands example](images/080-badlands.PNG)
+
 * Hills
-  Round brown shapes with some shading to give a 3D impression, with radial lines along the flanks. 
+
+  Round brown shapes with some shading to give a 3D impression, with radial lines along the flanks.
+
+  ![Hills example](images/090-hills.PNG)
+
 * Cliffs
+
   Narrow brown bands with a strong cliff line on one side and slightly distorted lines down the flank.
+
+  ![Cliff example](images/100-cliff.PNG)
+
+* Marsh/Swamp
+
+![Marsh example](images/110-marsh.PNG)
+![Swamp example](images/120-swamp.PNG)
+
+* Moor
+
+![Moor example](images/130-moor.PNG)
+
 * Mountains/High Mountains/Volcanos
+
   Brown area with a ridge line splitting it into two sides of shading. The darker side has continuous flank lines, while the brighter one has sparse short lines near the ridge and outlines.
-  High mountains have white shading close to the ridge. 
+  High mountains have white shading close to the ridge.
+
+  ![Low Mountains example](images/140-mountain-high.PNG)
+  ![High Mountains example](images/150-mountain-high.PNG)
+
 * Glaciers
+
 * Ice
+
 * Rivers/Lakes
+
+  ![River example](images/190-river.PNG)
+
 
