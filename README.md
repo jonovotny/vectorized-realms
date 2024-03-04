@@ -10,3 +10,5 @@ Ideally this should have the following benefits:
 * GeoJson, TopoJson output: Vector data can be used in online map interfaces like [Open Layers](https://openlayers.org/)
 
 Detailed information about the progress can be found in the [Wiki](https://github.com/jonovotny/vectorized-realms/wiki).
+
+<span style="font-size:0.5em;">Vectorized Realms is unofficial Fan Content permitted under the Fan Content Policy. Not approved/endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC.</span>
