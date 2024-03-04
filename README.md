@@ -91,8 +91,6 @@ Major region types include:
 
   ![Glacier example](images/170-glacier.PNG)
 
-  ![Ice example](images/170-ice.PNG)
-
 * Rivers/Lakes
 
   ![River example](images/190-river.PNG)
