@@ -42,13 +42,13 @@ Forests require the combination of several effects. First, we want to have a clo
 
 Forests may also encompass other terrain styles, like hills, cliffs, and mountains:
 
-<img src="https://raw.githubusercontent.com/jonovotny/vectorized-realms/gh-pages/images/legend/ForestHills.PNG" /><img src="https://raw.githubusercontent.com/jonovotny/vectorized-realms/gh-pages/images/legend/ForestCliffs.PNG" />
+<img src="https://raw.githubusercontent.com/jonovotny/vectorized-realms/gh-pages/images/legend/ForestHills.PNG" />  <img src="https://raw.githubusercontent.com/jonovotny/vectorized-realms/gh-pages/images/legend/ForestCliffs.PNG" />
 
 # <img src="https://raw.githubusercontent.com/jonovotny/vectorized-realms/gh-pages/images/legend/Rivers.PNG" /> Rivers and Lakes
 
 Finally, lakes and rivers are terrain styles that frequently cross over other styles and would therefore have to be displayed close to the top layers. Lakes and inland seas use the same style as oceans. Interactions with other terrain types include:
 
-<img src="https://raw.githubusercontent.com/jonovotny/vectorized-realms/gh-pages/images/legend/ForestLake.PNG" /><img src="https://raw.githubusercontent.com/jonovotny/vectorized-realms/gh-pages/images/legend/DesertsLake.PNG" /><img src="https://raw.githubusercontent.com/jonovotny/vectorized-realms/gh-pages/images/legend/BadlandsLake.PNG" />
+<img src="https://raw.githubusercontent.com/jonovotny/vectorized-realms/gh-pages/images/legend/ForestLake.PNG" />  <img src="https://raw.githubusercontent.com/jonovotny/vectorized-realms/gh-pages/images/legend/DesertLake.PNG" />  <img src="https://raw.githubusercontent.com/jonovotny/vectorized-realms/gh-pages/images/legend/BadlandsLake.PNG" />
 
 Rivers are a bit of an open problem. The stroke of an svg line can not vary along its path, so representing a river with a single line would prevent us from having rivers taper out as they reach their source. One solution could be to represent rivers as multiple line segments that can have individual widths another would be to fully model them as 2D shapes. The latter would have the downside that it can not be easily resized at higher zoom levels. Another open problem is the seamless connection of coastlines to the river geometries. 
 
