@@ -58,4 +58,4 @@ Ice and snow have simple but distinct styles that were not directly covered in t
 
 # Roads/Cities/Labels
 
-While visualy simple, with map markers and labels the issue to store the level of detail at which it should be visible. As we add more dtail maps to the overall world map, showing every footpath would clutter up the map. Though this problem is one that can not be solved in just the svg file, but will have to be included in the final map display app (e.g. [OpenLayers]{https://openlayers.org/})
+While visualy simple, with map markers and labels the issue to store the level of detail at which it should be visible. As we add more dtail maps to the overall world map, showing every footpath would clutter up the map. Though this problem is one that can not be solved in just the svg file, but will have to be included in the final map display app (e.g. [OpenLayers](https://openlayers.org/)).
