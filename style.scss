@@ -283,6 +283,10 @@ footer {
   text-align: center;
 }
 
+.svg{
+  color: $darkGray;
+}
+
 @media (prefers-color-scheme: dark) {
   body {
     background: #0d1117;
@@ -291,6 +295,14 @@ footer {
   }
   
   h1, h2, h3, h4, h5, h6 {
+    color: rgb(230, 237, 243);
+  }
+
+  .wrapper-footer {
+    background-color: #0d1117;
+  }
+
+  .svg{
     color: rgb(230, 237, 243);
   }
 }
