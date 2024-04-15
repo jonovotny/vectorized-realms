@@ -283,6 +283,19 @@ footer {
   text-align: center;
 }
 
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #0d1117;
+    font: 18px/1.4 $helvetica;
+    color: rgb(230, 237, 243);
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    color: rgb(230, 237, 243);
+  }
+}
+
+
 // Settled on moving the import of syntax highlighting to the bottom of the CSS
 // ... Otherwise it really bloats up the top of the CSS file and makes it difficult to find the start
 @import "highlights";
