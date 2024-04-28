@@ -4,12 +4,7 @@ title: About
 permalink: /about/
 ---
 
-Some information about you!
-
-### More Information
-
-A place to include any other types of information that you'd like to include about yourself.
+Vectorized Realms is unofficial Fan Content permitted under the Fan Content Policy. Not approved/endorsed by Wizards.<br/>
+Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC.
 
 ### Contact me
-
-[email@domain.com](mailto:email@domain.com)
