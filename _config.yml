@@ -50,6 +50,8 @@ url:
 # then add in the baseurl here, like this: "/repository-name"
 baseurl: "/vectorized-realms"
 
+excerpt_separator: <!--more-->
+
 #
 # !! You don't need to change any of the configuration flags below !!
 #

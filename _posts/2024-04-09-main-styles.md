@@ -19,6 +19,7 @@ Grasslands are a slight color variation of plains with a wide and smooth color t
 # <img src="https://raw.githubusercontent.com/jonovotny/vectorized-realms/gh-pages/images/legend/Swamps.PNG" /> Swamps, Marshes and Moors
 
 Swamps and marshes feature a single colored backgroud, while moors have a random 2-color pattern similar to the ones found in the plains style. What unites these styles are the double outlines with random breaks. While this could be solved with two offset outline paths with dashed-lines, ideally we would want a filter to generate the effect on purely the original area path. Similarily, we have to find a way to randomly generate the grass bushles in the swamp and marsh styles.
+<!--more-->
 
 # <img src="https://raw.githubusercontent.com/jonovotny/vectorized-realms/gh-pages/images/legend/Deserts.PNG" /> Deserts
 
