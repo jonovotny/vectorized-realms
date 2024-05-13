@@ -32,7 +32,7 @@
          id="feGaussianBlur16"
          result="result11" /><feColorMatrix
          id="feColorMatrix1"
-         values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 3 0"
+         values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 8 0"
          result="result33" /><feMorphology
          radius="7"
          id="feMorphology6"
