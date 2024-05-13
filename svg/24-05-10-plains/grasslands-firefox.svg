@@ -26,13 +26,13 @@
          id="feGaussianBlur15"
          result="result5" /><feColorMatrix
          id="feColorMatrix14"
-         values="0 0 0 0 0.57999999999999996 0 0 0 0 0.55000000000000004 0 0 0 0 0.46999999999999997 0 0 0 10.800000000000001 -5.8000000000000004"
+         values="0 0 0 0 0.57999999999999996 0 0 0 0 0.55000000000000004 0 0 0 0 0.46999999999999997 0 0 0 10.800000000000001 -4.4000000000000004"
          result="result4" /><feGaussianBlur
          stdDeviation="0.34999999999999998"
          id="feGaussianBlur16"
          result="result11" /><feColorMatrix
          id="feColorMatrix1"
-         values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 8 0"
+         values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 5 0"
          result="result33" /><feMorphology
          radius="7"
          id="feMorphology6"
