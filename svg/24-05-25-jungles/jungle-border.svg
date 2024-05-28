@@ -334,7 +334,7 @@
            tableValues="0.79,0.84,0.87" /><feFuncB
            id="feFuncB2"
            type="table"
-           tableValues="0.64,0.620.66" /><feFuncA
+           tableValues="0.64,0.62,0.66" /><feFuncA
            id="feFuncA2"
            type="identity"
            tableValues="1" /></feComponentTransfer><feComposite
