@@ -1,0 +1,26 @@
+@import "node_modules/ol/ol.css";
+html, body {
+  margin: 0;
+  height: 100%;
+}
+
+#map {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+}
+
+.button-map3d {
+  top: 65px;
+  left: .5em;
+}
+
+.button-map2d {
+  top: .5em;
+  left: .5em;
+}
+
+.ol-touch .button-map3d {
+  top: 80px;
+}
