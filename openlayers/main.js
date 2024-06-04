@@ -111,7 +111,7 @@ title: 'Faerun WotC (3e)',
 visible: false,});
 
 const faerunDetail = new ImageLayer({source: new Static({
-  url:'https://raw.githubusercontent.com/jonovotny/vectorized-realms/main/faerun-3e/faerun-filtered.svg',
+  url:'https://raw.githubusercontent.com/jonovotny/vectorized-realms/main/faerun-3e/faerun-v004.jpg',
   projection: 'EPSG:4326',
   imageExtent: [-89, 10, -29, 52],
 }),
