@@ -78,52 +78,71 @@ class Map2DControl extends Control {
   }
 }
 
-
-
-
 const OSMMap = new TileLayer({
   title: 'OSM',
+  type: 'base',
   source: new OSM(),
 });
 
-const FRIAMap = new ImageLayer({source: new Static({
-  url:'https://raw.githubusercontent.com/jonovotny/vectorized-realms/main/toril-2e/toril.png',
-  projection: 'EPSG:4326',
-  imageExtent: [-180, -54, 180, 78],
-  interpolate: true,
-  attributions: '&copy; TSR, Inc. 1999',
-}),
-title: 'FR Interactive Atlas (2e)',});
+const FRIAMap = new ImageLayer({
+  source: new Static({
+    url:'https://raw.githubusercontent.com/jonovotny/vectorized-realms/main/toril-2e/toril-fria-2dmap.png',
+    projection: 'EPSG:4326',
+    imageExtent: [-180, -90, 180, 90],
+    interpolate: true,
+    attributions: '&copy; TSR, Inc. 1999',
+  }),
+  type: 'base',
+  title: 'FR Interactive Atlas (2e)',
+});
+
+const FRIAGlobe = new ImageLayer({
+  source: new Static({
+    url:'https://raw.githubusercontent.com/jonovotny/vectorized-realms/main/toril-2e/toril-fria-globemap.png',
+    projection: 'EPSG:4326',
+    imageExtent: [-180, -90, 180, 90],
+    interpolate: true,
+    attributions: '&copy; TSR, Inc. 1999',
+  }),
+  type: 'base',
+  title: 'FR Interactive Globe (2e)',
+});
+
+const faerun2000 = new ImageLayer({
+  source: new Static({
+    url:'https://raw.githubusercontent.com/jonovotny/vectorized-realms/main/faerun-3e/faerun-3e.jpg',
+    projection: 'EPSG:4326',
+    imageExtent: [-86.5, 10, -28, 49.1],
+    attributions: '&copy; WotC 2000',
+  }),
+  title: 'Faerun WotC (3e)',
+  visible: false,
+});
+
+const faerunDetail = new ImageLayer({
+  source: new Static({
+    url:'https://raw.githubusercontent.com/jonovotny/vectorized-realms/main/faerun-3e/faerun-v004.jpg',
+    projection: 'EPSG:4326',
+    imageExtent: [-86.5, 10, -28, 49.1],
+  }),
+  visible: false,
+  title: 'Vectorized Realms Detail (3e)'
+});
+
+const faerunRaw = new ImageLayer({
+  source: new Static({
+    url:'https://raw.githubusercontent.com/jonovotny/vectorized-realms/main/faerun-3e/faerun-data.svg',
+    projection: 'EPSG:4326',
+    imageExtent: [-86.5, 10, -28, 49.1],
+  }),
+  title: 'Vectorized Realms Raw Data (3e)',
+});
 
 const TorilMaps = new LayerGroup({
   title: 'Toril/World',
   visible: true,
-  layers: [OSMMap, FRIAMap],
+  layers: [OSMMap,FRIAGlobe,FRIAMap],
 });
-
-const faerun2000 = new ImageLayer({source: new Static({
-  url:'https://raw.githubusercontent.com/jonovotny/vectorized-realms/main/faerun-3e/faerun-3e.jpg',
-  projection: 'EPSG:4326',
-  imageExtent: [-89, 10, -29, 52],
-  attributions: '&copy; WotC 2000',
-}),
-title: 'Faerun WotC (3e)',
-visible: false,});
-
-const faerunDetail = new ImageLayer({source: new Static({
-  url:'https://raw.githubusercontent.com/jonovotny/vectorized-realms/main/faerun-3e/faerun-v004.jpg',
-  projection: 'EPSG:4326',
-  imageExtent: [-89, 10, -29, 52],
-}),
-visible: false,
-  title: 'Vectorized Realms Detail (3e)'});
-
-const faerunRaw = new ImageLayer({source: new Static({
-  url:'https://raw.githubusercontent.com/jonovotny/vectorized-realms/main/faerun-3e/faerun-data.svg',
-  projection: 'EPSG:4326',
-  imageExtent: [-89, 10, -29, 52],
-}),
-title: 'Vectorized Realms Raw Data (3e)',});
 
 const FaerunMaps = new LayerGroup({
   title: 'Faerun',
@@ -134,7 +153,8 @@ const FaerunMaps = new LayerGroup({
 const map = new Map({
   target: 'map',
   controls: defaultControls().extend([new Map3DControl()]),
-  layers: [TorilMaps,
+  layers: [
+    TorilMaps,
     FaerunMaps,  
     new Graticule({
       title: 'Graticule',
@@ -150,10 +170,10 @@ const map = new Map({
     }),
   ],
   view: new View({
-    center: [0, 0],
+    center: [-55, 30],
     extent: [-180, -90, 180, 90],
     projection: 'EPSG:4326',
-    zoom: 2,
+    zoom: 4.5,
   })
 });
 
@@ -163,7 +183,6 @@ const layerSwitcher = new LayerSwitcher({
 });
 
 map.addControl(layerSwitcher);
-
 
 const button2D = new Map2DControl();
 
