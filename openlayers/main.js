@@ -119,6 +119,28 @@ const faerun2000 = new ImageLayer({
   visible: false,
 });
 
+const faerun2000warped = new ImageLayer({
+  source: new Static({
+    url:'https://raw.githubusercontent.com/jonovotny/vectorized-realms/main/faerun-3e/faerun-3e-warped.png',
+    projection: 'EPSG:4326',
+    imageExtent: [-88.3, 8.7, -15, 52.75],
+    attributions: '&copy; WotC 2000',
+  }),
+  title: 'Faerun WotC (3e) warped',
+  visible: false,
+});
+
+const faerun2000dist = new ImageLayer({
+  source: new Static({
+    url:'https://raw.githubusercontent.com/jonovotny/vectorized-realms/main/faerun-3e/faerun-3e-dist.png',
+    projection: 'EPSG:4326',
+    imageExtent: [-88.3, 8.7, -15, 52.75],
+    attributions: '&copy; WotC 2000',
+  }),
+  title: 'Faerun WotC (3e) distortion',
+  visible: false,
+});
+
 const faerunDetail = new ImageLayer({
   source: new Static({
     url:'https://raw.githubusercontent.com/jonovotny/vectorized-realms/main/faerun-3e/faerun-v004.jpg',
@@ -147,7 +169,7 @@ const TorilMaps = new LayerGroup({
 const FaerunMaps = new LayerGroup({
   title: 'Faerun',
   visible: true,
-  layers: [faerun2000, faerunRaw, faerunDetail],
+  layers: [faerun2000dist, faerun2000warped, faerun2000, faerunRaw, faerunDetail],
 });
 
 const map = new Map({
