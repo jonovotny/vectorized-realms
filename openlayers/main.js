@@ -15,7 +15,7 @@ import {Control, defaults as defaultControls} from 'ol/control.js';
 
 import {OLCS_ION_TOKEN} from './_common.js';
 Cesium.Ion.defaultAccessToken = OLCS_ION_TOKEN;
-
+var attribution3D = null;
 
 //
 // Define toggle globe control.
@@ -45,6 +45,11 @@ class Map3DControl extends Control {
   }
 
   handleSwapMap3d() {
+    console.log(torilmap);
+    attribution3D = torilmap.getControls().array_[2].element.cloneNode(true);
+    ol3d.canvas_.after(attribution3D);
+
+
     ol3d.setEnabled(true);
   }
 }
@@ -73,7 +78,8 @@ class Map2DControl extends Control {
   }
 
   handleSwapMap2d() {
-    //console.log(ol3d)
+    //console.log(ol3d);
+    attribution3D.remove();
     ol3d.setEnabled(false);
   }
 }
@@ -116,7 +122,7 @@ const faerun2000 = new ImageLayer({
     attributions: '&copy; WotC 2000',
   }),
   title: 'Faerun WotC (3e)',
-  visible: false,
+  visible: true,
 });
 
 const faerun2000warped = new ImageLayer({
@@ -170,10 +176,10 @@ const TorilMaps = new LayerGroup({
 const FaerunMaps = new LayerGroup({
   title: 'Faerun',
   visible: true,
-  layers: [faerun2000dist, faerun2000warped, faerun2000, faerunRaw, faerunDetail],
+  layers: [faerun2000warped, faerun2000, faerunRaw, faerunDetail, faerun2000dist],
 });
 
-const map = new Map({
+const torilmap = new Map({
   target: 'map',
   controls: defaultControls().extend([new Map3DControl()]),
   layers: [
@@ -205,12 +211,12 @@ const layerSwitcher = new LayerSwitcher({
   groupSelectStyle: 'children'
 });
 
-map.addControl(layerSwitcher);
+torilmap.addControl(layerSwitcher);
 
 const button2D = new Map2DControl();
 
 const ol3d = new OLCesium({
-  map: map
+  map: torilmap
 });
 const scene = ol3d.getCesiumScene();
 Cesium.createWorldTerrainAsync().then(tp => scene.terrainProvider = tp);
