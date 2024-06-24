@@ -5,7 +5,6 @@ import Static from 'ol/source/ImageStatic.js';
 import OSM from 'ol/source/OSM';
 import {Image as ImageLayer} from 'ol/layer.js';
 import Graticule from 'ol/layer/Graticule.js';
-import Stroke from 'ol/style/Stroke.js';
 import LayerGroup from 'ol/layer/Group';
 import 'ol-layerswitcher/dist/ol-layerswitcher.css';
 import LayerSwitcher from 'ol-layerswitcher';
@@ -13,8 +12,16 @@ import OLCesium from 'olcs';
 import {Control, defaults as defaultControls} from 'ol/control.js';
 //import Cesium from 'cesium';
 
+import parseSvg from './svgprocess.js';
+
+import GeoJSON from 'ol/format/GeoJSON.js';
+import {Vector as VectorSource} from 'ol/source.js';
+import {Vector as VectorLayer} from 'ol/layer.js';
+import {Fill, Stroke, Style} from 'ol/style.js';
+
+
 import {OLCS_ION_TOKEN} from './_common.js';
-Cesium.Ion.defaultAccessToken = OLCS_ION_TOKEN;
+//Cesium.Ion.defaultAccessToken = OLCS_ION_TOKEN;
 var attribution3D = null;
 
 //
@@ -92,7 +99,8 @@ const OSMMap = new TileLayer({
 
 const FRIAMap = new ImageLayer({
   source: new Static({
-    url:'https://raw.githubusercontent.com/jonovotny/vectorized-realms/main/toril-2e/toril-fria-2dmap.png',
+    //url:'https://raw.githubusercontent.com/jonovotny/vectorized-realms/main/toril-2e/toril-fria-2dmap.png',
+    url:'_local/toril-fria-2dmap.png',
     projection: 'EPSG:4326',
     imageExtent: [-180, -90, 180, 90],
     interpolate: true,
@@ -116,7 +124,8 @@ const FRIAGlobe = new ImageLayer({
 
 const faerun2000 = new ImageLayer({
   source: new Static({
-    url:'https://raw.githubusercontent.com/jonovotny/vectorized-realms/main/faerun-3e/faerun-3e.jpg',
+    //url:'https://raw.githubusercontent.com/jonovotny/vectorized-realms/main/faerun-3e/faerun-3e.jpg',
+    url:'_local/faerun-3e.jpg',
     projection: 'EPSG:4326',
     imageExtent: [-86.5, 10, -28, 49.1],
     attributions: '&copy; WotC 2000',
@@ -170,14 +179,32 @@ const faerunRaw = new ImageLayer({
 const TorilMaps = new LayerGroup({
   title: 'Toril/World',
   visible: true,
-  layers: [OSMMap,FRIAGlobe,FRIAMap],
+  //layers: [OSMMap,FRIAGlobe,FRIAMap],
+  layers:[FRIAMap]
+});
+
+const vectorSource = new VectorSource({
+  features: new GeoJSON().readFeatures({"type": "FeatureCollection", "features": []}),
+});
+
+const vectorLayer = new VectorLayer({
+  title: 'Grassland',
+  source: vectorSource,
+  style: new Style({ stroke: new Stroke({
+    color: 'rgba(255,0,0,1.0)',
+    width: 3,
+    lineDash: [0.5, 4],
+  }),}),
 });
 
 const FaerunMaps = new LayerGroup({
   title: 'Faerun',
   visible: true,
-  layers: [faerun2000warped, faerun2000, faerunRaw, faerunDetail, faerun2000dist],
+  //layers: [faerun2000warped, faerun2000, faerunRaw, faerunDetail, faerun2000dist],
+  layers:[faerun2000, vectorLayer]
 });
+
+parseSvg('_local/faerun-v005.svg', [-86.5, 10, -28, 49.1], vectorSource);
 
 const torilmap = new Map({
   target: 'map',
@@ -213,7 +240,7 @@ const layerSwitcher = new LayerSwitcher({
 
 torilmap.addControl(layerSwitcher);
 
-const button2D = new Map2DControl();
+/*const button2D = new Map2DControl();
 
 const ol3d = new OLCesium({
   map: torilmap
@@ -232,4 +259,4 @@ document.addEventListener("keypress", function(event) {
   if (event.key == 'c') {
     ol3d.setEnabled(!ol3d.getEnabled());
   }
-});
+});*/
