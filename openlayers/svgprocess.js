@@ -53,11 +53,34 @@ function processGroup(grp, transform, json, layerGroup){
 		switch (elem.tagName) {
 			case "g":
 				var layerSubGroup = new LayerGroup({
-					title: grp.getAttribute("inkscape:label"),
+					title: elem.getAttribute("inkscape:label"),
 					visible: true,
 				  });
-				layerGroup.getLayers().push(layerSubGroup);
-				comb_json = processGroup(elem, comb_trans, comb_json, layerSubGroup);
+				layerGroup.getLayers().array_.push(layerSubGroup);
+				comb_json = processGroup(elem, comb_trans, json, layerSubGroup);
+
+				var vectorSource = new VectorSource({
+					features: new GeoJSON().readFeatures(comb_json),
+				});
+			
+				var style = grp.getAttribute("style");
+				var color = style.match(/#[0-9aAbBcCdDeEfF]{6}/g);
+				if (color){
+					color = color[0];
+				} else {
+					color = 'rgba(255,0,0,1.0)';
+				}
+			
+				var vectorLayer = new VectorLayer({
+					title: grp.getAttribute("inkscape:label"),
+					source: vectorSource,
+					style: new Style({ stroke: new Stroke({
+					  color: color,
+					  width: 2,
+					}),}),
+				  });
+				
+				  layerGroup.getLayers().array_.push(vectorLayer);
 				break;
 			case "path":
 				comb_json = processPath(elem, comb_trans, comb_json, layerGroup);
@@ -65,28 +88,7 @@ function processGroup(grp, transform, json, layerGroup){
 		}
 	}
 	
-	var vectorSource = new VectorSource({
-		features: new GeoJSON().readFeatures(comb_json),
-	});
 
-	var style = grp.getAttribute("style");
-	var color = style.match(/#[0-9aAbBcCdDeEfF]{6}/g);
-	if (color){
-		color = color[0];
-	} else {
-		color = 'rgba(255,0,0,1.0)';
-	}
-
-	var vectorLayer = new VectorLayer({
-		title: grp.getAttribute("inkscape:label"),
-		source: vectorSource,
-		style: new Style({ stroke: new Stroke({
-		  color: color,
-		  width: 2,
-		}),}),
-	  });
-	
-	  layerGroup.getLayers().push(vectorLayer);
 	
 	return json;
 }
