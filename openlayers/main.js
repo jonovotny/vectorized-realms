@@ -99,8 +99,8 @@ const OSMMap = new TileLayer({
 
 const FRIAMap = new ImageLayer({
   source: new Static({
-    //url:'https://raw.githubusercontent.com/jonovotny/vectorized-realms/main/toril-2e/toril-fria-2dmap.png',
-    url:'_local/toril-fria-2dmap.png',
+    url:'https://raw.githubusercontent.com/jonovotny/vectorized-realms/main/toril-2e/toril-fria-2dmap.png',
+    //url:'_local/toril-fria-2dmap.png',
     projection: 'EPSG:4326',
     imageExtent: [-180, -90, 180, 90],
     interpolate: true,
@@ -124,8 +124,8 @@ const FRIAGlobe = new ImageLayer({
 
 const faerun2000 = new ImageLayer({
   source: new Static({
-    //url:'https://raw.githubusercontent.com/jonovotny/vectorized-realms/main/faerun-3e/faerun-3e.jpg',
-    url:'_local/faerun-3e.jpg',
+    url:'https://raw.githubusercontent.com/jonovotny/vectorized-realms/main/faerun-3e/faerun-3e.jpg',
+    //url:'_local/faerun-3e.jpg',
     projection: 'EPSG:4326',
     imageExtent: [-86.5, 10, -28, 49.1],
     attributions: '&copy; WotC 2000',
@@ -183,6 +183,11 @@ const TorilMaps = new LayerGroup({
   layers:[FRIAMap]
 });
 
+const SvgLayers = new LayerGroup({
+  title: 'SVG Layers',
+  visible: true,
+});
+/*
 const vectorSource = new VectorSource({
   features: new GeoJSON().readFeatures({"type": "FeatureCollection", "features": []}),
 });
@@ -195,23 +200,24 @@ const vectorLayer = new VectorLayer({
     width: 3,
     lineDash: [0.5, 4],
   }),}),
-});
+});*/
 
 const FaerunMaps = new LayerGroup({
   title: 'Faerun',
   visible: true,
   //layers: [faerun2000warped, faerun2000, faerunRaw, faerunDetail, faerun2000dist],
-  layers:[faerun2000, vectorLayer]
+  layers:[faerun2000]
 });
 
-parseSvg('_local/faerun-v005.svg', [-86.5, 10, -28, 49.1], vectorSource);
+parseSvg('_local/faerun-v006.svg', [-86.5, 10, -28, 49.1], SvgLayers);
 
 const torilmap = new Map({
   target: 'map',
   controls: defaultControls().extend([new Map3DControl()]),
   layers: [
     TorilMaps,
-    FaerunMaps,  
+    FaerunMaps,
+    SvgLayers,
     new Graticule({
       title: 'Graticule',
       // the style to use for the lines, optional.

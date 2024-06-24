@@ -1,18 +1,21 @@
 import {matrix, index, identity, multiply} from 'mathjs';
 import GeoJSON from 'ol/format/GeoJSON.js';
 import {Vector as VectorSource} from 'ol/source.js';
+import {Vector as VectorLayer} from 'ol/layer.js';
+import {Fill, Stroke, Style} from 'ol/style.js';
+import LayerGroup from 'ol/layer/Group';
 
-export default async function parseSvg(source, extent, vectorSource) {
+export default async function parseSvg(source, extent, layerGroup) {
 	var svgDoc;
 	var parser = new DOMParser();
 	var json = {};
 	await fetch(source).then(response => response.text()).then(text => svgDoc = parser.parseFromString(text, "text/xml"))
-	json = processSvg(svgDoc, extent);
-	console.log(json);
-	vectorSource.addFeatures(new GeoJSON().readFeatures(json));
+	json = processSvg(svgDoc, extent, layerGroup);
+
+	//vectorSource.addFeatures(new GeoJSON().readFeatures(json));
 }
 
-export function processSvg(doc, extent) {
+export function processSvg(doc, extent, layerGroup) {
 	var svg = doc.querySelector('svg');
 	var defs;
 	var svgextent = svg.viewBox.baseVal;
@@ -20,10 +23,6 @@ export function processSvg(doc, extent) {
 
 	var transform = matrix([[Math.abs(extent[2]-extent[0])/Math.abs(svgextent.width - svgextent.x), 0, extent[0]], [0, -Math.abs(extent[3]-extent[1])/Math.abs(svgextent.height - svgextent.y), extent[3]], [0,0,1]]);
 	//transform = identity(3);
-	//console.log(transform._data);
-
-	//console.log(multiply(transform,matrix([[3055.4079],[2043.6419],[1.0]]))._data);
-
 
 	for (var elem of Array.from(svg.children)){
 		//console.log(elem);
@@ -31,15 +30,17 @@ export function processSvg(doc, extent) {
 			defs = elem;
 		}
 		if (elem.tagName == "g") {
-			json = processGroup(elem, transform, json);
+			if ((elem.getAttribute("inkscape:label") == "Vector data")) {
+				json = processGroup(elem, transform, json, layerGroup);
+			}
 		}
 	}
-	console.log(json);
+	//console.log(json);
 	return json;
 }
 
-function processGroup(grp, transform, json){
-	console.log(grp.getAttribute("inkscape:label"))
+function processGroup(grp, transform, json, layerGroup){
+	console.log()
 	/*if (!(grp.getAttribute("inkscape:label") == "Vector data" || grp.getAttribute("inkscape:label") == "Water - continental shelf")) {
 		return json;
 	}*/
@@ -51,15 +52,43 @@ function processGroup(grp, transform, json){
 		
 		switch (elem.tagName) {
 			case "g":
-				comb_json = processGroup(elem, comb_trans, comb_json);
+				var layerSubGroup = new LayerGroup({
+					title: grp.getAttribute("inkscape:label"),
+					visible: true,
+				  });
+				layerGroup.getLayers().push(layerSubGroup);
+				comb_json = processGroup(elem, comb_trans, comb_json, layerSubGroup);
 				break;
 			case "path":
-				comb_json = processPath(elem, comb_trans, comb_json);
+				comb_json = processPath(elem, comb_trans, comb_json, layerGroup);
 				break;
 		}
 	}
 	
-	return comb_json;
+	var vectorSource = new VectorSource({
+		features: new GeoJSON().readFeatures(comb_json),
+	});
+
+	var style = grp.getAttribute("style");
+	var color = style.match(/#[0-9aAbBcCdDeEfF]{6}/g);
+	if (color){
+		color = color[0];
+	} else {
+		color = 'rgba(255,0,0,1.0)';
+	}
+
+	var vectorLayer = new VectorLayer({
+		title: grp.getAttribute("inkscape:label"),
+		source: vectorSource,
+		style: new Style({ stroke: new Stroke({
+		  color: color,
+		  width: 2,
+		}),}),
+	  });
+	
+	  layerGroup.getLayers().push(vectorLayer);
+	
+	return json;
 }
 
 
