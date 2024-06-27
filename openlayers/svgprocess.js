@@ -19,10 +19,11 @@ export function processSvg(doc, extent, layerGroup) {
 	var svg = doc.querySelector('svg');
 	var defs;
 	var svgextent = svg.viewBox.baseVal;
-	var json = { "type": "FeatureCollection", "features": []};
 
 	var transform = matrix([[Math.abs(extent[2]-extent[0])/Math.abs(svgextent.width - svgextent.x), 0, extent[0]], [0, -Math.abs(extent[3]-extent[1])/Math.abs(svgextent.height - svgextent.y), extent[3]], [0,0,1]]);
 	//transform = identity(3);
+
+	var current = [0,0];
 
 	for (var elem of Array.from(svg.children)){
 		//console.log(elem);
@@ -31,7 +32,7 @@ export function processSvg(doc, extent, layerGroup) {
 		}
 		if (elem.tagName == "g") {
 			if ((elem.getAttribute("inkscape:label") == "Vector data")) {
-				json = processGroup(elem, transform, json, layerGroup);
+				json = processGroup(elem, transform, layerGroup, current);
 			}
 		}
 	}
@@ -39,76 +40,83 @@ export function processSvg(doc, extent, layerGroup) {
 	return json;
 }
 
-function processGroup(grp, transform, json, layerGroup){
-	console.log()
+function processGroup(grp, transform, parentLayer, current){
+	console.log("G - " +  grp.getAttribute("inkscape:label"))
 	/*if (!(grp.getAttribute("inkscape:label") == "Vector data" || grp.getAttribute("inkscape:label") == "Water - continental shelf")) {
 		return json;
 	}*/
 	
-	var comb_trans = processTransform (grp, transform)
-	var comb_json = json;
+	var comb_trans = processTransform (grp, transform);
+	var comb_json = { "type": "FeatureCollection", "features": []};
+	var style = null;
 
 	for (var elem of Array.from(grp.children)){
-		
 		switch (elem.tagName) {
 			case "g":
-				var layerSubGroup = new LayerGroup({
+				var layerGrp = new LayerGroup({
 					title: elem.getAttribute("inkscape:label"),
 					visible: true,
-				  });
-				layerGroup.getLayers().array_.push(layerSubGroup);
-				comb_json = processGroup(elem, comb_trans, json, layerSubGroup);
-
-				var vectorSource = new VectorSource({
-					features: new GeoJSON().readFeatures(comb_json),
 				});
-			
-				var style = grp.getAttribute("style");
-				var color = style.match(/#[0-9aAbBcCdDeEfF]{6}/g);
-				if (color){
-					color = color[0];
-				} else {
-					color = 'rgba(255,0,0,1.0)';
+
+				processGroup(elem, comb_trans, layerGrp, current);
+
+				if(layerGrp.getLayers().array_.length > 0){
+					parentLayer.getLayers().array_.push(layerGrp);
 				}
-			
-				var vectorLayer = new VectorLayer({
-					title: grp.getAttribute("inkscape:label"),
-					source: vectorSource,
-					style: new Style({ stroke: new Stroke({
-					  color: color,
-					  width: 2,
-					}),}),
-				  });
-				
-				  layerGroup.getLayers().array_.push(vectorLayer);
+
 				break;
 			case "path":
-				comb_json = processPath(elem, comb_trans, comb_json, layerGroup);
+				style = elem.getAttribute("style");
+				comb_json = processPath(elem, comb_trans, comb_json, current);
 				break;
 		}
 	}
-	
 
+	if (comb_json == { "type": "FeatureCollection", "features": []}){
+		return;
+	}
 	
-	return json;
+	var vectorSource = new VectorSource({
+		features: new GeoJSON().readFeatures(comb_json),
+	});
+
+	var color = style.match(/#[0-9aAbBcCdDeEfF]{6}/g);
+	if (color){
+		color = color[0];
+	} else {
+		color = 'rgba(255,0,0,1.0)';
+	}
+
+	var vectorLayer = new VectorLayer({
+		title: elem.getAttribute("inkscape:label"),
+		source: vectorSource,
+		style: new Style({ stroke: new Stroke({
+			color: color,
+			width: 2,
+			}),
+		}),
+	});
+
+	parentLayer.getLayers().array_.push(vectorLayer);
+
+	return;
 }
 
 
-function processPath (elem, transform, json) {
-	/*if (elem.getAttribute("inkscape:label") == "Endless wastes"){
+function processPath (elem, transform, json, current) {
+	if (elem.getAttribute("inkscape:label") == "Lizard marsh"){
 		var brk = null;
-	}*/
+	}
+	console.log(" P - " +  elem.getAttribute("inkscape:label"))
 
 	var comb_trans = processTransform (elem, transform);
 	
-	var current = [0,0];
-	if (json.features.length > 0){
-		json.features.at(-1).geometry.coordinates.at(-1);
+	/*if (json.features.length > 0){
+		current = json.features.at(-1).geometry.coordinates.at(-1);
 	}
-		
 	while (Array.isArray(current[0])) {
 		current = current.at(-1);
-	}
+	}*/
 	var coordinates = [];
 	var lines = [];
 	var polygons = [];
@@ -116,12 +124,14 @@ function processPath (elem, transform, json) {
 	var modeAbs = false;
 
 	var values = elem.getAttribute("d").replaceAll(/\s+|\s*,\s*|([MLHVCSQTAZmlhvcsqtaz])(\d)|(\d)(-)/g, "$1 $2").split(" ");
+	var prevModeGeo = "m";
 	var modeGeo = "m";
 	var vecSum = 0
 
 	for (var i = 0; i < values.length; i++) {
 		var val = values[i];
 		if (val.match(/[MLHVCSQTAZmlhvcsqtaz]/g)) {
+			prevModeGeo = modeGeo;
 			modeGeo = val.toLowerCase();
 			modeAbs = !(val == modeGeo);
 
@@ -132,6 +142,7 @@ function processPath (elem, transform, json) {
 				vecSum = 0;
 			}
 			if (modeGeo == "z" && coordinates.length > 0) {
+				modeGeo = prevModeGeo;
 				coordinates.push(coordinates[0]);
 				current = coordinates[0];
 				if (coordinates.length > 2) {
@@ -139,7 +150,7 @@ function processPath (elem, transform, json) {
 					vecSum += (current[0]-previous[0])*(current[1]+previous[1]);
 				}
 				coordinates = transformCoords(coordinates, comb_trans);
-				console.log(vecSum);
+				//console.log(vecSum);
 				polygons.push(coordinates);
 				coordinates = [];
 				vecSum = 0;
@@ -209,7 +220,10 @@ function processPath (elem, transform, json) {
 			json.features.push({"type": "Feature", "geometry": {"type": "Polygon", "coordinates": polygons}, "properties": {"label": elem.getAttribute("inkscape:label")}});
 		}
 	}
-	console.log(json);
+	//console.log(json);
+	
+	current = transformCoords([current], comb_trans)[0];
+	
 	return json;
 }
 
@@ -239,18 +253,26 @@ function processTransform (elem, transform) {
 			var result = /\s*,?\s*(matrix|translate|scale|rotate|skewX|skewY)\s*\((.*?)\)/.exec(trans_str);
 			var t = identity(3);;
 			if (result) {
-				var values = result[2].match(/\d+(?:\.\d+)?/g).map(Number);
+				var values = result[2].match(/-?\d+(?:\.\d*)?(?:e-?\d+)?/g).map(Number);
 				switch (result[1]) {
 					case 'matrix':
 						t = matrix([[values[0],values[2],values[4]], [values[1],values[3],values[5]], [0,0,1]]);
 						break;
 					case 'translate':
 						t.subset(index(0,2), values[0]);
-						t.subset(index(1,2), values[1]);
+						if (values.length > 1) {
+							t.subset(index(1,2), values[1]);
+						} else {
+							t.subset(index(1,2), 0);
+						}
 						break;
 					case 'scale':
 						t.subset(index(0,0), values[0]);
-						t.subset(index(1,1), values[1]);
+						if (values.length > 1) {
+							t.subset(index(1,1), values[1]);
+						} else {
+							t.subset(index(1,1), values[0]);
+						}
 						break;
 					case 'rotate':
 						t.subset(index(0,0), cos(values[0]));
