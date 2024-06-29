@@ -21,7 +21,7 @@ import {Fill, Stroke, Style} from 'ol/style.js';
 
 
 import {OLCS_ION_TOKEN} from './_common.js';
-//Cesium.Ion.defaultAccessToken = OLCS_ION_TOKEN;
+Cesium.Ion.defaultAccessToken = OLCS_ION_TOKEN;
 var attribution3D = null;
 
 //
@@ -246,7 +246,7 @@ const layerSwitcher = new LayerSwitcher({
 
 torilmap.addControl(layerSwitcher);
 
-/*const button2D = new Map2DControl();
+const button2D = new Map2DControl();
 
 const ol3d = new OLCesium({
   map: torilmap
@@ -265,4 +265,4 @@ document.addEventListener("keypress", function(event) {
   if (event.key == 'c') {
     ol3d.setEnabled(!ol3d.getEnabled());
   }
-});*/
+});
