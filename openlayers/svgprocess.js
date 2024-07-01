@@ -32,12 +32,12 @@ export function processSvg(doc, extent, layerGroup) {
 		}
 		if (elem.tagName == "g") {
 			if ((elem.getAttribute("inkscape:label") == "Vector data")) {
-				json = processGroup(elem, transform, layerGroup, current);
+				processGroup(elem, transform, layerGroup, current);
 			}
 		}
 	}
 	//console.log(json);
-	return json;
+	//return json;
 }
 
 function processGroup(grp, transform, parentLayer, current){
@@ -49,6 +49,7 @@ function processGroup(grp, transform, parentLayer, current){
 	var comb_trans = processTransform (grp, transform);
 	var comb_json = { "type": "FeatureCollection", "features": []};
 	var style = null;
+	var color = 'rgba(255,0,0,1.0)';
 
 	for (var elem of Array.from(grp.children)){
 		switch (elem.tagName) {
@@ -60,8 +61,12 @@ function processGroup(grp, transform, parentLayer, current){
 
 				processGroup(elem, comb_trans, layerGrp, current);
 
-				if(layerGrp.getLayers().array_.length > 0){
+				if(layerGrp.getLayers().array_.length > 1){
 					parentLayer.getLayers().array_.push(layerGrp);
+				} else {
+					var vlay = layerGrp.getLayers().array_[0];
+					vlay.set('title', elem.getAttribute("inkscape:label"));
+					parentLayer.getLayers().array_.push(vlay);
 				}
 
 				break;
@@ -75,16 +80,16 @@ function processGroup(grp, transform, parentLayer, current){
 	if (comb_json == { "type": "FeatureCollection", "features": []}){
 		return;
 	}
-	
+
 	var vectorSource = new VectorSource({
 		features: new GeoJSON().readFeatures(comb_json),
 	});
 
-	var color = style.match(/#[0-9aAbBcCdDeEfF]{6}/g);
-	if (color){
-		color = color[0];
-	} else {
-		color = 'rgba(255,0,0,1.0)';
+	if (style) {
+		color = style.match(/#[0-9aAbBcCdDeEfF]{6}/g);
+		if (color){
+			color = color[0];
+		}
 	}
 
 	var vectorLayer = new VectorLayer({

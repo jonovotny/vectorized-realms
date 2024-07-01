@@ -9,6 +9,10 @@ import LayerGroup from 'ol/layer/Group';
 import 'ol-layerswitcher/dist/ol-layerswitcher.css';
 import LayerSwitcher from 'ol-layerswitcher';
 import OLCesium from 'olcs';
+import FeatureConverter from 'olcs';
+
+//, VectorSynchronizer
+
 import {Control, defaults as defaultControls} from 'ol/control.js';
 //import Cesium from 'cesium';
 
@@ -202,14 +206,27 @@ const vectorLayer = new VectorLayer({
   }),}),
 });*/
 
+const grat = new Graticule({
+  title: 'Graticule',
+  // the style to use for the lines, optional.
+  strokeStyle: new Stroke({
+    color: 'rgba(255,120,0,0.6)',
+    width: 2,
+    lineDash: [0.5, 4],
+  }),
+  showLabels: true,
+  wrapX: false,
+  visible: false,
+})
+
 const FaerunMaps = new LayerGroup({
   title: 'Faerun',
   visible: true,
   //layers: [faerun2000warped, faerun2000, faerunRaw, faerunDetail, faerun2000dist],
-  layers:[faerun2000]
+  layers:[faerun2000, grat]
 });
 
-parseSvg('_local/faerun-v006.svg', [-86.5, 10, -28, 49.1], SvgLayers);
+await parseSvg('_local/faerun-v007.svg', [-86.5, 10, -28, 49.1], SvgLayers);
 
 const torilmap = new Map({
   target: 'map',
@@ -218,18 +235,6 @@ const torilmap = new Map({
     TorilMaps,
     FaerunMaps,
     SvgLayers,
-    new Graticule({
-      title: 'Graticule',
-      // the style to use for the lines, optional.
-      strokeStyle: new Stroke({
-        color: 'rgba(255,120,0,0.6)',
-        width: 2,
-        lineDash: [0.5, 4],
-      }),
-      showLabels: true,
-      wrapX: false,
-      visible: false,
-    }),
   ],
   view: new View({
     center: [-55, 30],
@@ -254,6 +259,15 @@ const ol3d = new OLCesium({
 const scene = ol3d.getCesiumScene();
 Cesium.createWorldTerrainAsync().then(tp => scene.terrainProvider = tp);
 ol3d.setEnabled(false);
+
+// convert OpenLayers Vector Layer to CesiumJS primitives
+
+/*const converter = new FeatureConverter(ol3d.scene_);
+const featurePrimitiveMap = {};
+const counterpart = this.converter.olVectorLayerToCesium(SvgLayers, torilmap.getView(), featurePrimitiveMap);
+const csPrimitives = counterpart.getRootPrimitive();
+ol3d.scene_.primitives.add(csPrimitives);*/
+
 
 ol3d.canvas_.after(button2D.element);
 ol3d.scene_.skyAtmosphere.show = false;
