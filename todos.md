@@ -10,7 +10,7 @@ TODOs:
 - [x] Ocean
 - [x] Plain/Grass
 - [x] Forest/Jungle
-- [ ] Swamps/etc.
+- [x] Swamps/etc.
 - [ ] Deserts
 - [ ] Hills
 - [ ] Badlands
@@ -26,7 +26,7 @@ TODOs:
 - [x] Swamps/etc.
 - [x] Deserts
 - [ ] Hills
-- [ ] Badlands
+- [x] Badlands
 - [ ] Mountains
 - [ ] Lakes/Rivers
 - [ ] Labels
@@ -35,7 +35,7 @@ TODOs:
 
 - [x] 3e -> 2e registration
 - [ ] transformations field export
-- [ ] Topo/GeoJson transformation
+- [x] Topo/GeoJson transformation
 - [ ] Automatic feature generation (hills)
 - [ ] Automatic feature generation (mountains)
 

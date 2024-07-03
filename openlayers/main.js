@@ -260,20 +260,10 @@ const scene = ol3d.getCesiumScene();
 Cesium.createWorldTerrainAsync().then(tp => scene.terrainProvider = tp);
 ol3d.setEnabled(false);
 
-// convert OpenLayers Vector Layer to CesiumJS primitives
-
-/*const converter = new FeatureConverter(ol3d.scene_);
-const featurePrimitiveMap = {};
-const counterpart = this.converter.olVectorLayerToCesium(SvgLayers, torilmap.getView(), featurePrimitiveMap);
-const csPrimitives = counterpart.getRootPrimitive();
-ol3d.scene_.primitives.add(csPrimitives);*/
-
-
 ol3d.canvas_.after(button2D.element);
 ol3d.scene_.skyAtmosphere.show = false;
 ol3d.scene_.fog.enabled = false;
 ol3d.globe_.showGroundAtmosphere=false; 
-
 
 document.addEventListener("keypress", function(event) {
   if (event.key == 'c') {
