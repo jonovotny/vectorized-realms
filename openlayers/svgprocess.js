@@ -5,6 +5,8 @@ import {Vector as VectorLayer} from 'ol/layer.js';
 import {Fill, Stroke, Style} from 'ol/style.js';
 import LayerGroup from 'ol/layer/Group';
 
+var features = {};
+
 export default async function parseSvg(source, extent, layerGroup) {
 	var svgDoc;
 	var parser = new DOMParser();
@@ -13,6 +15,8 @@ export default async function parseSvg(source, extent, layerGroup) {
 	json = processSvg(svgDoc, extent, layerGroup);
 
 	//vectorSource.addFeatures(new GeoJSON().readFeatures(json));
+	//console.log(features);
+	createMountainFeatures();
 }
 
 export function processSvg(doc, extent, layerGroup) {
@@ -41,7 +45,7 @@ export function processSvg(doc, extent, layerGroup) {
 }
 
 function processGroup(grp, transform, parentLayer, current){
-	console.log("G - " +  grp.getAttribute("inkscape:label"))
+	//console.log("G - " +  grp.getAttribute("inkscape:label"))
 	/*if (!(grp.getAttribute("inkscape:label") == "Vector data" || grp.getAttribute("inkscape:label") == "Water - continental shelf")) {
 		return json;
 	}*/
@@ -72,7 +76,7 @@ function processGroup(grp, transform, parentLayer, current){
 				break;
 			case "path":
 				style = elem.getAttribute("style");
-				comb_json = processPath(elem, comb_trans, comb_json, current);
+				processPath(elem, comb_trans, comb_json, current);
 				break;
 		}
 	}
@@ -102,6 +106,7 @@ function processGroup(grp, transform, parentLayer, current){
 		}),
 	});
 
+	features[grp.getAttribute("inkscape:label")] = comb_json;
 	parentLayer.getLayers().array_.push(vectorLayer);
 
 	return;
@@ -112,7 +117,7 @@ function processPath (elem, transform, json, current) {
 	if (elem.getAttribute("inkscape:label") == "Lizard marsh"){
 		var brk = null;
 	}
-	console.log(" P - " +  elem.getAttribute("inkscape:label"))
+	//console.log(" P - " +  elem.getAttribute("inkscape:label"))
 
 	var comb_trans = processTransform (elem, transform);
 	
@@ -301,4 +306,31 @@ function processTransform (elem, transform) {
 		comb_trans = multiply(comb_trans, t)
 	}
 	return comb_trans;
+}
+
+function createMountainFeatures(){
+	var dataPairs = {};
+	for (var ridge of features.Ridges.features) {
+		dataPairs[ridge.properties.label] = [ridge.geometry.coordinates];
+	}
+	for (var mountain of features.Mountains.features){
+		if (dataPairs[mountain.properties.label]) {
+			dataPairs[mountain.properties.label].push(mountain.geometry.coordinates[0]);
+		}
+	}
+
+	for (var [key,data] of Object.entries(dataPairs)) {
+		var split1 = data[1].findIndex(compareCoordinates(data[0][2],0.00000000000005));
+		var split2 = data[1].findIndex(compareCoordinates(data[0].at(-3),0.00000000000005));
+
+		console.log(key + ": " + split1 + ", " + split2);
+
+	}
+
+	console.log(dataPairs);
+	return;
+}
+
+function compareCoordinates(target, precision){
+	return (coord) => (Math.abs(coord[0] - target[0]) <= precision && Math.abs(coord[1] - target[1]) <= precision);
 }
