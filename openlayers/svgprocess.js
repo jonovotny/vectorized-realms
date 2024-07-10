@@ -320,11 +320,20 @@ function createMountainFeatures(){
 	}
 
 	for (var [key,data] of Object.entries(dataPairs)) {
-		var split1 = data[1].findIndex(compareCoordinates(data[0][2],0.00000000000005));
-		var split2 = data[1].findIndex(compareCoordinates(data[0].at(-3),0.00000000000005));
+		var split1 = data[1].findIndex(compareCoordinates(data[0][2],0.000001));
+		var split2 = data[1].findIndex(compareCoordinates(data[0].at(-3),0.000001));
+		var flank1, flank2;
 
-		console.log(key + ": " + split1 + ", " + split2);
-
+		//console.log(key + ": " + split1 + ", " + split2);
+		if (split1 > split2) {
+			flank1 = data[0].slice(3,-4).concat(data[1].slice(split1).concat(data[1].slice(1,split2).concat([data[0][3]])));
+			flank2 = data[0].slice(3,-4).concat(data[1].slice(split2,split1).concat([data[0][3]]));
+		} else {
+			flank1 = data[0].slice(3,-4).concat(data[1].slice(split1,split2).concat([data[0][3]]));
+			flank2 = data[0].slice(3,-4).concat(data[1].slice(split2).concat(data[1].slice(1,split1).concat([data[0][3]])));
+		}
+		console.log(key);
+		console.log(flank2);
 	}
 
 	console.log(dataPairs);
