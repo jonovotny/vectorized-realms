@@ -348,10 +348,14 @@ function createMountainFeatures(layerGroups){
 
 		fd.features.push({"type": "Feature", "geometry": {"type": "Polygon", "coordinates": [dark]}, "properties": {"label": key}});
 		fb.features.push({"type": "Feature", "geometry": {"type": "Polygon", "coordinates": [bright]}, "properties": {"label": key}});
+
+		var brightCenter = sampleMiddle(data[0].slice(2,-2),flank_bright.reverse(),5.0);
+		brightCenter.unshift(data[0][0]);
+		brightCenter.push(data[0].at(-2));
+		sideb.features.push({"type": "Feature", "geometry": {"type": "LineString", "coordinates": brightCenter}, "properties": {"label": key}});
+	
 	}
 
-	var brightCenter = sampleMiddle(data[0].slice(2,-2),flank_bright.reverse(),5.0);
-	sideb.features.push({"type": "Feature", "geometry": {"type": "LineString", "coordinates": [brightCenter]}, "properties": {"label": key}});
 
 	var vecSrcD = new VectorSource({
 		features: new GeoJSON().readFeatures(fd),
@@ -387,8 +391,10 @@ function createMountainFeatures(layerGroups){
 		title: "Bright Sides",
 		source: vecSrcSideB,
 		style: new Style({ stroke: new Stroke({
-			color: 'rgba(060,60,230,1.0)',
+			color: 'rgba(60,60,230,1.0)',
 			width: 2.0,
+			lineDash: [1, 5],
+			lineCap: 'butt',
 			}),
 		}),
 	});
@@ -410,7 +416,7 @@ function sampleMiddle(a,b,minSample){
 	var distListA = createDistList(a);
 	var distListB = createDistList(b);
 
-	var samples = 4;
+	var samples = 8;
 	var segA = distListA.at(-1)[0]/samples;
 	var segB = distListB.at(-1)[0]/samples;
 	var limA = 0;
@@ -431,13 +437,13 @@ function sampleMiddle(a,b,minSample){
 			posA++;
 		}
 		factA = (limA-distListA[posA-1][0])/(distListA[posA][0]-distListA[posA-1][0]);
-		pointA = [distListA[posA-1][1][0]*factA+distListA[posA][1][0]*(1.0-factA), distListA[posA-1][1][0]*factA+distListA[posA][1][0]*(1.0-factA)];
+		pointA = [distListA[posA-1][1][0]*(1.0-factA)+distListA[posA][1][0]*factA, distListA[posA-1][1][1]*(1.0-factA)+distListA[posA][1][1]*factA];
 
 		while(distListB[posB][0] < limB) {
 			posB++;
 		}
 		factB = (limB-distListB[posB-1][0])/(distListB[posB][0]-distListB[posB-1][0]);
-		pointB = [distListB[posB-1][1][0]*factB+distListB[posB][1][0]*(1.0-factB), distListB[posB-1][1][0]*factB+distListB[posB][1][0]*(1.0-factB)];
+		pointB = [distListB[posB-1][1][0]*(1.0-factB)+distListB[posB][1][0]*factB, distListB[posB-1][1][1]*(1.0-factB)+distListB[posB][1][1]*factB];
 
 		midpoints.push([(pointA[0]+pointB[0])/2,(pointA[1]+pointB[1])/2]);
 
