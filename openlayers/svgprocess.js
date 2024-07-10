@@ -16,7 +16,7 @@ export default async function parseSvg(source, extent, layerGroup) {
 
 	//vectorSource.addFeatures(new GeoJSON().readFeatures(json));
 	//console.log(features);
-	createMountainFeatures();
+	createMountainFeatures(layerGroup);
 }
 
 export function processSvg(doc, extent, layerGroup) {
@@ -308,7 +308,7 @@ function processTransform (elem, transform) {
 	return comb_trans;
 }
 
-function createMountainFeatures(){
+function createMountainFeatures(layerGroups){
 	var dataPairs = {};
 	for (var ridge of features.Ridges.features) {
 		dataPairs[ridge.properties.label] = [ridge.geometry.coordinates];
@@ -319,22 +319,84 @@ function createMountainFeatures(){
 		}
 	}
 
+	var fd = {"type": "FeatureCollection", "features": []};
+	var fb = {"type": "FeatureCollection", "features": []};
+	var sided = {"type": "FeatureCollection", "features": []};
+	var sideb = {"type": "FeatureCollection", "features": []};
+	var ridges = {"type": "FeatureCollection", "features": []};
+
+
+
 	for (var [key,data] of Object.entries(dataPairs)) {
 		var split1 = data[1].findIndex(compareCoordinates(data[0][2],0.000001));
 		var split2 = data[1].findIndex(compareCoordinates(data[0].at(-3),0.000001));
-		var flank1, flank2;
+		var flank_dark, flank_bright;
 
-		//console.log(key + ": " + split1 + ", " + split2);
+		console.log(key + ": " + split1 + ", " + split2);
 		if (split1 > split2) {
-			flank1 = data[0].slice(3,-4).concat(data[1].slice(split1).concat(data[1].slice(1,split2).concat([data[0][3]])));
-			flank2 = data[0].slice(3,-4).concat(data[1].slice(split2,split1).concat([data[0][3]]));
+			flank_dark = data[1].slice(split1).concat(data[1].slice(0,split2+1));
+			flank_bright = data[1].slice(split2,split1+1);
 		} else {
-			flank1 = data[0].slice(3,-4).concat(data[1].slice(split1,split2).concat([data[0][3]]));
-			flank2 = data[0].slice(3,-4).concat(data[1].slice(split2).concat(data[1].slice(1,split1).concat([data[0][3]])));
+			flank_dark = data[1].slice(split1,split2+1);
+			flank_bright = data[1].slice(split2).concat(data[1].slice(0,split1+1));
 		}
-		console.log(key);
-		console.log(flank2);
+
+		var dark = flank_dark.concat(data[0].slice(3,-3).reverse());
+		dark = dark.concat([data[1][split1]]);
+		var bright = flank_bright.concat(data[0].slice(3,-3));
+		bright = bright.concat([data[1][split2]]);
+
+		fd.features.push({"type": "Feature", "geometry": {"type": "Polygon", "coordinates": [dark]}, "properties": {"label": key}});
+		fb.features.push({"type": "Feature", "geometry": {"type": "Polygon", "coordinates": [bright]}, "properties": {"label": key}});
 	}
+
+	var brightCenter = sampleMiddle(data[0].slice(2,-2),flank_bright.reverse(),5.0);
+	sideb.features.push({"type": "Feature", "geometry": {"type": "LineString", "coordinates": [brightCenter]}, "properties": {"label": key}});
+
+	var vecSrcD = new VectorSource({
+		features: new GeoJSON().readFeatures(fd),
+	});
+
+	var vecSrcB = new VectorSource({
+		features: new GeoJSON().readFeatures(fb),
+	});
+
+	var vecSrcSideB = new VectorSource({
+		features: new GeoJSON().readFeatures(sideb),
+	});
+
+	var vectorLayerD = new VectorLayer({
+		title: "Dark Flanks",
+		source: vecSrcD,
+		style: new Style({ fill: new Fill({
+			color: 'rgba(230,60,60,0.3)',
+			}),
+		}),
+	});
+
+	var vectorLayerB = new VectorLayer({
+		title: "Bright Flanks",
+		source: vecSrcB,
+		style: new Style({ fill: new Fill({
+			color: 'rgba(60,230,60,0.3)',
+			}),
+		}),
+	});
+
+	var vectorLayerSideB = new VectorLayer({
+		title: "Bright Sides",
+		source: vecSrcSideB,
+		style: new Style({ stroke: new Stroke({
+			color: 'rgba(060,60,230,1.0)',
+			width: 2.0,
+			}),
+		}),
+	});
+
+	layerGroups.getLayers().array_.push(vectorLayerD);
+	layerGroups.getLayers().array_.push(vectorLayerB);
+	layerGroups.getLayers().array_.push(vectorLayerSideB);
+
 
 	console.log(dataPairs);
 	return;
@@ -342,4 +404,54 @@ function createMountainFeatures(){
 
 function compareCoordinates(target, precision){
 	return (coord) => (Math.abs(coord[0] - target[0]) <= precision && Math.abs(coord[1] - target[1]) <= precision);
+}
+
+function sampleMiddle(a,b,minSample){
+	var distListA = createDistList(a);
+	var distListB = createDistList(b);
+
+	var samples = 4;
+	var segA = distListA.at(-1)[0]/samples;
+	var segB = distListB.at(-1)[0]/samples;
+	var limA = 0;
+	var limB = 0;
+	var posA = 1;
+	var posB = 1;
+	var factA = 0;
+	var factB = 0;
+	var pointA, pointB;
+
+	var midpoints = [];
+
+	for (var i = 1; i < samples; i++) {
+		limA += segA;
+		limB += segB;
+
+		while(distListA[posA][0] < limA) {
+			posA++;
+		}
+		factA = (limA-distListA[posA-1][0])/(distListA[posA][0]-distListA[posA-1][0]);
+		pointA = [distListA[posA-1][1][0]*factA+distListA[posA][1][0]*(1.0-factA), distListA[posA-1][1][0]*factA+distListA[posA][1][0]*(1.0-factA)];
+
+		while(distListB[posB][0] < limB) {
+			posB++;
+		}
+		factB = (limB-distListB[posB-1][0])/(distListB[posB][0]-distListB[posB-1][0]);
+		pointB = [distListB[posB-1][1][0]*factB+distListB[posB][1][0]*(1.0-factB), distListB[posB-1][1][0]*factB+distListB[posB][1][0]*(1.0-factB)];
+
+		midpoints.push([(pointA[0]+pointB[0])/2,(pointA[1]+pointB[1])/2]);
+
+	}
+	return midpoints;
+}
+
+function createDistList(line) {
+	var dist = 0.0;
+	var distList = [[dist,line[0]]];
+
+	for (var i = 1; i < line.length; i++) {
+		dist += Math.sqrt(Math.pow(line[i][0]-line[i-1][0],2)+Math.pow(line[i][1]-line[i-1][1],2));
+		distList.push([dist,line[i]]);
+	}
+	return distList;
 }
