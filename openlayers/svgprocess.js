@@ -11,8 +11,7 @@ export default async function parseSvg(source, extent, layerGroup) {
 	var svgDoc;
 	var parser = new DOMParser();
 	var json = {};
-	await fetch(source).then(response => response.text()).then(text => svgDoc = parser.parseFromString(text, "text/xml"))
-	json = processSvg(svgDoc, extent, layerGroup);
+	await fetch(source).then(response => response.text()).then(text => svgDoc = parser.parseFromString(text, "text/xml")).then(doc => processSvg(doc, extent, layerGroup));
 
 	//vectorSource.addFeatures(new GeoJSON().readFeatures(json));
 	//console.log(features);
@@ -349,29 +348,33 @@ function createMountainFeatures(layerGroups){
 		fd.features.push({"type": "Feature", "geometry": {"type": "Polygon", "coordinates": [dark]}, "properties": {"label": key}});
 		fb.features.push({"type": "Feature", "geometry": {"type": "Polygon", "coordinates": [bright]}, "properties": {"label": key}});
 
-		var brightCenter = sampleMiddle(data[0].slice(2,-2),flank_bright.reverse(),5.0);
+		var centerstart = 0;
+		if (data[0][2][0] == data[0][3][0] && data[0][2][1] == data[0][3][1]) {
+			centerstart = 1;
+		}
+
+		var centerend = 0;
+		if (data[0].at(-3)[0] == data[0].at(-4)[0] && data[0].at(-3)[1] == data[0].at(-4)[1]) {
+			centerend = 1;
+		}
+
+		var darkCenter = sampleMiddle(data[0].slice(2,-2),flank_dark.slice(centerstart,flank_dark.length-centerend),5.0);
+		darkCenter.unshift(data[0][1]);
+		darkCenter.push(data[0].at(-1));
+		sided.features.push({"type": "Feature", "geometry": {"type": "LineString", "coordinates": darkCenter}, "properties": {"label": key}});
+
+		var brightCenter = sampleMiddle(data[0].slice(2,-2),flank_bright.slice(centerend,flank_bright.length-centerstart).reverse(),5.0);
 		brightCenter.unshift(data[0][0]);
 		brightCenter.push(data[0].at(-2));
 		sideb.features.push({"type": "Feature", "geometry": {"type": "LineString", "coordinates": brightCenter}, "properties": {"label": key}});
 	
 	}
 
-
-	var vecSrcD = new VectorSource({
-		features: new GeoJSON().readFeatures(fd),
-	});
-
-	var vecSrcB = new VectorSource({
-		features: new GeoJSON().readFeatures(fb),
-	});
-
-	var vecSrcSideB = new VectorSource({
-		features: new GeoJSON().readFeatures(sideb),
-	});
-
 	var vectorLayerD = new VectorLayer({
 		title: "Dark Flanks",
-		source: vecSrcD,
+		source: new VectorSource({
+			features: new GeoJSON().readFeatures(fd),
+		}),
 		style: new Style({ fill: new Fill({
 			color: 'rgba(230,60,60,0.3)',
 			}),
@@ -380,7 +383,9 @@ function createMountainFeatures(layerGroups){
 
 	var vectorLayerB = new VectorLayer({
 		title: "Bright Flanks",
-		source: vecSrcB,
+		source: new VectorSource({
+			features: new GeoJSON().readFeatures(fb),
+		}),
 		style: new Style({ fill: new Fill({
 			color: 'rgba(60,230,60,0.3)',
 			}),
@@ -389,7 +394,23 @@ function createMountainFeatures(layerGroups){
 
 	var vectorLayerSideB = new VectorLayer({
 		title: "Bright Sides",
-		source: vecSrcSideB,
+		source: new VectorSource({
+			features: new GeoJSON().readFeatures(sideb),
+		}),
+		style: new Style({ stroke: new Stroke({
+			color: 'rgba(60,60,230,1.0)',
+			width: 2.0,
+			lineDash: [1, 5],
+			lineCap: 'butt',
+			}),
+		}),
+	});
+
+	var vectorLayerSideD = new VectorLayer({
+		title: "Bright Sides",
+		source: new VectorSource({
+			features: new GeoJSON().readFeatures(sided),
+		}),
 		style: new Style({ stroke: new Stroke({
 			color: 'rgba(60,60,230,1.0)',
 			width: 2.0,
@@ -402,6 +423,7 @@ function createMountainFeatures(layerGroups){
 	layerGroups.getLayers().array_.push(vectorLayerD);
 	layerGroups.getLayers().array_.push(vectorLayerB);
 	layerGroups.getLayers().array_.push(vectorLayerSideB);
+	layerGroups.getLayers().array_.push(vectorLayerSideD);
 
 
 	console.log(dataPairs);
