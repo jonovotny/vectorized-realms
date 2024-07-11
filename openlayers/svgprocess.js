@@ -1,4 +1,4 @@
-import {matrix, index, identity, multiply} from 'mathjs';
+import {matrix, index, identity, multiply, inv} from 'mathjs';
 import GeoJSON from 'ol/format/GeoJSON.js';
 import {Vector as VectorSource} from 'ol/source.js';
 import {Vector as VectorLayer} from 'ol/layer.js';
@@ -8,14 +8,12 @@ import LayerGroup from 'ol/layer/Group';
 var features = {};
 
 export default async function parseSvg(source, extent, layerGroup) {
-	var svgDoc;
 	var parser = new DOMParser();
-	var json = {};
-	await fetch(source).then(response => response.text()).then(text => svgDoc = parser.parseFromString(text, "text/xml")).then(doc => processSvg(doc, extent, layerGroup));
+	await fetch(source).then(response => response.text()).then(text => parser.parseFromString(text, "text/xml")).then(doc => processSvg(doc, extent, layerGroup));
 
 	//vectorSource.addFeatures(new GeoJSON().readFeatures(json));
 	//console.log(features);
-	createMountainFeatures(layerGroup);
+
 }
 
 export function processSvg(doc, extent, layerGroup) {
@@ -39,6 +37,8 @@ export function processSvg(doc, extent, layerGroup) {
 			}
 		}
 	}
+
+	createMountainFeatures(layerGroup, transform);
 	//console.log(json);
 	//return json;
 }
@@ -307,7 +307,7 @@ function processTransform (elem, transform) {
 	return comb_trans;
 }
 
-function createMountainFeatures(layerGroups){
+function createMountainFeatures(layerGroups, transform){
 	var dataPairs = {};
 	for (var ridge of features.Ridges.features) {
 		dataPairs[ridge.properties.label] = [ridge.geometry.coordinates];
@@ -323,8 +323,6 @@ function createMountainFeatures(layerGroups){
 	var sided = {"type": "FeatureCollection", "features": []};
 	var sideb = {"type": "FeatureCollection", "features": []};
 	var ridges = {"type": "FeatureCollection", "features": []};
-
-
 
 	for (var [key,data] of Object.entries(dataPairs)) {
 		var split1 = data[1].findIndex(compareCoordinates(data[0][2],0.000001));
@@ -367,6 +365,8 @@ function createMountainFeatures(layerGroups){
 		brightCenter.unshift(data[0][0]);
 		brightCenter.push(data[0].at(-2));
 		sideb.features.push({"type": "Feature", "geometry": {"type": "LineString", "coordinates": brightCenter}, "properties": {"label": key}});
+
+		ridges.features.push({"type": "Feature", "geometry": {"type": "LineString", "coordinates": data[0].slice(2,-3)}, "properties": {"label": key}});
 	
 	}
 
@@ -420,13 +420,40 @@ function createMountainFeatures(layerGroups){
 		}),
 	});
 
+	var vectorLayerRidges = new VectorLayer({
+		title: "Bright Sides",
+		source: new VectorSource({
+			features: new GeoJSON().readFeatures(ridges),
+		}),
+		style: new Style({ stroke: new Stroke({
+			color: 'rgba(60,60,230,1.0)',
+			width: 2.0,
+			lineCap: 'round',
+			}),
+		}),
+	});
+
 	layerGroups.getLayers().array_.push(vectorLayerD);
 	layerGroups.getLayers().array_.push(vectorLayerB);
 	layerGroups.getLayers().array_.push(vectorLayerSideB);
 	layerGroups.getLayers().array_.push(vectorLayerSideD);
+	layerGroups.getLayers().array_.push(vectorLayerRidges);
 
 
-	console.log(dataPairs);
+	//const inv_transform = transform.inv();
+	for (var f of sided.features) {
+		featureToPath(f, inv(transform),0.2);
+	}
+
+	var outputSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+
+	var ridgeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+	ridgeGroup.setAttribute('inkscape:label', 'Generated Ridges');
+	outputSvg.appendChild(ridgeGroup);
+
+	var iconPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+
+	//console.log(dataPairs);
 	return;
 }
 
@@ -483,3 +510,46 @@ function createDistList(line) {
 	}
 	return distList;
 }
+
+
+function featureToPath(feature, transform, smooth = 0.0) {
+	var shapes = feature.geometry.coordinates;
+	var pathString = "";
+	var postfix = "";
+	if (feature.geometry.type == "Polygon" || feature.geometry.type == "MultiPolygon") {
+		postfix = "z ";
+	}
+
+	if (feature.geometry.type == "LineString") {
+		shapes = [shapes];
+	}
+	if (feature.geometry.type == "MultiPolygon") {
+		shapes = shapes.flat(1);
+	}
+
+	for (var coords of shapes) {
+		pathString += "M ";
+		var tcoords = transformCoords(coords, transform);
+		if (smooth > 0) {
+			pathString += tcoords[0][0] + "," +tcoords[0][1] + " C ";
+			for (var i = 0; i < tcoords.length-1; i++) {
+				var tangStart = getPathTangent(tcoords[(i-1<0?0:i-1)], tcoords[i], tcoords[i+1], smooth);
+				var tangEnd = getPathTangent(tcoords[i], tcoords[i+1], tcoords[(i+2>=tcoords.length?tcoords.length-1:i+2)], -smooth);
+				pathString += tangStart[0] + "," + tangStart[1] + " " + tangEnd[0] + "," + tangEnd[1] + " " + tcoords[i+1][0] + "," + tcoords[i+1][1] + " ";
+			}
+		} else {
+			pathString += JSON.stringify(tcoords).replaceAll("],[", " ").replace("[[","").replace("]]","") + " ";
+		}
+		pathString += postfix;
+	}
+	
+	
+	console.log(pathString);
+}
+
+function getPathTangent(prev, current, next, scale = 0.2) {
+	return [current[0]+(next[0]-prev[0])*scale, current[1]+(next[1]-prev[1])*scale];
+}
+
+//3055.408
+//6110.816
