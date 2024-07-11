@@ -325,8 +325,8 @@ function createMountainFeatures(layerGroups, transform){
 	var ridges = {"type": "FeatureCollection", "features": []};
 
 	for (var [key,data] of Object.entries(dataPairs)) {
-		var split1 = data[1].findIndex(compareCoordinates(data[0][2],0.000001));
-		var split2 = data[1].findIndex(compareCoordinates(data[0].at(-3),0.000001));
+		var split1 = data[1].findIndex(compareCoordinates(data[0][2],0.00001));
+		var split2 = data[1].findIndex(compareCoordinates(data[0].at(-3),0.00001));
 		var flank_dark, flank_bright;
 
 		console.log(key + ": " + split1 + ", " + split2);
@@ -366,7 +366,7 @@ function createMountainFeatures(layerGroups, transform){
 		brightCenter.push(data[0].at(-2));
 		sideb.features.push({"type": "Feature", "geometry": {"type": "LineString", "coordinates": brightCenter}, "properties": {"label": key}});
 
-		ridges.features.push({"type": "Feature", "geometry": {"type": "LineString", "coordinates": data[0].slice(2,-3)}, "properties": {"label": key}});
+		ridges.features.push({"type": "Feature", "geometry": {"type": "LineString", "coordinates": data[0].slice(3,-3)}, "properties": {"label": key}});
 	
 	}
 
