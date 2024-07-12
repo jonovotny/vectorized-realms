@@ -22,4 +22,6 @@ In practice, not every ridge line reaches the outline of its mountain, so to con
 
 # Side ridges
 
-The second step is to approximate the side ridges. The "brute force" approach would be to draw each individual side ridge as an svg path. This would allow us to recreate the 3e style with very high accuracy, but automatic generation would be difficult, and it would massively increase the file size of the map. 
+The second step is to approximate the side ridges. The "brute force" approach would be to draw each individual side ridge as an svg path. This would allow us to recreate the 3e style with very high accuracy, but automatic generation would be difficult and it would greatly increase the file size of the map with all the extra geometry. So let's try to simplify the side ridges to their fundamental visual features.
+
+Generally, they are orthogonal to the main ridge line, or rather a smoothed version of the main ridge. The lines then meander from the ridge to the foot of the mountain without major turns and lines are relatively evenly spaced. The even spacing is the key to simplify the feature. Rather than thinking of each line as an individual shape, we can think of the entire flank as a very wide stippled line with gaps that match the original line spacing.
