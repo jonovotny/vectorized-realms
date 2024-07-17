@@ -45,3 +45,6 @@ The illuminated areas of the flank additionally have breaks in the flank lines r
 
 So we now have a concept on how to draw mountains. However, it is reliant on a lot of geometric objects that have some overlap. Since it would be cumbersome to create all these objects manually, we will have to come up with a way to automate this process. But that is a story for part 2. 
 
+The second step is to approximate the side ridges. The "brute force" approach would be to draw each individual side ridge as an svg path. This would allow us to recreate the 3e style with very high accuracy, but automatic generation would be difficult and it would greatly increase the file size of the map with all the extra geometry. So let's try to simplify the side ridges to their fundamental visual features.
+
+Generally, they are orthogonal to the main ridge line, or rather a smoothed version of the main ridge. The lines then meander from the ridge to the foot of the mountain without major turns and lines are relatively evenly spaced. The even spacing is the key to simplify the feature. Rather than thinking of each line as an individual shape, we can think of the entire flank as a very wide stippled line with gaps that match the original line spacing.
