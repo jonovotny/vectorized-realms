@@ -310,7 +310,9 @@ function processTransform (elem, transform) {
 function createMountainFeatures(layerGroups, transform){
 	var dataPairs = {};
 	for (var ridge of features.Ridges.features) {
-		dataPairs[ridge.properties.label] = [ridge.geometry.coordinates];
+		if(ridge.geometry.type == "LineString") {
+			dataPairs[ridge.properties.label] = [ridge.geometry.coordinates];
+		}
 	}
 	for (var mountain of features.Mountains.features){
 		if (dataPairs[mountain.properties.label]) {
@@ -393,7 +395,7 @@ function createMountainFeatures(layerGroups, transform){
 	});
 
 	var vectorLayerSideB = new VectorLayer({
-		title: "Bright Sides",
+		title: "Bright Sideridges",
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(sideb),
 		}),
@@ -407,7 +409,7 @@ function createMountainFeatures(layerGroups, transform){
 	});
 
 	var vectorLayerSideD = new VectorLayer({
-		title: "Bright Sides",
+		title: "Dark Sideridges",
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(sided),
 		}),
@@ -421,7 +423,7 @@ function createMountainFeatures(layerGroups, transform){
 	});
 
 	var vectorLayerRidges = new VectorLayer({
-		title: "Bright Sides",
+		title: "Processed Ridges",
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(ridges),
 		}),
