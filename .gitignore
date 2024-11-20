@@ -1,4 +1,5 @@
 _site
+openlayers
 dist
 .DS_Store
 .jekyll
