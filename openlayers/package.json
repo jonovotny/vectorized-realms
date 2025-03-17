@@ -1,0 +1,20 @@
+{
+  "name": "vec-realms",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "vite",
+    "build": "vite build",
+    "serve": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^6.2.0"
+  },
+  "dependencies": {
+    "@turf/turf": "^7.2.0",
+    "cesium": "^1.117.0",
+    "mathjs": "^13.0.0",
+    "ol": "latest",
+    "ol-layerswitcher": "^4.1.0",
+    "olcs": "^2.20.0"
+  }
+}
