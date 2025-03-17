@@ -373,14 +373,14 @@ function createMountainFeatures(layerGroups, transform) {
 		var key = ridge.properties.label.substring(0, ridge.properties.label.length - 1);
 		var num = ridge.properties.label.slice(-1);
 		if(ridge.geometry.type == "LineString" && dataStore[key]) {
-			dataStore[key]["ridges"][num] = truncate(polygon([ridge.geometry.coordinates]), geoPrecision).geometry.coordinates[0];
+			dataStore[key]["ridges"][num] = truncate(lineString(ridge.geometry.coordinates), geoPrecision).geometry.coordinates;
 		}
 	}
 	for (var flank of features.Flanks.features) {
 		var key = flank.properties.label.substring(0, flank.properties.label.length - 2);
 		var num = flank.properties.label.slice(-2);
 		if(flank.geometry.type == "LineString" && dataStore[key]) {
-			dataStore[key]["flanks"][num] = truncate(polygon([flank.geometry.coordinates]), geoPrecision).geometry.coordinates[0];
+			dataStore[key]["flanks"][num] = truncate(lineString(flank.geometry.coordinates), geoPrecision).geometry.coordinates;
 		}
 	}
 	// create the line segment pairs for flank lines by processing ridgelines in order. The first ridgeline is expected to have 2 open ends, each subsequent one needs to have one end point co-located with an already processed ridge point.
@@ -402,7 +402,7 @@ function createMountainFeatures(layerGroups, transform) {
 			// shift polygon indices to avoid dealing with seams
 			var flanksplit = sortedFlanks[0];
 			var outlineCoords = data["outline"];
-			var start = outlineCoords.findIndex(coordEquals(flanksplit));
+			var start = outlineCoords.findIndex(coordEquals(flanksplit[0]));
 			outlineCoords = outlineCoords.slice(start).concat(outlineCoords.slice(1,start+1));
 
 			// sort flank splits along the outline (May cause problems if 2 points start on the same outline node)
@@ -414,7 +414,7 @@ function createMountainFeatures(layerGroups, transform) {
 			var ridgeReverse = JSON.parse(JSON.stringify(sortdRidges[0])).reverse().slice(1);
 			var ridgeCoords = ridgeForward.concat(ridgeReverse);
 
-			start = ridgeCoords.findIndex(coordEquals(flanksplit.geometry.coordinates[1]));
+			start = ridgeCoords.findIndex(coordEquals(flanksplit[1]));
 			ridgeCoords = ridgeCoords.slice(start).concat(ridgeCoords.slice(1,start+1));
 
 			var innerSegments = [ridgeCoords];
