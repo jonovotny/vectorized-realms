@@ -5,7 +5,7 @@ import {Vector as VectorLayer} from 'ol/layer.js';
 import {Fill, Stroke, Style} from 'ol/style.js';
 import LayerGroup from 'ol/layer/Group';
 
-import {featureCollection, multiLineString, polygon, truncate, point, difference, union, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along } from '@turf/turf';
+import {featureCollection, multiLineString, polygon, truncate, point, difference, union, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance } from '@turf/turf';
 
 var features = {};
 
@@ -405,10 +405,16 @@ function createMountainFeatures(layerGroups, transform) {
 			var start = outlineCoords.findIndex(coordEquals(flanksplit[0]));
 			outlineCoords = outlineCoords.slice(start).concat(outlineCoords.slice(1,start+1));
 
-			// sort flank splits along the outline (May cause problems if 2 points start on the same outline node)
-			sortedFlanks = sortedFlanks.slice(1).sort((a,b) => outlineCoords.findIndex(coordEquals(a[0])) - outlineCoords.findIndex(coordEquals(b[0])));
+			/*for (var fl of sortedFlanks) {
+				console.log(outlineCoords.findIndex(coordEquals(fl[0])));
+			}*/
 
-			
+			// sort flank splits along the outline (May cause problems if 2 points start on the same outline node)
+			sortedFlanks = sortedFlanks.sort((a,b) => outlineCoords.findIndex(coordEquals(a[0])) - outlineCoords.findIndex(coordEquals(b[0])));
+
+			/*for (var fl of sortedFlanks) {
+				console.log(outlineCoords.findIndex(coordEquals(fl[0])));
+			}*/
 			
 			var ridgeForward = JSON.parse(JSON.stringify(sortedRidges[0]));
 			var ridgeReverse = JSON.parse(JSON.stringify(sortedRidges[0])).reverse().slice(1);
@@ -429,21 +435,53 @@ function createMountainFeatures(layerGroups, transform) {
 			var outerSegments = [];
 			var innerSegments = [];
 
+			/*for (var fl of sortedFlanks) {
+				console.log(outerRemain.findIndex(coordEquals(fl[0])));
+				console.log(innerRemain.findIndex(coordEquals(fl[1])));
+				console.log("---");
+			}*/
+
 			/*var i = 0;
 			var olSeg = lineToPolygon(lineString(outerSegments[i].concat(innerSegments[i]), {gtype: "cap"}));
 			outlineSegments.features.push(olSeg);*/
 
 
 			// Split the mountain outline and ridgeline based on the user defined control flanklines
-			for (var flank of sortedFlanks) {
+			for (var flank of sortedFlanks.slice(1)) {
 				var outerId = outerRemain.findIndex(compareCoordinates(flank[0], 0.00005));
-				outerSegments.push(JSON.parse(JSON.stringify(outerRemain.slice(0, outerId+1))));
-				outerRemain = outerRemain.slice(outerId);
+				if (outerId == 0) {
+					// outer segment has 0 length, but we still need to push 2 vertices to make it a line
+					outerSegments.push(JSON.parse(JSON.stringify([outerRemain[0], outerRemain[0]])));
+				} else {
+					outerSegments.push(JSON.parse(JSON.stringify(outerRemain.slice(0, outerId+1))));
+					outerRemain = outerRemain.slice(outerId);
+				}
+				
 
 				var innerId = innerRemain.findIndex(compareCoordinates(flank[1], 0.00005));
-				innerSegments.push(JSON.parse(JSON.stringify(innerRemain.slice(0, innerId+1))));
-				innerRemain = innerRemain.slice(outerId);
+				//console.log("inner: " + innerId)
+				if (innerId == 0) {
+					// outer segment has 0 length, but we still need to push 2 vertices to make it a line
+					innerSegments.push(JSON.parse(JSON.stringify([innerRemain[0], innerRemain[0]])));
+				} else {
+					innerSegments.push(JSON.parse(JSON.stringify(innerRemain.slice(0, innerId+1))));
+					innerRemain = innerRemain.slice(innerId);
+				}
+				
 			}
+
+			if (outerRemain.length == 1) {
+				outerSegments.push([outerRemain[0], outerRemain[0]]);
+			} else {
+				outerSegments.push(outerRemain);
+			}
+
+			if (innerRemain.length == 1) {
+				innerSegments.push([innerRemain[0], innerRemain[0]]);
+			} else {
+				innerSegments.push(innerRemain);
+			}
+			
 
 
 			//for (var i = 0; i < outerSegments.length; i++) {
@@ -479,16 +517,30 @@ function createMountainFeatures(layerGroups, transform) {
 */
 
 			
-			var maxstep = 70;
+			var ridgeDistance = 8;
+			var minDistance = 4;
 
 			for (var i = 0; i < outerSegments.length; i++) {
 				var inner = lineString(innerSegments[i]);
 				var outer = lineString(outerSegments[i]);
 
-				for (var step = 0; step < maxstep; step++) {
-					var line = lineString([alongFraction(inner, step/maxstep), alongFraction(outer, step/maxstep)]);
+				var maxLen = Math.max(length(outer), length(inner));
+				var maxStep = Math.trunc(maxLen/ridgeDistance);
+
+				var lastLine = lineString([[0,0],[1,0]]);
+
+				for (var step = 0; step < maxStep; step++) {
+					var line = lineString([alongFraction(inner, step/maxStep), alongFraction(outer, step/maxStep)]);
+					if (pointToLineDistance(point(line.geometry.coordinates[0]), lastLine) < minDistance || pointToLineDistance(point(line.geometry.coordinates[1]), lastLine) < minDistance ||
+					pointToLineDistance(point(lastLine.geometry.coordinates[0]), line) < minDistance || pointToLineDistance(point(lastLine.geometry.coordinates[1]), line) < minDistance) {
+						line.properties["isclose"] = true;
+						console.log(name);
+						lineIntersect(line.geometry.coordinates, lastLine.geometry.coordinates);
+						console.log(line.geometry.coordinates);
+					}
 					//console.log(line.geometry.coordinates);
 					flankElements.features.push(line);
+					lastLine = line;
 				}
 			}
 
@@ -547,15 +599,20 @@ function createMountainFeatures(layerGroups, transform) {
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(flankElements),
 		}),
-		style: new Style({
+		style: function (feature, resolution) {
+			var returnStyle = new Style({
 				stroke: new Stroke({
-					color: 'rgba(0,0,0,0.8)',
-					width: 2.0,
+					color: 'rgba(0,0,0,1.0)',
+					width: 3.0,
 					lineCap: 'round',
 					}),
-			}),
+			});
+			if (feature.getProperties().isclose) {
+				returnStyle.getStroke().setColor('rgba(250, 60,60,0.50)');
+			}
+			return returnStyle;
 		},
-	);
+	});
 
 
 	layerGroups.getLayers().array_.push(vectorLayerRidges);
@@ -588,6 +645,20 @@ function processSideridge(ridge, sideRidge) {
 	}
 
 	return ridge;
+}
+
+function lineIntersect(lineA, lineB) {
+	var dx = lineB[0][0] - lineA[0][0];
+	var dy = lineB[0][1] - lineA[0][1];
+	var ad = [lineA[1][0] - lineA[0][0], lineA[1][1] - lineA[0][1]];
+	var bd = [lineB[1][0] - lineB[0][0], lineB[1][1] - lineB[0][1]];
+	var det = bd[0] * ad[1] - bd[1] * ad[0];
+	var u = (dy * bd[0] - dx * bd[1]) / det;
+	var v = (dy * ad[0] - dx * ad[1]) / det;
+
+	var x = lineA[0][0] + u * ad[0];
+	var y = lineA[0][1] + u * ad[1];
+	console.log(x + ", " + y);
 }
 
 /*
@@ -629,10 +700,10 @@ function findSegmentId(ridge, point, normal) {
 	if (id > 0) {
 		var tangent = math.subtract(ridge[id+1].concat(0), ridge[id].concat(0));
 		var side = math.cross(tangent, normal);
-		console.log("Tangent Check")
+		/*console.log("Tangent Check")
 		console.log(tangent);
 		console.log(normal);
-		console.log(side);
+		console.log(side);*/
 		
 		if (side[2] <= 0) {
 			console.log("Attached to first vertex");
