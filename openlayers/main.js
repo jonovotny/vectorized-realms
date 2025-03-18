@@ -237,10 +237,10 @@ const torilmap = new Map({
     SvgLayers,
   ],
   view: new View({
-    center: [-55, 30],
+    center: [-60.5, 38.5],
     extent: [-180, -90, 180, 90],
     projection: 'EPSG:4326',
-    zoom: 4.5,
+    zoom: 9,
   })
 });
 
