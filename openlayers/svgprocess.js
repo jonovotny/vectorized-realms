@@ -353,7 +353,7 @@ function createSwampFeatures(layerGroups, transform){
 }
 
 function coordEquals(b) {
-	return (a) => a[0] == b[0] && a[1] == b[1];
+	return (a) => Math.abs(a[0] - b[0]) <= 0.0005 && Math.abs(a[1] - b[1]) <= 0.0005;
 }
 
 var geoPrecision = {precision: 5};
@@ -393,8 +393,8 @@ function createMountainFeatures(layerGroups, transform) {
 
 	for (var [name, data] of Object.entries(dataStore)) {
 		if (Object.keys(data["ridges"]).length > 0) {
-			var sortdRidges = Object.entries(data["ridges"]);
-			sortdRidges = sortdRidges.sort((a, b) => a[0] - b[0]).map(a => a[1]);
+			var sortedRidges = Object.entries(data["ridges"]);
+			sortedRidges = sortedRidges.sort((a, b) => a[0] - b[0]).map(a => a[1]);
 
 			var sortedFlanks = Object.entries(data["flanks"]);
 			sortedFlanks = sortedFlanks.sort((a, b) => a[0] - b[0]).map(a => a[1]);
@@ -406,78 +406,48 @@ function createMountainFeatures(layerGroups, transform) {
 			outlineCoords = outlineCoords.slice(start).concat(outlineCoords.slice(1,start+1));
 
 			// sort flank splits along the outline (May cause problems if 2 points start on the same outline node)
-			sortedFlanks = sortedFlanks.sort((a,b) => outlineCoords.findIndex(coordEquals(a[0])) - outlineCoords.findIndex(coordEquals(b[0])));
+			sortedFlanks = sortedFlanks.slice(1).sort((a,b) => outlineCoords.findIndex(coordEquals(a[0])) - outlineCoords.findIndex(coordEquals(b[0])));
 
-			var outerSegments = [outlineCoords];
 			
-			var ridgeForward = JSON.parse(JSON.stringify(sortdRidges[0]));
-			var ridgeReverse = JSON.parse(JSON.stringify(sortdRidges[0])).reverse().slice(1);
+			
+			var ridgeForward = JSON.parse(JSON.stringify(sortedRidges[0]));
+			var ridgeReverse = JSON.parse(JSON.stringify(sortedRidges[0])).reverse().slice(1);
 			var ridgeCoords = ridgeForward.concat(ridgeReverse);
 
 			start = ridgeCoords.findIndex(coordEquals(flanksplit[1]));
 			ridgeCoords = ridgeCoords.slice(start).concat(ridgeCoords.slice(1,start+1));
 
-			var innerSegments = [ridgeCoords];
-
-
-
-/*			var ridgeline = entries.map(a => a.slice(2,-2));
-			ridgeFeats.features.push(multiLineString(ridgeline, {"name": name}));
-
-			var split = truncate(lineString(entries[0].slice(0,2)), { precision: 5}).geometry.coordinates;
-			var split2 = truncate(lineString(entries[0].slice(-2)), { precision: 5}).geometry.coordinates;
-
-			var outline = truncate(polygon([data["outline"]]), { precision: 5});
-			if (booleanClockwise(outline)) {
-				outline = rewind(outline);
+			if (sortedRidges.length > 1) {
+				for (var sideRidge of sortedRidges.slice(1)) {
+					processSideridge(ridgeCoords, sideRidge);
+				}
 			}
 
-			var coords = outline.geometry.coordinates[0].slice(0,-1);
-			var id2 = outline.geometry.coordinates[0].findIndex(coordEquals(split[1]));
-			
-			outline.geometry.coordinates[0] = coords.slice(id2).concat(coords.slice(0,id2+1));
-			id2 = outline.geometry.coordinates[0].findIndex(coordEquals(split[1]));
-			var id1 = outline.geometry.coordinates[0].findIndex(coordEquals(split[0]));
+			var outerRemain = JSON.parse(JSON.stringify(outlineCoords));
+			var innerRemain = JSON.parse(JSON.stringify(ridgeCoords));
 
-			var id3 = outline.geometry.coordinates[0].findIndex(coordEquals(split2[0]));
-			var id4 = outline.geometry.coordinates[0].findIndex(coordEquals(split2[1]));
+			var outerSegments = [];
+			var innerSegments = [];
 
-			var arc1;
-			var arc2;
+			/*var i = 0;
+			var olSeg = lineToPolygon(lineString(outerSegments[i].concat(innerSegments[i]), {gtype: "cap"}));
+			outlineSegments.features.push(olSeg);*/
 
 
-			arc1 = outline.geometry.coordinates[0].slice(0, id1+1);
+			// Split the mountain outline and ridgeline based on the user defined control flanklines
+			for (var flank of sortedFlanks) {
+				var outerId = outerRemain.findIndex(compareCoordinates(flank[0], 0.00005));
+				outerSegments.push(JSON.parse(JSON.stringify(outerRemain.slice(0, outerId+1))));
+				outerRemain = outerRemain.slice(outerId);
 
-			var outerSegments = [arc1];
-
-
-			arc2 = outline.geometry.coordinates[0].slice(id1, id4+1);
-			var arc3 = outline.geometry.coordinates[0].slice(id4, id3+1);
-			var arc4 = outline.geometry.coordinates[0].slice(id3);
-			outerSegments.push(arc2);
-			outerSegments.push(arc3);
-			outerSegments.push(arc4);
-
-			var cornerCenter = [ridgeline[0][0], ridgeline[0][0]];
-			var innerSegments = [cornerCenter];
-			var ridgeForward = JSON.parse(JSON.stringify(ridgeline[0]));
-			var ridgeReverse = JSON.parse(JSON.stringify(ridgeline[0])).reverse();
-			innerSegments.push(ridgeReverse);
-
-			var cornerCenter2 = [ridgeline[0].at(-1), ridgeline[0].at(-1)];
-			innerSegments.push(cornerCenter2);
-			innerSegments.push(ridgeForward);
-			
+				var innerId = innerRemain.findIndex(compareCoordinates(flank[1], 0.00005));
+				innerSegments.push(JSON.parse(JSON.stringify(innerRemain.slice(0, innerId+1))));
+				innerRemain = innerRemain.slice(outerId);
+			}
 
 
-
-*/
-
-
-			var i = 0;
 			//for (var i = 0; i < outerSegments.length; i++) {
-				var olSeg = lineToPolygon(lineString(outerSegments[i].concat(innerSegments[i]), {gtype: "cap"}));
-				outlineSegments.features.push(olSeg);
+				
 			//}
 /*
 			var i = 1;
@@ -517,14 +487,14 @@ function createMountainFeatures(layerGroups, transform) {
 
 				for (var step = 0; step < maxstep; step++) {
 					var line = lineString([alongFraction(inner, step/maxstep), alongFraction(outer, step/maxstep)]);
-					console.log(line.geometry.coordinates);
+					//console.log(line.geometry.coordinates);
 					flankElements.features.push(line);
 				}
 			}
 
 		
 
-			console.log(data["flanks"]);
+			//console.log(data["flanks"]);
 
 			/*console.log(name);
 			console.log(i1);
@@ -603,6 +573,24 @@ function alongFraction (line, frac) {
 	return along(line, len*frac).geometry.coordinates;
 }
 
+function processSideridge(ridge, sideRidge) {
+	var sideTangent = math.subtract(sideRidge[3].concat(0), sideRidge[2].concat(0));
+
+	// find to which vertex of the main ridge the sidgridge connects
+	var id = findSegmentId(ridge, sideRidge[0], sideTangent);
+	if (id) {
+
+		var ridgeForward = JSON.parse(JSON.stringify(sideRidge));
+		var ridgeReverse = JSON.parse(JSON.stringify(sideRidge)).reverse().slice(1);
+		var ridgeInsert = ridgeForward.concat(ridgeReverse);
+
+		ridge.splice(id, 1, ...ridgeInsert);
+	}
+
+	return ridge;
+}
+
+/*
 function processSideridge(inner, outer, sideRidge) {
 	var sideTangent = math.subtract(sideRidge[3].concat(0), sideRidge[2].concat(0));
 	var id = null;
@@ -627,37 +615,39 @@ function processSideridge(inner, outer, sideRidge) {
 		i++;
 	}
 	return id;
-}
+}*/
 
-function findSegmentId(segment, point, normal) {
-	var id = segment.findIndex(compareCoordinates(point, 0.00001));
-	if (id > 0) {
-		var tangent = math.subtract(segment[id+1].concat(0), segment[id].concat(0));
-		var side = math.cross(tangent, normal);
-		console.log(tangent);
-		console.log(normal);
-		console.log(side);
-		if (side[2] <= 0) {
-			return id;
-		}
-		
-	}
+function findSegmentId(ridge, point, normal) {
+	var id = ridge.findIndex(compareCoordinates(point, 0.00001));
 
-	var id2 = segment.findLastIndex(compareCoordinates(point, 0.00001));
-	console.log(id + " " + id2);
-	if (id2 > id) {
-		id = id2;
-		var tangent = math.subtract(segment[id+1].concat(0), segment[id].concat(0));
-		var side = math.cross(tangent, normal);
-		console.log(tangent);
-		console.log(normal);
-		console.log(side);
-		if (side[2] <= 0) {
-			return id;
-		}
+	// Attachment is an end point of the existing ridges (shouldn't happen)
+	if (id == 0 || id == ridge.length || compareCoordinates2(ridge[id-1], ridge[id+1], 0.00001)) {
 		return id;
 	}
 
+	// Found first vertex and check side of the sideridge compared to central difference
+	if (id > 0) {
+		var tangent = math.subtract(ridge[id+1].concat(0), ridge[id].concat(0));
+		var side = math.cross(tangent, normal);
+		console.log("Tangent Check")
+		console.log(tangent);
+		console.log(normal);
+		console.log(side);
+		
+		if (side[2] <= 0) {
+			console.log("Attached to first vertex");
+			return id;
+		}
+	}
+
+	// If the ridge attached to the wrong side first, then it has to fit to the second vertex
+	var id2 = ridge.findLastIndex(compareCoordinates(point, 0.00001));
+	if (id2 > id) {
+		console.log("Attached to second vertex");
+		return id2;
+	}
+
+	console.log("Could not find attachment point for side ridge");
 	return null;
 }
 
@@ -823,6 +813,10 @@ function createMountainFeatures2(layerGroups, transform){
 
 function compareCoordinates(target, precision){
 	return (coord) => (Math.abs(coord[0] - target[0]) <= precision && Math.abs(coord[1] - target[1]) <= precision);
+}
+
+function compareCoordinates2(coord, target, precision){
+	return Math.abs(coord[0] - target[0]) <= precision && Math.abs(coord[1] - target[1]) <= precision;
 }
 
 function sampleMiddle(a,b,minSample){
