@@ -517,31 +517,47 @@ function createMountainFeatures(layerGroups, transform) {
 */
 
 			
-			var ridgeDistance = 8;
-			var minDistance = 4;
+			var ridgeDistance = 7;
+			var minDistance = 3;
+			var lastLine = lineString([[0,0],[1,0]]);
+			var remain = 0;
+			var lengthSum = 0;
+
+			for (var i = 0; i < outerSegments.length; i++) {
+				var inner = lineString(innerSegments[i]);
+				var outer = lineString(outerSegments[i]);
+
+				lengthSum += Math.max(length(outer), length(inner));
+			}
+			ridgeDistance += (lengthSum%ridgeDistance)/(Math.trunc(lengthSum/ridgeDistance));
 
 			for (var i = 0; i < outerSegments.length; i++) {
 				var inner = lineString(innerSegments[i]);
 				var outer = lineString(outerSegments[i]);
 
 				var maxLen = Math.max(length(outer), length(inner));
-				var maxStep = Math.trunc(maxLen/ridgeDistance);
+				var maxStep = Math.trunc((maxLen-remain)/ridgeDistance);
 
-				var lastLine = lineString([[0,0],[1,0]]);
-
-				for (var step = 0; step < maxStep; step++) {
-					var line = lineString([alongFraction(inner, step/maxStep), alongFraction(outer, step/maxStep)]);
-					if (pointToLineDistance(point(line.geometry.coordinates[0]), lastLine) < minDistance || pointToLineDistance(point(line.geometry.coordinates[1]), lastLine) < minDistance ||
-					pointToLineDistance(point(lastLine.geometry.coordinates[0]), line) < minDistance || pointToLineDistance(point(lastLine.geometry.coordinates[1]), line) < minDistance) {
+				for (var step = 0; step <= maxStep; step++) {
+					var line = lineString([alongFraction(inner, length(inner)/maxLen*(remain+step*ridgeDistance)), alongFraction(outer, length(outer)/maxLen*(remain+step*ridgeDistance))]);
+					if ((pointToLineDistance(point(line.geometry.coordinates[0]), lastLine) < minDistance ||
+					pointToLineDistance(point(lastLine.geometry.coordinates[0]), line) < minDistance) && 
+					(pointToLineDistance(point(line.geometry.coordinates[1]), lastLine) < minDistance || 
+					pointToLineDistance(point(lastLine.geometry.coordinates[1]), line) < minDistance)) {
 						line.properties["isclose"] = true;
 						console.log(name);
-						lineIntersect(line.geometry.coordinates, lastLine.geometry.coordinates);
+						var corner = lineIntersect(line.geometry.coordinates, lastLine.geometry.coordinates);
 						console.log(line.geometry.coordinates);
+
+						var temp = lineString([line.geometry.coordinates[1], corner, lastLine.geometry.coordinates[1]]);
+						//flankElements.features.push(temp);
 					}
 					//console.log(line.geometry.coordinates);
 					flankElements.features.push(line);
 					lastLine = line;
+					
 				}
+				remain = ridgeDistance - ((maxLen-remain)%ridgeDistance);
 			}
 
 		
@@ -627,7 +643,7 @@ function alongFraction (line, frac) {
 	if (len == 0) {
 		return line.geometry.coordinates[0];
 	}
-	return along(line, len*frac).geometry.coordinates;
+	return along(line, frac).geometry.coordinates;
 }
 
 function processSideridge(ridge, sideRidge) {
@@ -658,6 +674,7 @@ function lineIntersect(lineA, lineB) {
 
 	var x = lineA[0][0] + u * ad[0];
 	var y = lineA[0][1] + u * ad[1];
+	return [x,y];
 	console.log(x + ", " + y);
 }
 
