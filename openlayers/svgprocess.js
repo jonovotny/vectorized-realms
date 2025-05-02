@@ -5,7 +5,7 @@ import {Vector as VectorLayer} from 'ol/layer.js';
 import {Fill, Stroke, Style} from 'ol/style.js';
 import LayerGroup from 'ol/layer/Group';
 
-import {featureCollection, multiLineString, polygon, truncate, point, difference, union, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance } from '@turf/turf';
+import {featureCollection, multiLineString, polygon, truncate, point, difference, union, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanCrosses} from '@turf/turf';
 
 var features = {};
 
@@ -440,6 +440,8 @@ function createMountainFeatures(layerGroups, transform) {
 			var outerRemain = JSON.parse(JSON.stringify(outlineCoords));
 			var innerRemain = JSON.parse(JSON.stringify(ridgeCoords));
 
+			var ridgeLinestring = lineString(ridgeCoords);
+
 			var outerSegments = [];
 			var innerSegments = [];
 
@@ -551,6 +553,7 @@ function createMountainFeatures(layerGroups, transform) {
 			var alongInner = 0;
 			var alongOuter = 0;
 
+			
 
 			for (var i = 0; i < outerSegments.length; i++) {
 				var inner = lineString(innerSegments[i]);
@@ -568,13 +571,17 @@ function createMountainFeatures(layerGroups, transform) {
 					pointToLineDistance(point(lastLine.geometry.coordinates[0]), line) < minDistance) && 
 					(pointToLineDistance(point(line.geometry.coordinates[1]), lastLine) < minDistance || 
 					pointToLineDistance(point(lastLine.geometry.coordinates[1]), line) < minDistance)) {
-						line.properties["isclose"] = true;
+						//line.properties["isclose"] = true;
 						//console.log(name);
 						var corner = lineIntersect(line.geometry.coordinates, lastLine.geometry.coordinates);
 						//console.log(line.geometry.coordinates);
 
 						var temp = lineString([line.geometry.coordinates[1], corner, lastLine.geometry.coordinates[1]]);
 						//flankElements.features.push(temp);
+					}
+
+					if (booleanCrosses(ridgeLinestring, line)) {
+						line.properties["isclose"] = true;
 					}
 					//console.log(line.geometry.coordinates);
 					flankElements.features.push(line);
