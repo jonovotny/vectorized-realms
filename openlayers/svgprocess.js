@@ -5,7 +5,7 @@ import {Vector as VectorLayer} from 'ol/layer.js';
 import {Fill, Stroke, Style} from 'ol/style.js';
 import LayerGroup from 'ol/layer/Group';
 
-import {featureCollection, multiLineString, polygon, truncate, point, difference, union, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanCrosses} from '@turf/turf';
+import {featureCollection, multiLineString, polygon, truncate, point, difference, union, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanCrosses, booleanIntersects, lineSliceAlong} from '@turf/turf';
 
 var features = {};
 
@@ -402,7 +402,7 @@ function createMountainFeatures(layerGroups, transform) {
 			sortedRidges = sortedRidges.sort((a, b) => a[0] - b[0]).map(a => a[1]);
 
 			var sortedFlanks = Object.entries(data["flanks"]);
-			sortedFlanks = sortedFlanks.sort((a, b) => a[0] - b[0]).map(a => a[1]);
+			//sortedFlanks = sortedFlanks.sort((a, b) => a[0] - b[0]).map(a => a[1]);
 
 			
 
@@ -430,24 +430,31 @@ function createMountainFeatures(layerGroups, transform) {
 			start = ridgeCoords.findIndex(coordEquals(flanksplit[1]));
 			ridgeCoords = ridgeCoords.slice(start).concat(ridgeCoords.slice(1,start+1));
 
+			var outlineVertexLength = calculateDistances(outlineCoords);
+			var ridgeVertexLength = calculateDistances(ridgeCoords);
+
 			console.log(name);
 			if (sortedRidges.length > 1) {
 				for (var sideRidge of sortedRidges.slice(1)) {
-					processSideridge(ridgeCoords, sideRidge);
+					processSideridge(ridgeCoords, ridgeVertexLength, sideRidge);
 				}
 			}
-
-			var outerRemain = JSON.parse(JSON.stringify(outlineCoords));
-			var innerRemain = JSON.parse(JSON.stringify(ridgeCoords));
 
 			var ridgeLinestring = lineString(ridgeCoords);
 
 			var outerSegments = [];
 			var innerSegments = [];
 
+			outlineRemain = JSON.parse(JSON.stringify(outlineCoords));
+			ridgeRemain = JSON.parse(JSON.stringify(ridgeCoords));
+
+			var ridgeSegementIds = [0];
+			var outlineSegmentIds = [0];
+
+
 			/*for (var fl of sortedFlanks) {
-				console.log(outerRemain.findIndex(coordEquals(fl[0])));
-				console.log(innerRemain.findIndex(coordEquals(fl[1])));
+				console.log(outlineRemain.findIndex(coordEquals(fl[0])));
+				console.log(ridgeRemain.findIndex(coordEquals(fl[1])));
 				console.log("---");
 			}*/
 
@@ -457,9 +464,17 @@ function createMountainFeatures(layerGroups, transform) {
 
 			// Split the mountain outline and ridgeline based on the user defined control flanklines
 			for (var flank of sortedFlanks.slice(1)) {
-				var outerId = outerRemain.findIndex(compareCoordinates(flank[0], 0.00005));
-				var innerId = innerRemain.findIndex(compareCoordinates(flank[1], 0.00005));
+				var outerId = outlineRemain.findIndex(compareCoordinates(flank[0], 0.00005));
+				var innerId = ridgeRemain.findIndex(compareCoordinates(flank[1], 0.00005));
 				//console.log("inner: " + innerId)
+
+				var ridgeId = findSegmentId(ridgeCoords, flank[1], math.subtract(flank[0].concat(0), flank[1].concat(0)));
+				var outlineId = findSegmentId(outlineCoords, flank[0], math.subtract(flank[0].concat(0), flank[1].concat(0)));
+
+				console.log(innerId + ' - ' + ridgeId);
+
+				innerId = ridgeId;
+				outerId = outlineId;
 
 				if (outerId < 0) {
 					console.warn("Problem with outer flankline");
@@ -473,32 +488,32 @@ function createMountainFeatures(layerGroups, transform) {
 
 				if (outerId == 0) {
 					// outer segment has 0 length, but we still need to push 2 vertices to make it a line
-					outerSegments.push(JSON.parse(JSON.stringify([outerRemain[0], outerRemain[0]])));
+					outerSegments.push(JSON.parse(JSON.stringify([outlineRemain[0], outlineRemain[0]])));
 				} else {
-					outerSegments.push(JSON.parse(JSON.stringify(outerRemain.slice(0, outerId+1))));
-					outerRemain = outerRemain.slice(outerId);
+					outerSegments.push(JSON.parse(JSON.stringify(outlineRemain.slice(0, outerId+1))));
+					outlineRemain = outlineRemain.slice(outerId);
 				}
 
 				if (innerId == 0) {
 					// outer segment has 0 length, but we still need to push 2 vertices to make it a line
-					innerSegments.push(JSON.parse(JSON.stringify([innerRemain[0], innerRemain[0]])));
+					innerSegments.push(JSON.parse(JSON.stringify([ridgeRemain[0], ridgeRemain[0]])));
 				} else {
-					innerSegments.push(JSON.parse(JSON.stringify(innerRemain.slice(0, innerId+1))));
-					innerRemain = innerRemain.slice(innerId);
+					innerSegments.push(JSON.parse(JSON.stringify(ridgeRemain.slice(0, innerId+1))));
+					ridgeRemain = ridgeRemain.slice(innerId);
 				}
 				
 			}
 
-			if (outerRemain.length == 1) {
-				outerSegments.push([outerRemain[0], outerRemain[0]]);
+			if (outlineRemain.length == 1) {
+				outerSegments.push([outlineRemain[0], outlineRemain[0]]);
 			} else {
-				outerSegments.push(outerRemain);
+				outerSegments.push(outlineRemain);
 			}
 
-			if (innerRemain.length == 1) {
-				innerSegments.push([innerRemain[0], innerRemain[0]]);
+			if (ridgeRemain.length == 1) {
+				innerSegments.push([ridgeRemain[0], ridgeRemain[0]]);
 			} else {
-				innerSegments.push(innerRemain);
+				innerSegments.push(ridgeRemain);
 			}
 			
 
@@ -571,7 +586,7 @@ function createMountainFeatures(layerGroups, transform) {
 					pointToLineDistance(point(lastLine.geometry.coordinates[0]), line) < minDistance) && 
 					(pointToLineDistance(point(line.geometry.coordinates[1]), lastLine) < minDistance || 
 					pointToLineDistance(point(lastLine.geometry.coordinates[1]), line) < minDistance)) {
-						//line.properties["isclose"] = true;
+						line.properties["isclose"] = true;
 						//console.log(name);
 						var corner = lineIntersect(line.geometry.coordinates, lastLine.geometry.coordinates);
 						//console.log(line.geometry.coordinates);
@@ -580,7 +595,9 @@ function createMountainFeatures(layerGroups, transform) {
 						//flankElements.features.push(temp);
 					}
 
-					if (booleanCrosses(ridgeLinestring, line)) {
+					var detachedLine = lineSliceAlong(line, 0.1, length(line));
+					if (booleanIntersects(detachedLine, ridgeLinestring)) {
+						detachedLine.properties["isclose"] = true;
 						line.properties["isclose"] = true;
 					}
 					//console.log(line.geometry.coordinates);
@@ -680,11 +697,22 @@ function alongFraction (line, frac) {
 	return along(line, frac).geometry.coordinates;
 }
 
-function processSideridge(ridge, sideRidge) {
+function calculateDistances (line) {
+	var remainingLine = JSON.parse(JSON.stringify(line));
+	var distances = [];
+	while (ridgeRemain.length > 1) {
+		distances.push(length(lineString(remainingLine)));
+		remainingLine.pop();
+	}
+	distances.push(0);
+	return distances.reverse();
+}
+
+function processSideridge(ridge, ridgeDistances, sideRidge) {
 	var sideTangent = math.subtract(sideRidge[1].concat(0), sideRidge[0].concat(0));
 
 	// find to which vertex of the main ridge the sidgridge connects
-	var id = findSegmentId(ridge, sideRidge[0], sideTangent);
+	var id = findVertAlong(ridge, ridgeDistances, sideRidge[0], sideTangent);
 	if (id) {
 
 		var ridgeForward = JSON.parse(JSON.stringify(sideRidge));
@@ -693,8 +721,7 @@ function processSideridge(ridge, sideRidge) {
 
 		ridge.splice(id, 1, ...ridgeInsert);
 	}
-
-	return ridge;
+	ridgeDistances = calculateDistances(ridge);
 }
 
 function lineIntersect(lineA, lineB) {
@@ -739,17 +766,21 @@ function processSideridge(inner, outer, sideRidge) {
 	return id;
 }*/
 
-function findSegmentId(ridge, point, normal) {
-	var id = ridge.findIndex(compareCoordinates(point, 0.00005));
+function findSegmentId(line, point, normal, distances) {
+	var id = line.findIndex(compareCoordinates(point, 0.00005));
 
-	// Attachment is an end point of the existing ridges (shouldn't happen)
-	if (id == 0 || id == ridge.length || compareCoordinates2(ridge[id-1], ridge[id+1], 0.00005)) {
+	// Point is at the end of a line
+	if (compareCoordinates2(line[id-1], line[id+1], 0.00005)) {
 		return id;
 	}
 
-	// Found first vertex and check side of the sideridge compared to central difference
-	if (id > 0) {
-		var tangent = math.subtract(ridge[id+1].concat(0), ridge[id].concat(0));
+	// Found first vertex and check side of the sideline compared to central difference
+	if (id >= 0) {
+		var tangent = [1, 0, 0];
+		if (id == 0 || id == line.length){
+			tangent = math.subtract(line[0].concat(0), line[1].concat(0));
+		}
+		var tangent = math.subtract(line[id+1].concat(0), line[id].concat(0));
 		var side = math.cross(tangent, normal);
 		/*console.log("Tangent Check")
 		console.log(tangent);
@@ -771,6 +802,42 @@ function findSegmentId(ridge, point, normal) {
 
 	console.log("Could not find attachment point for side ridge");
 	return null;
+}
+
+function findVertAlong (line, distances, point, normal) {
+	var id = line.findIndex(compareCoordinates(point, 0.00005));
+	var id2 = line.findIndex(compareCoordinates(point, 0.00005));
+
+	if (id == -1 || id2 == -1) {
+		console.warning("Couldn't find vertex along line ("+ id + ", " + id2 + ")");
+	}
+
+	if (id == id2) {
+		// Vertex is unique, no need to check further
+		return id;
+	}
+
+	if (id > 0 && id < line.length && compareCoordinates2(line[id-1], line[id+1], 0.00005)){
+		// Ridge or sideridge endpoint, no need to check tangent
+		return id;
+	}
+
+	var dist = distances[id];
+	var tangent = approximateTangent(line, dist);
+	var side = math.cross(tangent, normal);
+
+	if (side[2] <= 0) {
+		return id;
+	} else {
+		return id2;
+	}
+}
+
+function approximateTangent(line, distance) {
+	var tangentOffset = 0.1;
+	var prevPoint = along(line, math.max(0, distance - tangentOffset));
+	var postPoint = along(line, math.min(length(line), distance + tangentOffset));
+	return math.subtract(prevPoint.concat(0), postPoint.concat(0));
 }
 
 
