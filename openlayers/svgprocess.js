@@ -407,7 +407,7 @@ function createMountainFeatures(layerGroups, transform) {
 			
 
 			// shift polygon indices to avoid dealing with seams
-			var flanksplit = sortedFlanks[0];
+			var flanksplit = sortedFlanks[0][1];
 			var outlineCoords = data["outline"];
 			var start = outlineCoords.findIndex(coordEquals(flanksplit[0]));
 			outlineCoords = outlineCoords.slice(start).concat(outlineCoords.slice(1,start+1));
@@ -437,6 +437,7 @@ function createMountainFeatures(layerGroups, transform) {
 			if (sortedRidges.length > 1) {
 				for (var sideRidge of sortedRidges.slice(1)) {
 					processSideridge(ridgeCoords, ridgeVertexLength, sideRidge);
+					ridgeVertexLength = calculateDistances(ridgeCoords);
 				}
 			}
 
@@ -445,8 +446,8 @@ function createMountainFeatures(layerGroups, transform) {
 			var outerSegments = [];
 			var innerSegments = [];
 
-			outlineRemain = JSON.parse(JSON.stringify(outlineCoords));
-			ridgeRemain = JSON.parse(JSON.stringify(ridgeCoords));
+			//outlineRemain = JSON.parse(JSON.stringify(outlineCoords));
+			//ridgeRemain = JSON.parse(JSON.stringify(ridgeCoords));
 
 			var ridgeSegementIds = [0];
 			var outlineSegmentIds = [0];
@@ -463,16 +464,20 @@ function createMountainFeatures(layerGroups, transform) {
 			outlineSegments.features.push(olSeg);*/
 
 			// Split the mountain outline and ridgeline based on the user defined control flanklines
-			for (var flank of sortedFlanks.slice(1)) {
-				var outerId = outlineRemain.findIndex(compareCoordinates(flank[0], 0.00005));
-				var innerId = ridgeRemain.findIndex(compareCoordinates(flank[1], 0.00005));
+			for (var flankElement of sortedFlanks.slice(1)) {
+				//var outerId = outlineRemain.findIndex(compareCoordinates(flank[0], 0.00005));
+				//var innerId = ridgeRemain.findIndex(compareCoordinates(flank[1], 0.00005));
 				//console.log("inner: " + innerId)
 
-				var ridgeId = findSegmentId(ridgeCoords, flank[1], math.subtract(flank[0].concat(0), flank[1].concat(0)));
-				var outlineId = findSegmentId(outlineCoords, flank[0], math.subtract(flank[0].concat(0), flank[1].concat(0)));
+				//var ridgeId = findSegmentId(ridgeCoords, flank[1], math.subtract(flank[0].concat(0), flank[1].concat(0)));
+				//var outlineId = findSegmentId(outlineCoords, flank[0], math.subtract(flank[0].concat(0), flank[1].concat(0)));
+				var flank = flankElement[1];
 
-				console.log(innerId + ' - ' + ridgeId);
+				var ridgeDistance = ridgeVertexLength[findVertAlong(ridgeCoords, ridgeVertexLength, flank[1], math.subtract(flank[0].concat(0), flank[1].concat(0)))];
+				var outlineDistance = outlineVertexLength[findVertAlong(outlineCoords, outlineVertexLength, flank[0], math.subtract(flank[0].concat(0), flank[1].concat(0)))];
 
+				console.log(ridgeDistance + ' - ' + outlineDistance);
+/*
 				innerId = ridgeId;
 				outerId = outlineId;
 
@@ -500,10 +505,10 @@ function createMountainFeatures(layerGroups, transform) {
 				} else {
 					innerSegments.push(JSON.parse(JSON.stringify(ridgeRemain.slice(0, innerId+1))));
 					ridgeRemain = ridgeRemain.slice(innerId);
-				}
+				}*/
 				
 			}
-
+/*
 			if (outlineRemain.length == 1) {
 				outerSegments.push([outlineRemain[0], outlineRemain[0]]);
 			} else {
@@ -515,7 +520,7 @@ function createMountainFeatures(layerGroups, transform) {
 			} else {
 				innerSegments.push(ridgeRemain);
 			}
-			
+			*/
 
 
 			//for (var i = 0; i < outerSegments.length; i++) {
@@ -556,19 +561,19 @@ function createMountainFeatures(layerGroups, transform) {
 			var lastLine = lineString([[0,0],[1,0]]);
 			var remain = 0;
 			var lengthSum = 0;
-
+/*
 			for (var i = 0; i < outerSegments.length; i++) {
 				var inner = lineString(innerSegments[i]);
 				var outer = lineString(outerSegments[i]);
 
 				lengthSum += Math.max(length(outer), length(inner));
-			}
+			}*/
 			ridgeDistance += (lengthSum%ridgeDistance)/(Math.trunc(lengthSum/ridgeDistance));
 
 			var alongInner = 0;
 			var alongOuter = 0;
 
-			
+			/*
 
 			for (var i = 0; i < outerSegments.length; i++) {
 				var inner = lineString(innerSegments[i]);
@@ -610,7 +615,7 @@ function createMountainFeatures(layerGroups, transform) {
 				remain = ridgeDistance - ((maxLen-remain)%ridgeDistance);
 			}
 
-		
+		*/
 
 			//console.log(data["flanks"]);
 
@@ -700,7 +705,7 @@ function alongFraction (line, frac) {
 function calculateDistances (line) {
 	var remainingLine = JSON.parse(JSON.stringify(line));
 	var distances = [];
-	while (ridgeRemain.length > 1) {
+	while (remainingLine.length > 1) {
 		distances.push(length(lineString(remainingLine)));
 		remainingLine.pop();
 	}
@@ -721,7 +726,6 @@ function processSideridge(ridge, ridgeDistances, sideRidge) {
 
 		ridge.splice(id, 1, ...ridgeInsert);
 	}
-	ridgeDistances = calculateDistances(ridge);
 }
 
 function lineIntersect(lineA, lineB) {
@@ -806,10 +810,10 @@ function findSegmentId(line, point, normal, distances) {
 
 function findVertAlong (line, distances, point, normal) {
 	var id = line.findIndex(compareCoordinates(point, 0.00005));
-	var id2 = line.findIndex(compareCoordinates(point, 0.00005));
+	var id2 = line.findLastIndex(compareCoordinates(point, 0.00005));
 
 	if (id == -1 || id2 == -1) {
-		console.warning("Couldn't find vertex along line ("+ id + ", " + id2 + ")");
+		console.warn("Couldn't find vertex along line ("+ id + ", " + id2 + ")");
 	}
 
 	if (id == id2) {
