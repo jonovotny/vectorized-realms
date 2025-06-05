@@ -809,24 +809,55 @@ function findSegmentId(line, point, normal, distances) {
 }
 
 function findVertAlong (line, distances, point, normal) {
-	var id = line.findIndex(compareCoordinates(point, 0.00005));
-	var id2 = line.findLastIndex(compareCoordinates(point, 0.00005));
+	var ids = [];
+	var startIdx = 0;
+	while (startIdx < line.length) {
+		var id = line.slice(startIdx).findIndex(compareCoordinates(point, 0.00005));
+		if (id > -1) {
+			ids.push(id + startIdx)
+			startIdx += id + 1;
+		} else {
+			startIdx = line.length;
+		}
+	}
+	console.log(ids.length)
 
-	if (id == -1 || id2 == -1) {
-		console.warn("Couldn't find vertex along line ("+ id + ", " + id2 + ")");
+	//var id = line.findIndex(compareCoordinates(point, 0.00005));
+	//var id2 = line.findLastIndex(compareCoordinates(point, 0.00005));
+
+	if (ids.length === 0) {
+		console.warn("Couldn't find vertex along line");
+		return null;
 	}
 
-	if (id == id2) {
+	if (ids.length == 1) {
 		// Vertex is unique, no need to check further
-		return id;
+		return ids[0];
 	}
 
-	if (id > 0 && id < line.length && compareCoordinates2(line[id-1], line[id+1], 0.00005)){
-		// Ridge or sideridge endpoint, no need to check tangent
-		return id;
+	for (var id of ids) {
+		var prevPoint = (id == 0 ? line.at(-1): line.at(id-1));
+		var currPoint = line.at(id);
+		var nextPoint = (id == line.length-1 ? line.at(1): line.at(id+1));
+
+		var vecA = math.subtract(prevPoint.concat(0), currPoint.concat(0));
+		var vecB = math.subtract(nextPoint.concat(0), currPoint.concat(0));
+
+		var crossAB = math.cross(vecA, vecB);
+		if (crossAB >= 0){
+			if (math.cross(vecA, normal) >= 0 && math.cross(normal, vecB) >= 0) {
+				return id;
+			}
+		} else {
+			if (math.cross(vecA, normal) >= 0 || math.cross(normal, vecB) >= 0) {
+				return id;
+			}
+		}
 	}
 
-	var dist = distances[id];
+	console.warn("Couldn't find vertex matching normal");
+	return null;
+	/*var dist = distances[id];
 	var tangent = approximateTangent(line, dist);
 	var side = math.cross(tangent, normal);
 
@@ -834,7 +865,7 @@ function findVertAlong (line, distances, point, normal) {
 		return id;
 	} else {
 		return id2;
-	}
+	}*/
 }
 
 function approximateTangent(line, distance) {
