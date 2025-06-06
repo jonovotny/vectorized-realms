@@ -464,6 +464,8 @@ function createMountainFeatures(layerGroups, transform) {
 			outlineSegments.features.push(olSeg);*/
 
 			// Split the mountain outline and ridgeline based on the user defined control flanklines
+			var ridgeId = 0;
+			var outlineId = 0;
 			for (var flankElement of sortedFlanks.slice(1)) {
 				//var outerId = outlineRemain.findIndex(compareCoordinates(flank[0], 0.00005));
 				//var innerId = ridgeRemain.findIndex(compareCoordinates(flank[1], 0.00005));
@@ -473,10 +475,13 @@ function createMountainFeatures(layerGroups, transform) {
 				//var outlineId = findSegmentId(outlineCoords, flank[0], math.subtract(flank[0].concat(0), flank[1].concat(0)));
 				var flank = flankElement[1];
 
-				var ridgeDistance = ridgeVertexLength[findVertAlong(ridgeCoords, ridgeVertexLength, flank[1], math.subtract(flank[0].concat(0), flank[1].concat(0)))];
-				var outlineDistance = outlineVertexLength[findVertAlong(outlineCoords, outlineVertexLength, flank[0], math.subtract(flank[0].concat(0), flank[1].concat(0)))];
+				ridgeId = findVertAlong(ridgeCoords, ridgeId, flank[1], math.subtract(flank[0].concat(0), flank[1].concat(0)));
+				var ridgeDistance = ridgeVertexLength[ridgeId];
 
-				console.log(ridgeDistance + ' - ' + outlineDistance);
+				outlineId = findVertAlong(outlineCoords, outlineId, flank[0], math.subtract(flank[0].concat(0), flank[1].concat(0)));
+				var outlineDistance = outlineVertexLength[outlineId];
+
+				console.log(ridgeId + ' - ' + outlineId);
 /*
 				innerId = ridgeId;
 				outerId = outlineId;
@@ -717,7 +722,7 @@ function processSideridge(ridge, ridgeDistances, sideRidge) {
 	var sideTangent = math.subtract(sideRidge[1].concat(0), sideRidge[0].concat(0));
 
 	// find to which vertex of the main ridge the sidgridge connects
-	var id = findVertAlong(ridge, ridgeDistances, sideRidge[0], sideTangent);
+	var id = findVertAlong(ridge, 0, sideRidge[0], sideTangent);
 	if (id) {
 
 		var ridgeForward = JSON.parse(JSON.stringify(sideRidge));
@@ -808,9 +813,9 @@ function findSegmentId(line, point, normal, distances) {
 	return null;
 }
 
-function findVertAlong (line, distances, point, normal) {
+function findVertAlong (line, fromId, point, normal) {
 	var ids = [];
-	var startIdx = 0;
+	var startIdx = fromId;
 	while (startIdx < line.length) {
 		var id = line.slice(startIdx).findIndex(compareCoordinates(point, 0.00005));
 		if (id > -1) {
@@ -820,7 +825,7 @@ function findVertAlong (line, distances, point, normal) {
 			startIdx = line.length;
 		}
 	}
-	console.log(ids.length)
+	//console.log(ids.length)
 
 	//var id = line.findIndex(compareCoordinates(point, 0.00005));
 	//var id2 = line.findLastIndex(compareCoordinates(point, 0.00005));
@@ -843,13 +848,13 @@ function findVertAlong (line, distances, point, normal) {
 		var vecA = math.subtract(prevPoint.concat(0), currPoint.concat(0));
 		var vecB = math.subtract(nextPoint.concat(0), currPoint.concat(0));
 
-		var crossAB = math.cross(vecA, vecB);
+		var crossAB = math.cross(vecA, vecB)[2];
 		if (crossAB >= 0){
-			if (math.cross(vecA, normal) >= 0 && math.cross(normal, vecB) >= 0) {
+			if (math.cross(vecA, normal)[2] >= 0 && math.cross(normal, vecB)[2] >= 0) {
 				return id;
 			}
 		} else {
-			if (math.cross(vecA, normal) >= 0 || math.cross(normal, vecB) >= 0) {
+			if (math.cross(vecA, normal)[2] >= 0 || math.cross(normal, vecB)[2] >= 0) {
 				return id;
 			}
 		}
