@@ -442,6 +442,7 @@ function createMountainFeatures(layerGroups, transform) {
 			}
 
 			var ridgeLinestring = lineString(ridgeCoords);
+			var outlineLinestring = lineString(outlineCoords);
 
 			var outerSegments = [];
 			var innerSegments = [];
@@ -466,6 +467,9 @@ function createMountainFeatures(layerGroups, transform) {
 			// Split the mountain outline and ridgeline based on the user defined control flanklines
 			var ridgeId = 0;
 			var outlineId = 0;
+
+			var ridgeSegments = [0];
+			var outlineSegments = [0]
 			for (var flankElement of sortedFlanks.slice(1)) {
 				//var outerId = outlineRemain.findIndex(compareCoordinates(flank[0], 0.00005));
 				//var innerId = ridgeRemain.findIndex(compareCoordinates(flank[1], 0.00005));
@@ -476,12 +480,12 @@ function createMountainFeatures(layerGroups, transform) {
 				var flank = flankElement[1];
 
 				ridgeId = findVertAlong(ridgeCoords, ridgeId, flank[1], math.subtract(flank[0].concat(0), flank[1].concat(0)));
-				var ridgeDistance = ridgeVertexLength[ridgeId];
+				ridgeSegments.push(ridgeVertexLength[ridgeId]);
 
 				outlineId = findVertAlong(outlineCoords, outlineId, flank[0], math.subtract(flank[0].concat(0), flank[1].concat(0)));
-				var outlineDistance = outlineVertexLength[outlineId];
+				outlineSegments.push(outlineVertexLength[outlineId]);
 
-				console.log(ridgeId + ' - ' + outlineId);
+				//console.log(ridgeId + ' - ' + outlineId);
 /*
 				innerId = ridgeId;
 				outerId = outlineId;
@@ -561,22 +565,58 @@ function createMountainFeatures(layerGroups, transform) {
 */
 
 			
-			var ridgeDistance = 7;
+			var lineDistance = 7;
 			var minDistance = 3;
+			var adjustmentStep = 0.5;
 			var lastLine = lineString([[0,0],[1,0]]);
-			var remain = 0;
+			/*var remain = 0;
 			var lengthSum = 0;
-/*
-			for (var i = 0; i < outerSegments.length; i++) {
-				var inner = lineString(innerSegments[i]);
-				var outer = lineString(outerSegments[i]);
-
-				lengthSum += Math.max(length(outer), length(inner));
+			for (var i = 1; i < ridgeVertexLength.length; i++) {
+				lengthSum += Math.max(ridgeVertexLength[i]-ridgeVertexLength[i-1], outlineVertexLength[i]-outlineVertexLength[i]);
 			}*/
-			ridgeDistance += (lengthSum%ridgeDistance)/(Math.trunc(lengthSum/ridgeDistance));
 
-			var alongInner = 0;
-			var alongOuter = 0;
+			//adjust actual distance ensure seamless closure
+			//ridgeDistance += (lengthSum%ridgeDistance)/(Math.trunc(lengthSum/ridgeDistance));
+
+			var segment = 1;
+
+			var maxLen = Math.max(ridgeSegments[1], outlineSegments[1]);
+			//var maxStep = Math.trunc((maxLen)/lineDistance);
+
+			var ridgeOffset = (ridgeSegments[1]/maxLen) * lineDistance;
+			var outlineOffset = (outlineSegments[1]/maxLen) * lineDistance;
+
+			var lastLine = lineString([along(ridgeLinestring, 0).geometry.coordinates, along(outlineLinestring, 0).geometry.coordinates]);
+
+
+			var alongRidge = ridgeOffset;
+			var alongOutline = outlineOffset;
+			
+			while(alongRidge < ridgeSegments.at(-1)){
+
+				var line = lineString([along(ridgeLinestring, alongRidge).geometry.coordinates, along(outlineLinestring, alongOutline).geometry.coordinates]);
+
+				//do checks/adjustments
+				flankElements.features.push(lastLine);
+				lastLine = line;
+
+				//increment along ridge and outline
+				if ((alongRidge + ridgeOffset) > ridgeSegments[segment] || (alongOutline + outlineOffset) > outlineSegments[segment]) {
+					segment++;
+					var ridgeSegmentLength = ridgeSegments[segment] - ridgeSegments[segment-1];
+					var outlineSegmentLength = outlineSegments[segment] - outlineSegments[segment-1];
+					maxLen = Math.max(ridgeSegmentLength, outlineSegmentLength);
+					ridgeOffset = (ridgeSegmentLength/maxLen) * lineDistance;
+					outlineOffset = (outlineSegmentLength/maxLen) * lineDistance;
+					alongRidge += ridgeOffset;
+					alongOutline += outlineOffset;
+				} else {
+					alongRidge += ridgeOffset;
+					alongOutline += outlineOffset;
+				}
+			}
+
+			flankElements.features.push(lastLine);
 
 			/*
 
@@ -648,7 +688,7 @@ function createMountainFeatures(layerGroups, transform) {
 	});
 
 
-	var vectorLayerSegments = new VectorLayer({
+	/*var vectorLayerSegments = new VectorLayer({
 		title: "Outline Segments",
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(outlineSegments),
@@ -669,7 +709,7 @@ function createMountainFeatures(layerGroups, transform) {
 			}
 			return returnStyle;
 		},
-	});
+	});*/
 
 	var vectorFlankLines = new VectorLayer({
 		title: "flank Lines",
@@ -679,7 +719,7 @@ function createMountainFeatures(layerGroups, transform) {
 		style: function (feature, resolution) {
 			var returnStyle = new Style({
 				stroke: new Stroke({
-					color: 'rgba(0,0,0,1.0)',
+					color: 'rgba(128,128,128,1.0)',
 					width: 3.0,
 					lineCap: 'round',
 					}),
@@ -693,7 +733,7 @@ function createMountainFeatures(layerGroups, transform) {
 
 
 	layerGroups.getLayers().array_.push(vectorLayerRidges);
-	layerGroups.getLayers().array_.push(vectorLayerSegments);
+	//layerGroups.getLayers().array_.push(vectorLayerSegments);
 	layerGroups.getLayers().array_.push(vectorFlankLines);
 	//console.log(ridgeFeats);
 	//console.log(dataStore);
