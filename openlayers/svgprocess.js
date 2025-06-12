@@ -409,20 +409,10 @@ function createMountainFeatures(layerGroups, transform) {
 			// shift polygon indices to avoid dealing with seams
 			var flanksplit = sortedFlanks[0][1];
 			var outlineCoords = data["outline"];
+
 			var start = findVertAlong(outlineCoords, 0, flanksplit[0], math.subtract(flanksplit[0].concat(0), flanksplit[1].concat(0)))//outlineCoords.findIndex(coordEquals(flanksplit[0]));
 			outlineCoords = outlineCoords.slice(start).concat(outlineCoords.slice(1,start+1));
-
-			/*for (var fl of sortedFlanks) {
-				console.log(outlineCoords.findIndex(coordEquals(fl[0])));
-			}*/
-
-			// sort flank splits along the outline (May cause problems if 2 points start on the same outline node)
-			//sortedFlanks = sortedFlanks.sort((a,b) => outlineCoords.findIndex(coordEquals(a[0])) - outlineCoords.findIndex(coordEquals(b[0])));
-
-			/*for (var fl of sortedFlanks) {
-				console.log(outlineCoords.findIndex(coordEquals(fl[0])));
-			}*/
-			
+		
 			var ridgeForward = JSON.parse(JSON.stringify(sortedRidges[0]));
 			var ridgeReverse = JSON.parse(JSON.stringify(sortedRidges[0])).reverse().slice(1);
 			var ridgeCoords = ridgeForward.concat(ridgeReverse);
@@ -444,27 +434,7 @@ function createMountainFeatures(layerGroups, transform) {
 			var ridgeLinestring = lineString(ridgeCoords);
 			var outlineLinestring = lineString(outlineCoords);
 
-			var outerSegments = [];
-			var innerSegments = [];
-
-			//outlineRemain = JSON.parse(JSON.stringify(outlineCoords));
-			//ridgeRemain = JSON.parse(JSON.stringify(ridgeCoords));
-
-			var ridgeSegementIds = [0];
-			var outlineSegmentIds = [0];
-
-
-			/*for (var fl of sortedFlanks) {
-				console.log(outlineRemain.findIndex(coordEquals(fl[0])));
-				console.log(ridgeRemain.findIndex(coordEquals(fl[1])));
-				console.log("---");
-			}*/
-
-			/*var i = 0;
-			var olSeg = lineToPolygon(lineString(outerSegments[i].concat(innerSegments[i]), {gtype: "cap"}));
-			outlineSegments.features.push(olSeg);*/
-
-			// Split the mountain outline and ridgeline based on the user defined control flanklines
+			// Precalculate the distances along the ridge and outline polygons at the flank guidelines
 			var ridgeId = 0;
 			var outlineId = 0;
 
@@ -472,112 +442,20 @@ function createMountainFeatures(layerGroups, transform) {
 			var outlineSegments = [0];
 			sortedFlanks.push(sortedFlanks.at(0));
 			for (var flankElement of sortedFlanks.slice(1)) {
-				//var outerId = outlineRemain.findIndex(compareCoordinates(flank[0], 0.00005));
-				//var innerId = ridgeRemain.findIndex(compareCoordinates(flank[1], 0.00005));
-				//console.log("inner: " + innerId)
-
-				//var ridgeId = findSegmentId(ridgeCoords, flank[1], math.subtract(flank[0].concat(0), flank[1].concat(0)));
-				//var outlineId = findSegmentId(outlineCoords, flank[0], math.subtract(flank[0].concat(0), flank[1].concat(0)));
 				var flank = flankElement[1];
 
 				ridgeId = findVertAlong(ridgeCoords, ridgeId, flank[1], math.subtract(flank[0].concat(0), flank[1].concat(0)));
 				ridgeSegments.push(ridgeVertexLength[ridgeId]);
 
 				outlineId = findVertAlong(outlineCoords, outlineId, flank[0], math.subtract(flank[0].concat(0), flank[1].concat(0)));
-				outlineSegments.push(outlineVertexLength[outlineId]);
-
-				//console.log(ridgeId + ' - ' + outlineId);
-/*
-				innerId = ridgeId;
-				outerId = outlineId;
-
-				if (outerId < 0) {
-					console.warn("Problem with outer flankline");
-					continue;
-				}
-
-				if (innerId < 0) {
-					console.warn("Problem with inner flankline");
-					continue;
-				}
-
-				if (outerId == 0) {
-					// outer segment has 0 length, but we still need to push 2 vertices to make it a line
-					outerSegments.push(JSON.parse(JSON.stringify([outlineRemain[0], outlineRemain[0]])));
-				} else {
-					outerSegments.push(JSON.parse(JSON.stringify(outlineRemain.slice(0, outerId+1))));
-					outlineRemain = outlineRemain.slice(outerId);
-				}
-
-				if (innerId == 0) {
-					// outer segment has 0 length, but we still need to push 2 vertices to make it a line
-					innerSegments.push(JSON.parse(JSON.stringify([ridgeRemain[0], ridgeRemain[0]])));
-				} else {
-					innerSegments.push(JSON.parse(JSON.stringify(ridgeRemain.slice(0, innerId+1))));
-					ridgeRemain = ridgeRemain.slice(innerId);
-				}*/
-				
+				outlineSegments.push(outlineVertexLength[outlineId]);				
 			}
-/*
-			if (outlineRemain.length == 1) {
-				outerSegments.push([outlineRemain[0], outlineRemain[0]]);
-			} else {
-				outerSegments.push(outlineRemain);
-			}
-
-			if (ridgeRemain.length == 1) {
-				innerSegments.push([ridgeRemain[0], ridgeRemain[0]]);
-			} else {
-				innerSegments.push(ridgeRemain);
-			}
-			*/
-
-
-			//for (var i = 0; i < outerSegments.length; i++) {
-				
-			//}
-/*
-			var i = 1;
-			//for (var i = 0; i < outerSegments.length; i++) {
-			olSeg = lineToPolygon(lineString(outerSegments[i].concat(innerSegments[i])));
-			outlineSegments.features.push(olSeg);
-
-			
-			var i = 2;
-			//for (var i = 0; i < outerSegments.length; i++) {
-				var olSeg = lineToPolygon(lineString(outerSegments[i].concat(innerSegments[i]), {gtype: "cap"}));
-				outlineSegments.features.push(olSeg);
-			//}
-
-			var i = 3;
-			//for (var i = 0; i < outerSegments.length; i++) {
-			olSeg = lineToPolygon(lineString(outerSegments[i].concat(innerSegments[i])));
-			outlineSegments.features.push(olSeg);
-
-			if (entries.length > 1) {
-				var id = processSideridge(innerSegments, outerSegments, entries[1]);
-				console.log("on sideridge " + id);
-			}
-*/
-/*
-			var outerSegments = lineSplit(outline, split);
-
-			var innerSegments = featureCollection([cornerCenter, ridgeRemain]);
-*/
-
 			
 			var lineDistance = 7;
-			var minDistance = 3;
-			var adjustmentStep = 0.5;
+			var minDistance = 3.5;
+			var defaultAdjustement = 0.1;
+			var adjustmentFactor = 1;
 			var lastLine = lineString([[0,0],[1,0]]);
-			/*var remain = 0;
-			var lengthSum = 0;
-			for (var i = 1; i < ridgeVertexLength.length; i++) {
-				lengthSum += Math.max(ridgeVertexLength[i]-ridgeVertexLength[i-1], outlineVertexLength[i]-outlineVertexLength[i]);
-			}*/
-
-			//adjust actual distance ensure seamless closure
-			//ridgeDistance += (lengthSum%ridgeDistance)/(Math.trunc(lengthSum/ridgeDistance));
 
 			var segment = 1;
 
@@ -596,36 +474,82 @@ function createMountainFeatures(layerGroups, transform) {
 
 			var lastLine = lineString([along(ridgeLinestring, 0).geometry.coordinates, along(outlineLinestring, 0).geometry.coordinates]);
 
-
 			var alongRidge = ridgeOffset;
 			var alongOutline = outlineOffset;
+			var doAdjustmentStep = false;
 			
 			while(alongOutline < outlineSegments.at(-1) ){
 
 				var line = lineString([along(ridgeLinestring, alongRidge).geometry.coordinates, along(outlineLinestring, alongOutline).geometry.coordinates]);
 
-				//do checks/adjustments
-				var detachedLine = lineSliceAlong(line, 0.1, length(line)-0.1);
-				if (booleanIntersects(detachedLine, lastLine)) {
+				/*if (doAdjustmentStep){
 					line.properties["isclose"] = true;
-					//flankElements.features.push(lastLine);
-				} else {
-					flankElements.features.push(lastLine);
-					lastLine = line;
+				}*/
+
+				//do checks/adjustments
+				doAdjustmentStep = false;
+				var detachedLine = lineSliceAlong(line, 0.05, length(line)-0.05);
+
+				if (booleanIntersects(detachedLine, ridgeLinestring)) {
+					//this might happen close to fan shapes or steep ridge turns. After splitting the line the longest segment is most likely the correct one.
+					var lineSegments = lineSplit(line, ridgeLinestring);
+					var maxSegLength = 0;
+					for (var seg of lineSegments.features) {
+						if (length(seg) > maxSegLength) {
+							line = seg;
+							maxSegLength = length(seg);
+						}
+					}
+					detachedLine = lineSliceAlong(line, 0.05, length(line)-0.05);
 				}
 
-				
+				if (booleanIntersects(detachedLine, outlineLinestring)) {
+					//this shouldn't happen if flank guides are set correctly, but we'll handle it like the ridge case. 
+					var lineSegments = lineSplit(line, outlineLinestring);
+					var maxSegLength = 0;
+					for (var seg of lineSegments.features) {
+						if (length(seg) > maxSegLength) {
+							line = seg;
+							maxSegLength = length(seg);
+						}
+					}
+					detachedLine = lineSliceAlong(line, 0.05, length(line)-0.05);
+				}
+
+				if (booleanIntersects(detachedLine, lastLine)) {
+					//if line intersects the previous line make an adjustment step and check again
+					doAdjustmentStep = true;
+					//line.properties["isclose"] = true;
+				}
+
+				if ((pointToLineDistance(point(line.geometry.coordinates[0]), lastLine) < minDistance ||
+					pointToLineDistance(point(lastLine.geometry.coordinates[0]), line) < minDistance) && 
+					(pointToLineDistance(point(line.geometry.coordinates[1]), lastLine) < minDistance || 
+					pointToLineDistance(point(lastLine.geometry.coordinates[1]), line) < minDistance)) {
+					//if both ends of a line are too close to the previous line make an adjustment step and check again
+					doAdjustmentStep = true;
+				}
+
+				if (!doAdjustmentStep){
+					flankElements.features.push(lastLine);
+					lastLine = line;
+					adjustmentFactor = 1.0;
+				} else {
+					//flankElements.features.push(lastLine);
+					//lastLine = line;
+					adjustmentFactor = defaultAdjustement;
+				} 
 
 				//increment along ridge and outline
-				if ((alongRidge + ridgeOffset) > ridgeSegments[segment] || (alongOutline + outlineOffset) > outlineSegments[segment]) {
+				if ((alongRidge + (ridgeOffset * adjustmentFactor)) > ridgeSegments[segment] || (alongOutline + (outlineOffset* adjustmentFactor)) > outlineSegments[segment]) {
 					if (ridgeLonger) {
 						remainingFraction = (alongRidge + ridgeOffset - ridgeSegments[segment])/lineDistance;
 					} else {
 						remainingFraction = (alongOutline + outlineOffset - outlineSegments[segment])/lineDistance;
 					}
-					if (name == "Thunder peaks 0") {
+					/*if (name == "Thunder peaks 0") {
 						console.log(remainingFraction + " - " + ridgeLonger);
-					}
+					}*/
 					segment++;
 					var ridgeSegmentLength = ridgeSegments[segment] - ridgeSegments[segment-1];
 					var outlineSegmentLength = outlineSegments[segment] - outlineSegments[segment-1];
@@ -637,66 +561,19 @@ function createMountainFeatures(layerGroups, transform) {
 					alongOutline = outlineSegments[segment-1] + (outlineOffset * remainingFraction);
 
 				} else {
-					alongRidge += ridgeOffset;
-					alongOutline += outlineOffset;
+					alongRidge += ridgeOffset * adjustmentFactor;
+					alongOutline += outlineOffset * adjustmentFactor;
 				}
 			}
 
-			flankElements.features.push(lastLine);
-
-			/*
-
-			for (var i = 0; i < outerSegments.length; i++) {
-				var inner = lineString(innerSegments[i]);
-				var outer = lineString(outerSegments[i]);
-
-				var maxLen = Math.max(length(outer), length(inner));
-				var maxStep = Math.trunc((maxLen-remain)/ridgeDistance);
-
-				var innerOffset = (length(inner)/maxLen) * ridgeDistance;
-				var outerOffset = (length(outer)/maxLen) * ridgeDistance;
-
-				for (var step = 0; step <= maxStep; step++) {
-					var line = lineString([alongFraction(inner, length(inner)/maxLen*(remain+step*ridgeDistance)), alongFraction(outer, length(outer)/maxLen*(remain+step*ridgeDistance))]);
-					if ((pointToLineDistance(point(line.geometry.coordinates[0]), lastLine) < minDistance ||
-					pointToLineDistance(point(lastLine.geometry.coordinates[0]), line) < minDistance) && 
-					(pointToLineDistance(point(line.geometry.coordinates[1]), lastLine) < minDistance || 
-					pointToLineDistance(point(lastLine.geometry.coordinates[1]), line) < minDistance)) {
-						line.properties["isclose"] = true;
-						//console.log(name);
-						var corner = lineIntersect(line.geometry.coordinates, lastLine.geometry.coordinates);
-						//console.log(line.geometry.coordinates);
-
-						var temp = lineString([line.geometry.coordinates[1], corner, lastLine.geometry.coordinates[1]]);
-						//flankElements.features.push(temp);
-					}
-
-					var detachedLine = lineSliceAlong(line, 0.1, length(line));
-					if (booleanIntersects(detachedLine, ridgeLinestring)) {
-						detachedLine.properties["isclose"] = true;
-						line.properties["isclose"] = true;
-					}
-					//console.log(line.geometry.coordinates);
-					flankElements.features.push(line);
-					lastLine = line;
-					
-					alongInner += innerOffset;
-					alongOuter += outerOffset;
-				}
-				remain = ridgeDistance - ((maxLen-remain)%ridgeDistance);
+			//Proximity check between the final line and the first line of the mountain, skip the final line if it is too close.
+			var line = lineString([along(ridgeLinestring, 0).geometry.coordinates, along(outlineLinestring, 0).geometry.coordinates]);
+			if (!((pointToLineDistance(point(line.geometry.coordinates[0]), lastLine) < minDistance ||
+				pointToLineDistance(point(lastLine.geometry.coordinates[0]), line) < minDistance) && 
+				(pointToLineDistance(point(line.geometry.coordinates[1]), lastLine) < minDistance || 
+				pointToLineDistance(point(lastLine.geometry.coordinates[1]), line) < minDistance))) {
+				flankElements.features.push(lastLine);
 			}
-
-		*/
-
-			//console.log(data["flanks"]);
-
-			/*console.log(name);
-			console.log(i1);
-			console.log(i2);
-			console.log(split1);
-			console.log(split2);
-			console.log(outline.geometry.coordinates[0])*/
-
 		}
 	}
 
@@ -911,6 +788,12 @@ function findVertAlong (line, fromId, point, normal) {
 		var currPoint = line.at(id);
 		var nextPoint = (id == line.length-1 ? line.at(1): line.at(id+1));
 
+		if (prevPoint[0] == nextPoint[0] && prevPoint[0] == nextPoint[0]) {
+			//point is a line end, accept first occurance
+			return id;
+		}
+
+		//check if normal is on the correct side of the linestring
 		var vecA = math.subtract(prevPoint.concat(0), currPoint.concat(0));
 		var vecB = math.subtract(nextPoint.concat(0), currPoint.concat(0));
 
