@@ -392,7 +392,7 @@ function createMountainFeatures(layerGroups, transform) {
 	// The first and last two points of a ridgeline need to be on points of the outline to define the flank line arc connected to the end point at index 3/-3.
 
 	var ridgeFeats = featureCollection([]);
-	var outlineSegments = featureCollection([]);
+	var shadingBoundaries = featureCollection([]);
 	var flankElements = featureCollection([]);
 
 
@@ -448,7 +448,7 @@ function createMountainFeatures(layerGroups, transform) {
 				ridgeSegments.push(ridgeVertexLength[ridgeId]);
 
 				outlineId = findVertAlong(outlineCoords, outlineId, flank[0], math.subtract(flank[0].concat(0), flank[1].concat(0)));
-				outlineSegments.push(outlineVertexLength[outlineId]);				
+				outlineSegments.push(outlineVertexLength[outlineId]);
 			}
 			
 			var lineDistance = 7;
@@ -456,6 +456,11 @@ function createMountainFeatures(layerGroups, transform) {
 			var defaultAdjustement = 0.1;
 			var adjustmentFactor = 1;
 			var lastLine = lineString([[0,0],[1,0]]);
+
+			var lightDir = [-1, -1];
+			var lightCone = 90;
+			var lightTolerance = 15;
+			var lastShadingState = -1;
 
 			var segment = 1;
 
@@ -481,6 +486,7 @@ function createMountainFeatures(layerGroups, transform) {
 			while(alongOutline < outlineSegments.at(-1) ){
 
 				var line = lineString([along(ridgeLinestring, alongRidge).geometry.coordinates, along(outlineLinestring, alongOutline).geometry.coordinates]);
+
 
 				/*if (doAdjustmentStep){
 					line.properties["isclose"] = true;
@@ -532,6 +538,21 @@ function createMountainFeatures(layerGroups, transform) {
 
 				if (!doAdjustmentStep){
 					flankElements.features.push(lastLine);
+					
+
+					var shadingStatus = checkShadingStatus (line, lightDir, lightCone, 0, -1);
+					if (!shadingStatus) {
+						shadingBoundaries.features.push(lastLine);
+					} else {
+						var len = length(lastLine);
+						console.log(shadingState(line, lightDir));
+						var factor = 0.2 + 0.3 * shadingState(line, lightDir);
+						shadingBoundaries.features.push(lineSliceAlong(lastLine, 0, len * factor));
+						shadingBoundaries.features.push(lineSliceAlong(lastLine, len * (1.0-factor), len));
+					}
+					lastShadingState = shadingStatus;
+
+
 					lastLine = line;
 					adjustmentFactor = 1.0;
 				} else {
@@ -591,28 +612,28 @@ function createMountainFeatures(layerGroups, transform) {
 	});
 
 
-	/*var vectorLayerSegments = new VectorLayer({
-		title: "Outline Segments",
+	var vectorShadingBoundaries = new VectorLayer({
+		title: "Shading boundaries",
 		source: new VectorSource({
-			features: new GeoJSON().readFeatures(outlineSegments),
+			features: new GeoJSON().readFeatures(shadingBoundaries),
 		}),
 		style: function (feature, resolution) {
 			var returnStyle = new Style({
 				fill: new Fill({
-					color: 'rgba(60,250,60,0.4)',
+					color: 'rgba(250, 60,60,0.50)',
 				}),
 				stroke: new Stroke({
-					color: 'rgba(0,0,0,1.0)',
+					color: 'rgba(250, 60,60,0.50)',
 					width: 3.0,
 					lineCap: 'round',
 					}),
 			});
 			if (feature.getProperties().gtype == "cap") {
-				returnStyle.getFill().setColor('rgba(250, 60,60,0.50)');
+				returnStyle.getFill().setColor('rgba(60,60,250,0.50)');
 			}
 			return returnStyle;
 		},
-	});*/
+	});
 
 	var vectorFlankLines = new VectorLayer({
 		title: "flank Lines",
@@ -636,7 +657,7 @@ function createMountainFeatures(layerGroups, transform) {
 
 
 	layerGroups.getLayers().array_.push(vectorLayerRidges);
-	//layerGroups.getLayers().array_.push(vectorLayerSegments);
+	layerGroups.getLayers().array_.push(vectorShadingBoundaries);
 	layerGroups.getLayers().array_.push(vectorFlankLines);
 	//console.log(ridgeFeats);
 	//console.log(dataStore);
@@ -674,6 +695,94 @@ function processSideridge(ridge, ridgeDistances, sideRidge) {
 
 		ridge.splice(id, 1, ...ridgeInsert);
 	}
+}
+
+function shadingState (flankLine, lightDir) {
+	var flank = math.subtract(flankLine.geometry.coordinates[1].concat(0), flankLine.geometry.coordinates[0].concat(0));
+	flank = math.divide(flank, math.norm(flank));
+	return betweenVectors2(flank,math.rotate(lightDir, math.pi / 2.5), math.rotate(lightDir, math.pi / 2));
+}
+
+function checkShadingStatus (flankLine, lightDir, lightCone, tolerance, prevState) {
+	//check a flank line for its shading status, where -1 is unclear, 0 is shaded, and 1 is illuminated
+	var flank = math.subtract(flankLine.geometry.coordinates[1].concat(0), flankLine.geometry.coordinates[0].concat(0));
+	var halfAngle  = (-lightCone/2 + tolerance) + "deg";
+	var halfAngle2  = (lightCone/2 - tolerance) + "deg";
+	//console.log(flank);
+	//console.log(math.rotate(lightDir, -math.pi / 4));
+	//console.log(math.rotate(lightDir, math.pi / 4));
+		if (betweenVectors(flank, math.rotate(lightDir, -math.pi / 2), math.rotate(lightDir, math.pi / 2.5))) {
+			return 0;
+		} else {
+			return 1;
+		}
+	//if the previous state was unclear, we check if it is within either shaded or lit direction with the least tolerance otherwise it remains unclear
+	/*if (prevState == -1) {
+		var halfAngle  = (lightCone/2 - tolerance) + "deg";
+		if (betweenVectors(flank, math.rotate(lightDir, -math.unit(halfAngle)), math.rotate(lightDir, math.unit(halfAngle)))) {
+			return 0;
+		}
+
+		halfAngle  = (lightCone/2 + tolerance) + "deg";
+		if (betweenVectors(flank, math.rotate(lightDir, -math.unit(halfAngle)), math.rotate(lightDir, math.unit(halfAngle)))) {
+			return 1;
+		}
+		return -1;
+	}
+	if (prevState == 0) {
+		var halfAngle  = (lightCone/2 - tolerance) + "deg";
+		if (betweenVectors(flank, math.rotate(lightDir, -math.unit(halfAngle)), math.rotate(lightDir, math.unit(halfAngle)))) {
+			return 0;
+		}
+		return 1;
+	}
+	if (prevState == 1) {
+		var halfAngle  = (lightCone/2 - tolerance) + "deg";
+		if (betweenVectors(flank, math.rotate(lightDir, -math.unit(halfAngle)), math.rotate(lightDir, math.unit(halfAngle)))) {
+			return 0;
+		}
+		return 1;
+	}*/
+	return -1;
+}
+
+function betweenVectors2 (normal, start, end) {
+	var vecT = math.divide(normal, math.norm(normal));
+	var vecA = start.concat(0);
+	vecA = math.divide(vecA, math.norm(vecA));
+	var vecB = end.concat(0);
+	vecB = math.divide(vecB, math.norm(vecB));
+	var crossAB = math.cross(vecA, vecB)[2];
+	if (crossAB >= 0){
+		if (math.cross(vecA, vecT)[2] >= 0 && math.cross(vecT, vecB)[2] >= 0) {
+			return math.cross(vecT, vecB)[2]/math.cross(vecA, vecB)[2];
+	}
+	} else {
+		if (math.cross(vecA, vecT)[2] >= 0 || math.cross(vecT, vecB)[2] >= 0) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+
+function betweenVectors (normal, start, end) {
+	var vecT = math.divide(normal, math.norm(normal));
+	var vecA = start.concat(0);
+	vecA = math.divide(vecA, math.norm(vecA));
+	var vecB = end.concat(0);
+	vecB = math.divide(vecB, math.norm(vecB));
+	var crossAB = math.cross(vecA, vecB)[2];
+	if (crossAB >= 0){
+		if (math.cross(vecA, vecT)[2] >= 0 && math.cross(vecT, vecB)[2] >= 0) {
+			return true;
+	}
+	} else {
+		if (math.cross(vecA, vecT)[2] >= 0 || math.cross(vecT, vecB)[2] >= 0) {
+			return true;
+		}
+	}
+	return false;
 }
 
 function lineIntersect(lineA, lineB) {
