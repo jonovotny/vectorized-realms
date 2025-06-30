@@ -446,9 +446,17 @@ function createMountainFeatures(layerGroups, transform) {
 
 				ridgeId = findVertAlong(ridgeCoords, ridgeId, flank[1], math.subtract(flank[0].concat(0), flank[1].concat(0)));
 				ridgeSegments.push(ridgeVertexLength[ridgeId]);
+				if (!ridgeId) {
+					console.log("Ridge missmatch");
+					console.log(flankElement);
+				}
 
 				outlineId = findVertAlong(outlineCoords, outlineId, flank[0], math.subtract(flank[0].concat(0), flank[1].concat(0)));
 				outlineSegments.push(outlineVertexLength[outlineId]);
+				if (!outlineId) {
+					console.log("Outline missmatch");
+					console.log(flankElement);
+				}
 			}
 			
 			var lineDistance = 7;
@@ -545,7 +553,7 @@ function createMountainFeatures(layerGroups, transform) {
 						shadingBoundaries.features.push(lastLine);
 					} else {
 						var len = length(lastLine);
-						console.log(shadingState(line, lightDir));
+						//console.log(shadingState(line, lightDir));
 						var factor = 0.2 + 0.3 * shadingState(line, lightDir);
 						shadingBoundaries.features.push(lineSliceAlong(lastLine, 0, len * factor));
 						shadingBoundaries.features.push(lineSliceAlong(lastLine, len * (1.0-factor), len));
