@@ -39,6 +39,7 @@ export default function geojson2svg(jsonData, template = null) {
     dlAnchorElem.setAttribute("href", url);
 	dlAnchorElem.setAttribute("download", "test.svg");
     //dlAnchorElem.click();
+	//document.getElementById('downloadAnchorElem').click()
 }
 
 function convertLayer(jsonData, frame, svgParent) {
