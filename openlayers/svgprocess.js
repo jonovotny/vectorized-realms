@@ -5,6 +5,8 @@ import {Vector as VectorLayer} from 'ol/layer.js';
 import {Fill, Stroke, Style} from 'ol/style.js';
 import LayerGroup from 'ol/layer/Group';
 
+import geojson2svg from './geojsonprocess.js';
+
 import {featureCollection, multiLineString, polygon, truncate, point, difference, union, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanCrosses, booleanIntersects, lineSliceAlong} from '@turf/turf';
 
 var features = {};
@@ -669,6 +671,8 @@ function createMountainFeatures(layerGroups, transform) {
 	layerGroups.getLayers().array_.push(vectorFlankLines);
 	//console.log(ridgeFeats);
 	//console.log(dataStore);
+
+	geojson2svg(shadingBoundaries);
 }
 
 function alongFraction (line, frac) {
