@@ -7,7 +7,7 @@ import LayerGroup from 'ol/layer/Group';
 
 import geojson2svg from './geojsonprocess.js';
 
-import {featureCollection, multiLineString, polygon, truncate, point, difference, union, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanCrosses, booleanIntersects, lineSliceAlong} from '@turf/turf';
+import {combine, featureCollection, multiLineString, polygon, truncate, point, difference, union, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanCrosses, booleanIntersects, lineSliceAlong} from '@turf/turf';
 
 var features = {};
 
@@ -124,19 +124,8 @@ function processGroup(grp, transform, parentLayer, current){
 
 
 function processPath (elem, transform, json, current) {
-	if (elem.getAttribute("inkscape:label") == "Lizard marsh"){
-		var brk = null;
-	}
-	//console.log(" P - " +  elem.getAttribute("inkscape:label"))
-
 	var comb_trans = processTransform (elem, transform);
 	
-	/*if (json.features.length > 0){
-		current = json.features.at(-1).geometry.coordinates.at(-1);
-	}
-	while (Array.isArray(current[0])) {
-		current = current.at(-1);
-	}*/
 	var coordinates = [];
 	var lines = [];
 	var polygons = [];
@@ -394,7 +383,7 @@ function createMountainFeatures(layerGroups, transform) {
 	// The first and last two points of a ridgeline need to be on points of the outline to define the flank line arc connected to the end point at index 3/-3.
 
 	var ridgeFeats = featureCollection([]);
-	var shadingBoundaries = featureCollection([]);
+	var flankDetailFeats = featureCollection([]);
 	var flankElements = featureCollection([]);
 
 
@@ -425,7 +414,7 @@ function createMountainFeatures(layerGroups, transform) {
 			var outlineVertexLength = calculateDistances(outlineCoords);
 			var ridgeVertexLength = calculateDistances(ridgeCoords);
 
-			console.log(name);
+			//console.log(name);
 			if (sortedRidges.length > 1) {
 				for (var sideRidge of sortedRidges.slice(1)) {
 					processSideridge(ridgeCoords, ridgeVertexLength, sideRidge);
@@ -448,14 +437,14 @@ function createMountainFeatures(layerGroups, transform) {
 
 				ridgeId = findVertAlong(ridgeCoords, ridgeId, flank[1], math.subtract(flank[0].concat(0), flank[1].concat(0)));
 				ridgeSegments.push(ridgeVertexLength[ridgeId]);
-				if (!ridgeId) {
+				if (isNaN(ridgeId)) {
 					console.log("Ridge missmatch");
 					console.log(flankElement);
 				}
 
 				outlineId = findVertAlong(outlineCoords, outlineId, flank[0], math.subtract(flank[0].concat(0), flank[1].concat(0)));
 				outlineSegments.push(outlineVertexLength[outlineId]);
-				if (!outlineId) {
+				if (isNaN(outlineId)) {
 					console.log("Outline missmatch");
 					console.log(flankElement);
 				}
@@ -487,6 +476,7 @@ function createMountainFeatures(layerGroups, transform) {
 				ridgeOffset = (ridgeSegments[1]/maxLen) * ridgeOffset;
 			}
 
+			var shadingBoundaries = featureCollection([]);
 			var lastLine = lineString([along(ridgeLinestring, 0).geometry.coordinates, along(outlineLinestring, 0).geometry.coordinates]);
 
 			var alongRidge = ridgeOffset;
@@ -604,7 +594,21 @@ function createMountainFeatures(layerGroups, transform) {
 				(pointToLineDistance(point(line.geometry.coordinates[1]), lastLine) < minDistance || 
 				pointToLineDistance(point(lastLine.geometry.coordinates[1]), line) < minDistance))) {
 				flankElements.features.push(lastLine);
+
+				var shadingStatus = checkShadingStatus (line, lightDir, lightCone, 0, -1);
+				if (!shadingStatus) {
+					shadingBoundaries.features.push(lastLine);
+				} else {
+					var len = length(lastLine);
+					//console.log(shadingState(line, lightDir));
+					var factor = 0.2 + 0.3 * shadingState(line, lightDir);
+					shadingBoundaries.features.push(lineSliceAlong(lastLine, 0, len * factor));
+					shadingBoundaries.features.push(lineSliceAlong(lastLine, len * (1.0-factor), len));
+				}
 			}
+			var shadedLineFeatures = combine(shadingBoundaries).features[0];
+			shadedLineFeatures.properties["inkscape:label"] = name;
+			flankDetailFeats.features.push(shadedLineFeatures);
 		}
 	}
 
@@ -625,7 +629,7 @@ function createMountainFeatures(layerGroups, transform) {
 	var vectorShadingBoundaries = new VectorLayer({
 		title: "Shading boundaries",
 		source: new VectorSource({
-			features: new GeoJSON().readFeatures(shadingBoundaries),
+			features: new GeoJSON().readFeatures(flankDetailFeats),
 		}),
 		style: function (feature, resolution) {
 			var returnStyle = new Style({
@@ -672,7 +676,7 @@ function createMountainFeatures(layerGroups, transform) {
 	//console.log(ridgeFeats);
 	//console.log(dataStore);
 
-	geojson2svg(shadingBoundaries);
+	geojson2svg(flankDetailFeats);
 }
 
 function alongFraction (line, frac) {
