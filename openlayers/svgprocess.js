@@ -7,7 +7,7 @@ import LayerGroup from 'ol/layer/Group';
 
 import geojson2svg from './geojsonprocess.js';
 
-import {combine, featureCollection, multiLineString, polygon, truncate, point, difference, union, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanCrosses, booleanIntersects, lineSliceAlong} from '@turf/turf';
+import {polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, difference, union, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanCrosses, booleanIntersects, lineSliceAlong} from '@turf/turf';
 
 var features = {};
 
@@ -319,8 +319,9 @@ function createSwampFeatures(layerGroups, transform){
 			}
 			var off = lineToPolygon(lineOffset(poly,7));
 			var unkinked = unkinkPolygon(off).features.reduce((acc, x) => x.geometry.coordinates[0].length > acc.geometry.coordinates[0].length? x: acc);
+			unkinked = polygonSmooth(unkinked, { iterations: 1 });
 			//var longest = unkinked.features.reduce((acc, x) => x.length > acc.length? x: acc);
-			fs.features.push(unkinked);
+			fs.features.push(unkinked.features[0]);
 			//var off = createOffsetLine(swamp.geometry.coordinates[0], -0.05, true);
 			//fs.features.push({"type": "Feature", "geometry": {"type": "Polygon", "coordinates": [off]}, "properties": {"label": swamp.properties.label + "-inner"}});
 		}
@@ -477,7 +478,10 @@ function createMountainFeatures(layerGroups, transform) {
 			}
 
 			var shadingBoundaries = featureCollection([]);
+
 			var lastLine = lineString([along(ridgeLinestring, 0).geometry.coordinates, along(outlineLinestring, 0).geometry.coordinates]);
+			var lastInnerLine = lineString([[5000,5000],[5001,5001]]);
+			var lastOuterLine = lineString([[5000,5000],[5001,5001]]);
 
 			var alongRidge = ridgeOffset;
 			var alongOutline = outlineOffset;
@@ -536,22 +540,49 @@ function createMountainFeatures(layerGroups, transform) {
 					doAdjustmentStep = true;
 				}
 
+
+				var len = length(lastLine);
 				if (!doAdjustmentStep){
 					flankElements.features.push(lastLine);
 					
 
 					var shadingStatus = checkShadingStatus (line, lightDir, lightCone, 0, -1);
 					if (!shadingStatus) {
-						shadingBoundaries.features.push(lastLine);
+						//shadingBoundaries.features.push(lastLine);
+						var innerDist = math.max(pointToLineDistance(point(lastLine.geometry.coordinates[1]), lastInnerLine), pointToLineDistance(point(lastInnerLine.geometry.coordinates[1]), lastLine));
+						var outerDist = math.max(pointToLineDistance(point(lastLine.geometry.coordinates[0]), lastOuterLine), pointToLineDistance(point(lastOuterLine.geometry.coordinates[0]), lastLine));
+						if (innerDist < minDistance) {
+							var factor = 0.3 + 0.04 * Number(lastLine.geometry.coordinates[0][0].toString().slice(-1));
+							shadingBoundaries.features.push(lineSliceAlong(lastLine, 0, len*factor));
+							lastOuterLine = clone(lastLine);
+						} else if (outerDist < minDistance) {
+							var factor = 0.3 + 0.04 * Number(lastLine.geometry.coordinates[1][0].toString().slice(-1));
+							shadingBoundaries.features.push(lineSliceAlong(lastLine, factor*len, len));
+							lastInnerLine = clone(lastLine);
+						} else {
+							shadingBoundaries.features.push(lastLine);
+							lastInnerLine = clone(lastLine);
+							lastOuterLine = clone(lastLine);
+						}
+
 					} else {
-						var len = length(lastLine);
 						//console.log(shadingState(line, lightDir));
-						var factor = 0.2 + 0.3 * shadingState(line, lightDir);
-						shadingBoundaries.features.push(lineSliceAlong(lastLine, 0, len * factor));
-						shadingBoundaries.features.push(lineSliceAlong(lastLine, len * (1.0-factor), len));
+						//console.log(Number(line.geometry.coordinates[1][0].toString().slice(-1)));
+						var innerFactor = 0.1 + 0.03 * Number(line.geometry.coordinates[0][0].toString().slice(-1)) + 0.3 * shadingState(line, lightDir);
+						var outerFactor = 0.1 + 0.03 * Number(line.geometry.coordinates[1][0].toString().slice(-1)) + 0.3 * shadingState(line, lightDir);
+						var innerLine = lineSliceAlong(lastLine, 0, len * innerFactor);
+						if ((pointToLineDistance(point(innerLine.geometry.coordinates[0]), lastInnerLine) >= minDistance || pointToLineDistance(point(innerLine.geometry.coordinates[1]), lastInnerLine) >= minDistance)) {
+							shadingBoundaries.features.push(innerLine);
+							lastInnerLine = clone(lastLine);
+						}
+						var outerLine = lineSliceAlong(lastLine, len * (1.0-outerFactor), len);
+						if ((pointToLineDistance(point(outerLine.geometry.coordinates[0]), lastOuterLine) >= minDistance || pointToLineDistance(point(outerLine.geometry.coordinates[1]), lastOuterLine) >= minDistance)) {
+							shadingBoundaries.features.push(outerLine);
+							lastOuterLine = clone(lastLine);
+						}
+						//shadingBoundaries.features.push(outerLine);
 					}
 					lastShadingState = shadingStatus;
-
 
 					lastLine = line;
 					adjustmentFactor = 1.0;
@@ -626,28 +657,7 @@ function createMountainFeatures(layerGroups, transform) {
 	});
 
 
-	var vectorShadingBoundaries = new VectorLayer({
-		title: "Shading boundaries",
-		source: new VectorSource({
-			features: new GeoJSON().readFeatures(flankDetailFeats),
-		}),
-		style: function (feature, resolution) {
-			var returnStyle = new Style({
-				fill: new Fill({
-					color: 'rgba(250, 60,60,0.50)',
-				}),
-				stroke: new Stroke({
-					color: 'rgba(250, 60,60,0.50)',
-					width: 3.0,
-					lineCap: 'round',
-					}),
-			});
-			if (feature.getProperties().gtype == "cap") {
-				returnStyle.getFill().setColor('rgba(60,60,250,0.50)');
-			}
-			return returnStyle;
-		},
-	});
+
 
 	var vectorFlankLines = new VectorLayer({
 		title: "flank Lines",
@@ -657,13 +667,36 @@ function createMountainFeatures(layerGroups, transform) {
 		style: function (feature, resolution) {
 			var returnStyle = new Style({
 				stroke: new Stroke({
-					color: 'rgba(0,0,0,0.50)',
+					color: 'rgba(0,0,0,0.20)',
 					width: 3.0,
 					lineCap: 'round',
 					}),
 			});
 			if (feature.getProperties().isclose) {
-				returnStyle.getStroke().setColor('rgba(250, 60,60,0.50)');
+				returnStyle.getStroke().setColor('rgba(250, 60,60,1.0)');
+			}
+			return returnStyle;
+		},
+	});
+
+		var vectorShadingBoundaries = new VectorLayer({
+		title: "Shading boundaries",
+		source: new VectorSource({
+			features: new GeoJSON().readFeatures(flankDetailFeats),
+		}),
+		style: function (feature, resolution) {
+			var returnStyle = new Style({
+				fill: new Fill({
+					color: 'rgba(250, 60,60,1.0)',
+				}),
+				stroke: new Stroke({
+					color: 'rgba(60, 255,60,1.0)',
+					width: 3.0,
+					lineCap: 'round',
+					}),
+			});
+			if (feature.getProperties().gtype == "cap") {
+				returnStyle.getFill().setColor('rgba(60,60,250,0.50)');
 			}
 			return returnStyle;
 		},
