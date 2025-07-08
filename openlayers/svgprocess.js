@@ -6,8 +6,9 @@ import {Fill, Stroke, Style} from 'ol/style.js';
 import LayerGroup from 'ol/layer/Group';
 
 import geojson2svg from './geojsonprocess.js';
+import { styleLib } from './layerstyles.js';
 
-import {polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, difference, union, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanCrosses, booleanIntersects, lineSliceAlong} from '@turf/turf';
+import {segmentEach, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, difference, union, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanCrosses, booleanIntersects, lineSliceAlong} from '@turf/turf';
 
 var features = {};
 
@@ -49,6 +50,10 @@ export function processSvg(doc, extent, layerGroup) {
 	}
 
 	createSwampFeatures(layerGroup, transform);
+	createMarshFeatures(layerGroup, transform);
+	createMoorFeatures(layerGroup, transform);
+	createBadlandsFeatures(layerGroup, transform);
+	createCliffFeatures(layerGroup, transform);
 	createMountainFeatures(layerGroup, transform);
 	//console.log(json);
 	//return json;
@@ -63,7 +68,7 @@ function processGroup(grp, transform, parentLayer, current){
 	var comb_trans = processTransform (grp, transform);
 	var comb_json = { "type": "FeatureCollection", "features": []};
 	var style = null;
-	var color = 'rgba(255,0,0,1.0)';
+	var color = 'rgba(0,0,0,1.0)';
 
 	for (var elem of Array.from(grp.children)){
 		switch (elem.tagName) {
@@ -99,21 +104,22 @@ function processGroup(grp, transform, parentLayer, current){
 		features: new GeoJSON().readFeatures(comb_json),
 	});
 
-	if (style) {
+	/*if (style) {
 		color = style.match(/#[0-9aAbBcCdDeEfF]{6}/g);
 		if (color){
 			color = color[0];
 		}
+	}*/
+
+	var layerStyle = styleLib["default"];
+	if (styleLib.hasOwnProperty(grp.getAttribute("inkscape:label"))) {
+		layerStyle = styleLib[grp.getAttribute("inkscape:label")];
 	}
 
 	var vectorLayer = new VectorLayer({
-		title: elem.getAttribute("inkscape:label"),
+		title: grp.getAttribute("inkscape:label"),
 		source: vectorSource,
-		style: new Style({ stroke: new Stroke({
-			color: color,
-			width: 2,
-			}),
-		}),
+		style: layerStyle
 	});
 
 	features[grp.getAttribute("inkscape:label")] = comb_json;
@@ -308,40 +314,149 @@ function processTransform (elem, transform) {
 }
 
 function createSwampFeatures(layerGroups, transform){
-	var newFeatures = [];
 	var fs = {"type": "FeatureCollection", "features": []};
 
 	for (var swamp of features.Swamps.features) {
-		if(swamp.geometry.type == "Polygon") {
-			var poly = polygonToLine(polygon(swamp.geometry.coordinates));
-			if (!booleanClockwise(poly)) {
-				poly = rewind(poly);
-			}
-			var off = lineToPolygon(lineOffset(poly,7));
-			var unkinked = unkinkPolygon(off).features.reduce((acc, x) => x.geometry.coordinates[0].length > acc.geometry.coordinates[0].length? x: acc);
-			unkinked = polygonSmooth(unkinked, { iterations: 1 });
-			//var longest = unkinked.features.reduce((acc, x) => x.length > acc.length? x: acc);
-			fs.features.push(unkinked.features[0]);
-			//var off = createOffsetLine(swamp.geometry.coordinates[0], -0.05, true);
-			//fs.features.push({"type": "Feature", "geometry": {"type": "Polygon", "coordinates": [off]}, "properties": {"label": swamp.properties.label + "-inner"}});
-		}
+		fs.features.push(offsetFeature(swamp, 7));
 	}
 
 	var vectorLayerSwampInner = new VectorLayer({
-		title: "Inner Swamp",
+		title: "[Gen] Swamp Detail",
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(fs),
 		}),
 		style: new Style({ stroke: new Stroke({
-			color: 'rgba(255,0.0,0.0,1.0)',
+			color: 'rgba(0,0.0,0.0,1.0)',
 			width: 2.0,
 			lineCap: 'round'
 			}),
 		}),
 	});
-
 	layerGroups.getLayers().array_.push(vectorLayerSwampInner);
+}
 
+function createMarshFeatures(layerGroups, transform){
+	var fs = {"type": "FeatureCollection", "features": []};
+
+	for (var marsh of features.Marshes.features) {
+		fs.features.push(offsetFeature(marsh, 7));
+	}
+
+	var vectorLayerMarshInner = new VectorLayer({
+		title: "[Gen] Marsh Detail",
+		source: new VectorSource({
+			features: new GeoJSON().readFeatures(fs),
+		}),
+		style: new Style({ stroke: new Stroke({
+			color: 'rgba(0,0.0,0.0,1.0)',
+			width: 2.0,
+			lineCap: 'round'
+			}),
+		}),
+	});
+	layerGroups.getLayers().array_.push(vectorLayerMarshInner);
+}
+
+function createMoorFeatures(layerGroups, transform){
+	var fs = {"type": "FeatureCollection", "features": []};
+
+	for (var moor of features.Moors.features) {
+		fs.features.push(offsetFeature(moor, 7));
+	}
+
+	var vectorLayerMoorInner = new VectorLayer({
+		title: "[Gen] Moor Detail",
+		source: new VectorSource({
+			features: new GeoJSON().readFeatures(fs),
+		}),
+		style: new Style({ stroke: new Stroke({
+			color: 'rgba(0,0.0,0.0,1.0)',
+			width: 2.0,
+			lineCap: 'round'
+			}),
+		}),
+	});
+	layerGroups.getLayers().array_.push(vectorLayerMoorInner);
+}
+
+function createBadlandsFeatures(layerGroups, transform){
+	var fs = {"type": "FeatureCollection", "features": []};
+
+	for (var badland of features.Badlands.features) {
+		fs.features.push(offsetFeature(badland, 7));
+	}
+
+	var vectorLayerBadlandInner = new VectorLayer({
+		title: "[Gen] Badland Detail",
+		source: new VectorSource({
+			features: new GeoJSON().readFeatures(fs),
+		}),
+		style: new Style({ stroke: new Stroke({
+			color: 'rgba(0,0.0,0.0,1.0)',
+			width: 2.0,
+			lineCap: 'round'
+			}),
+		}),
+	});
+	layerGroups.getLayers().array_.push(vectorLayerBadlandInner);
+}
+
+function createCliffFeatures(layerGroups, transform){
+	var fs = {"type": "FeatureCollection", "features": []};
+
+	for (var cliff of features.Cliffs.features) {
+		var offFeat = offsetFeature(cliff, 13);
+
+		if (cliff.geometry.type == "LineString") {
+			var maxLength = 0;
+			var segId = -1;
+			cliff.geometry.coordinates = cliff.geometry.coordinates.slice(2,-2);
+			console.log(cliff.properties.label + " " + segId);
+		} 
+		
+		fs.features.push(offFeat);
+	}
+	fs = polygonSmooth(fs);
+
+	var vectorLayerCliffsInner = new VectorLayer({
+		title: "[Gen] Cliffs Background",
+		source: new VectorSource({
+			features: new GeoJSON().readFeatures(fs),
+		}),
+		style: new Style({ stroke: new Stroke({
+			color: 'rgba(0,0.0,0.0,1.0)',
+			width: 2.0,
+			lineCap: 'round'
+			}),
+		}),
+	});
+	layerGroups.getLayers().array_.push(vectorLayerCliffsInner);
+}
+
+function offsetFeature(feat, dist) {
+	var line;
+	if(feat.geometry.type == "Polygon") {
+		line = polygonToLine(polygon(feat.geometry.coordinates));	
+	} else if (feat.geometry.type == "LineString"){
+		line = lineString(feat.geometry.coordinates);
+	} else {
+		return lineString([]);
+	}
+	line = cleanCoords(line);
+
+	/*if (!booleanClockwise(line)) {
+		line = rewind(line);
+	}*/
+
+	var off = lineToPolygon(lineOffset(line,dist));
+	var unkinked = unkinkPolygon(off).features.reduce((acc, x) => x.geometry.coordinates[0].length > acc.geometry.coordinates[0].length? x: acc);
+	unkinked = polygonSmooth(unkinked, { iterations: 1 });
+	var offFeat = unkinked.features[0];
+	/*if(feat.geometry.type == "LineString") {
+		var offFeat = polygonToLine(offFeat);
+	}*/
+	offFeat.properties["name"] = feat.properties["name"];
+	return offFeat;	
 }
 
 function coordEquals(b) {
@@ -638,7 +753,7 @@ function createMountainFeatures(layerGroups, transform) {
 				}
 			}
 			var shadedLineFeatures = combine(shadingBoundaries).features[0];
-			shadedLineFeatures.properties["inkscape:label"] = name;
+			shadedLineFeatures.properties["label"] = name;
 			flankDetailFeats.features.push(shadedLineFeatures);
 		}
 	}
@@ -660,7 +775,7 @@ function createMountainFeatures(layerGroups, transform) {
 
 
 	var vectorFlankLines = new VectorLayer({
-		title: "flank Lines",
+		title: "[Gen] Initial Flank lines ",
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(flankElements),
 		}),
@@ -680,7 +795,7 @@ function createMountainFeatures(layerGroups, transform) {
 	});
 
 		var vectorShadingBoundaries = new VectorLayer({
-		title: "Shading boundaries",
+		title: "[Gen] Detail Flanklines",
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(flankDetailFeats),
 		}),
@@ -703,9 +818,9 @@ function createMountainFeatures(layerGroups, transform) {
 	});
 
 
-	layerGroups.getLayers().array_.push(vectorLayerRidges);
-	layerGroups.getLayers().array_.push(vectorShadingBoundaries);
+	//layerGroups.getLayers().array_.push(vectorLayerRidges);
 	layerGroups.getLayers().array_.push(vectorFlankLines);
+	layerGroups.getLayers().array_.push(vectorShadingBoundaries);
 	//console.log(ridgeFeats);
 	//console.log(dataStore);
 
