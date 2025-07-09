@@ -8,7 +8,7 @@ import LayerGroup from 'ol/layer/Group';
 import geojson2svg from './geojsonprocess.js';
 import { styleLib } from './layerstyles.js';
 
-import {segmentEach, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, difference, union, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanCrosses, booleanIntersects, lineSliceAlong} from '@turf/turf';
+import {booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, difference, union, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanCrosses, booleanIntersects, lineSliceAlong} from '@turf/turf';
 
 var features = {};
 
@@ -403,22 +403,85 @@ function createBadlandsFeatures(layerGroups, transform){
 
 function createCliffFeatures(layerGroups, transform){
 	var fs = {"type": "FeatureCollection", "features": []};
+	var fs2 = featureCollection([]);
 
 	for (var cliff of features.Cliffs.features) {
-		var offFeat = offsetFeature(cliff, 13);
+		var width = 13;
+		var offFeat = offsetFeature(cliff, width);
+		fs = featureCollection([offFeat])
+		fs = polygonSmooth(fs);
+		offFeat = fs.features[0];
+		
 
 		if (cliff.geometry.type == "LineString") {
-			var maxLength = 0;
-			var segId = -1;
-			cliff.geometry.coordinates = cliff.geometry.coordinates.slice(2,-2);
-			console.log(cliff.properties.label + " " + segId);
-		} 
-		
+			var coords = cliff.geometry.coordinates.slice(2,-2);
+
+			cliff.geometry.coordinates = coords;
+			var len = length(cliff);
+			var endOffset = math.min(width/2, len/2);
+
+			var background = polygonToLine(offFeat);
+
+			var pnt = along(cliff, endOffset);
+			var tangent = [along(cliff, math.max(endOffset-0.5, 0)).geometry.coordinates, along(cliff, math.min(endOffset+0.5, len)).geometry.coordinates];
+			var tanLength = length(lineString(tangent));
+			
+			var trans = math.matrix([[1, 0, -tangent[0][0]], [0, 1, -tangent[0][1]], [0,0,1]]);
+			var invtrans = math.matrix([[5*width/tanLength, 0, pnt.geometry.coordinates[0]], [0,5*width/tanLength, pnt.geometry.coordinates[1]], [0,0,1]]);
+			var rot = math.rotationMatrix(-math.pi / 2, math.matrix([0, 0, 1]));
+			var normal = transformCoords(tangent, math.multiply(invtrans,math.multiply(rot, trans)));
+
+			background = lineSplit(background, lineString(normal));
+			if (booleanPointOnLine(point(background.features[0].geometry.coordinates[0]),lineString(normal))) {
+				background = lineString(background.features[0].geometry.coordinates.concat(background.features[1].geometry.coordinates.slice(1)));
+			} else {
+				background = lineString(background.features[1].geometry.coordinates.concat(background.features[0].geometry.coordinates.slice(1)));
+			}
+
+			pnt = along(cliff, len-endOffset);
+			tangent = [along(cliff, math.max(len-endOffset-0.5, 0)).geometry.coordinates, along(cliff, math.min(len-endOffset+0.5, len)).geometry.coordinates];
+			tanLength = length(lineString(tangent));
+			
+			trans = math.matrix([[1, 0, -tangent[0][0]], [0, 1, -tangent[0][1]], [0,0,1]]);
+			invtrans = math.matrix([[5*width/tanLength, 0, pnt.geometry.coordinates[0]], [0,5*width/tanLength, pnt.geometry.coordinates[1]], [0,0,1]]);
+			rot = math.rotationMatrix(-math.pi / 2, math.matrix([0, 0, 1]));
+			normal = transformCoords(tangent, math.multiply(invtrans,math.multiply(rot, trans)));
+
+			background = lineSplit(background, lineString(normal));
+			if (booleanPointOnLine(point(background.features[0].geometry.coordinates[0]),lineString(normal))) {
+				background = background.features[1];
+			} else {
+				background = background.features[0];
+			}
+
+			fs2.features.push(lineToPolygon(lineString(background.geometry.coordinates.concat(coords.reverse()))));
+		}
+
+		if (cliff.geometry.type == "Polygon"){
+			if (booleanClockwise(polygonToLine(cliff))) {
+				if (offFeat.geometry.type == "Polygon") {
+					fs2.features.push(polygon([cliff.geometry.coordinates[0], offFeat.geometry.coordinates[0]]));
+				} else {
+					fs2.features.push(polygon([cliff.geometry.coordinates[0]].concat(offFeat.geometry.coordinates[0])));
+				}
+				
+			} else {
+				if (offFeat.geometry.type == "Polygon") {
+					fs2.features.push(polygon([offFeat.geometry.coordinates[0], cliff.geometry.coordinates[0]]));
+				} else {
+					fs2.features.push(polygon([offFeat.geometry.coordinates[0]].concat(cliff.geometry.coordinates[0])));
+				}
+			}
+
+		}
+
 		fs.features.push(offFeat);
 	}
-	fs = polygonSmooth(fs);
 
-	var vectorLayerCliffsInner = new VectorLayer({
+	
+	
+
+	var vectorLayerCliffsOuter = new VectorLayer({
 		title: "[Gen] Cliffs Background",
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(fs),
@@ -427,6 +490,18 @@ function createCliffFeatures(layerGroups, transform){
 			color: 'rgba(0,0.0,0.0,1.0)',
 			width: 2.0,
 			lineCap: 'round'
+			}),
+		}),
+	});
+	layerGroups.getLayers().array_.push(vectorLayerCliffsOuter);
+
+	var vectorLayerCliffsInner = new VectorLayer({
+		title: "[Gen] Cliffs Borders",
+		source: new VectorSource({
+			features: new GeoJSON().readFeatures(fs2),
+		}),
+		style: new Style({ fill: new Fill({
+			color: '#b2a49b',
 			}),
 		}),
 	});
@@ -449,13 +524,37 @@ function offsetFeature(feat, dist) {
 	}*/
 
 	var off = lineToPolygon(lineOffset(line,dist));
-	var unkinked = unkinkPolygon(off).features.reduce((acc, x) => x.geometry.coordinates[0].length > acc.geometry.coordinates[0].length? x: acc);
-	unkinked = polygonSmooth(unkinked, { iterations: 1 });
-	var offFeat = unkinked.features[0];
+	var unkinked = unkinkPolygon(off);
+	
+	var mainPoly = unkinked.features.reduce((acc, x) => x.geometry.coordinates[0].length > acc.geometry.coordinates[0].length? x: acc);
+	var offFeat = multiPolygon([mainPoly.geometry.coordinates]);
+
+	while (mainPoly) {
+		var remainingUnkinked = featureCollection([]);
+		for (var poly of unkinked.features) {
+			if (!booleanIntersects(mainPoly, poly) && !booleanTouches(mainPoly, poly)) {
+				remainingUnkinked.features.push(poly);
+			}
+		}
+		unkinked = remainingUnkinked;
+		mainPoly = null;
+		if (unkinked.features.length > 0){
+			mainPoly = unkinked.features.reduce((acc, x) => x.geometry.coordinates[0].length > acc.geometry.coordinates[0].length? x: acc);
+			offFeat.geometry.coordinates.push(mainPoly.geometry.coordinates);
+		}
+	}
+
+	offFeat = polygonSmooth(offFeat, { iterations: 1 }).features[0];
+	//var offFeat = unkinked.features[0];
 	/*if(feat.geometry.type == "LineString") {
 		var offFeat = polygonToLine(offFeat);
 	}*/
-	offFeat.properties["name"] = feat.properties["name"];
+	if (offFeat.geometry.coordinates.length == 1){
+		offFeat = polygon(offFeat.geometry.coordinates[0]);
+	} else {
+		console.warn(feat.properties["label"]);
+	}
+	offFeat.properties["label"] = feat.properties["label"];
 	return offFeat;	
 }
 
