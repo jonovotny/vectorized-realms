@@ -9,6 +9,7 @@ import geojson2svg from './geojsonprocess.js';
 import { styleLib } from './layerstyles.js';
 
 import {booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, difference, union, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanCrosses, booleanIntersects, lineSliceAlong} from '@turf/turf';
+import { MultiLineString } from 'ol/geom.js';
 
 var features = {};
 
@@ -402,32 +403,30 @@ function createBadlandsFeatures(layerGroups, transform){
 }
 
 function createCliffFeatures(layerGroups, transform){
-	var fs = {"type": "FeatureCollection", "features": []};
-	var fs2 = featureCollection([]);
+	var ridgesFc = featureCollection([]);
+	var backgroundFc = featureCollection([]);
+	var flanksFc = featureCollection([]);
+	var width = 13;
+	var ridgeLine = lineString([[0,0],[0,0]]);
 
 	for (var cliff of features.Cliffs.features) {
-		var width = 13;
-		var offFeat = offsetFeature(cliff, width);
-		fs = featureCollection([offFeat])
-		fs = polygonSmooth(fs);
-		offFeat = fs.features[0];
 		
+		var offFeat = offsetFeature(cliff, width);
 
 		if (cliff.geometry.type == "LineString") {
 			var coords = cliff.geometry.coordinates.slice(2,-2);
 
 			cliff.geometry.coordinates = coords;
-			var len = length(cliff);
-			var endOffset = math.min(width/2, len/2);
+			ridgeLine = lineString(coords);
+			ridgesFc.features.push(cliff);
 
 			var background = polygonToLine(offFeat);
 
-			var pnt = along(cliff, endOffset);
-			var tangent = [along(cliff, math.max(endOffset-0.5, 0)).geometry.coordinates, along(cliff, math.min(endOffset+0.5, len)).geometry.coordinates];
+			var tangent = [coords[0], coords[1]];
 			var tanLength = length(lineString(tangent));
 			
-			var trans = math.matrix([[1, 0, -tangent[0][0]], [0, 1, -tangent[0][1]], [0,0,1]]);
-			var invtrans = math.matrix([[5*width/tanLength, 0, pnt.geometry.coordinates[0]], [0,5*width/tanLength, pnt.geometry.coordinates[1]], [0,0,1]]);
+			var trans = math.matrix([[1, 0, -coords[0][0]], [0, 1, -coords[0][1]], [0,0,1]]);
+			var invtrans = math.matrix([[5*width/tanLength, 0, coords[0][0]], [0,5*width/tanLength, coords[0][1]], [0,0,1]]);
 			var rot = math.rotationMatrix(-math.pi / 2, math.matrix([0, 0, 1]));
 			var normal = transformCoords(tangent, math.multiply(invtrans,math.multiply(rot, trans)));
 
@@ -438,13 +437,12 @@ function createCliffFeatures(layerGroups, transform){
 				background = lineString(background.features[1].geometry.coordinates.concat(background.features[0].geometry.coordinates.slice(1)));
 			}
 
-			pnt = along(cliff, len-endOffset);
-			tangent = [along(cliff, math.max(len-endOffset-0.5, 0)).geometry.coordinates, along(cliff, math.min(len-endOffset+0.5, len)).geometry.coordinates];
+			tangent = [coords.at(-1), coords.at(-2)];
 			tanLength = length(lineString(tangent));
 			
 			trans = math.matrix([[1, 0, -tangent[0][0]], [0, 1, -tangent[0][1]], [0,0,1]]);
-			invtrans = math.matrix([[5*width/tanLength, 0, pnt.geometry.coordinates[0]], [0,5*width/tanLength, pnt.geometry.coordinates[1]], [0,0,1]]);
-			rot = math.rotationMatrix(-math.pi / 2, math.matrix([0, 0, 1]));
+			invtrans = math.matrix([[5*width/tanLength, 0, tangent[0][0]], [0,5*width/tanLength, tangent[0][1]], [0,0,1]]);
+			rot = math.rotationMatrix(math.pi / 2, math.matrix([0, 0, 1]));
 			normal = transformCoords(tangent, math.multiply(invtrans,math.multiply(rot, trans)));
 
 			background = lineSplit(background, lineString(normal));
@@ -453,38 +451,77 @@ function createCliffFeatures(layerGroups, transform){
 			} else {
 				background = background.features[0];
 			}
+			var backLen = length(background);
+			var endOffset = math.min(width/2, backLen/2);
+			background = lineSliceAlong(background, endOffset, backLen - endOffset);
 
-			fs2.features.push(lineToPolygon(lineString(background.geometry.coordinates.concat(coords.reverse()))));
+			backgroundFc.features.push(lineToPolygon(lineString(background.geometry.coordinates.concat(coords.reverse()))));
 		}
 
 		if (cliff.geometry.type == "Polygon"){
+			ridgesFc.features.push(cliff);
+			ridgeLine = (polygonToLine(cliff));
+			ridgeLine.geometry.coordinates = ridgeLine.geometry.coordinates.reverse();
 			if (booleanClockwise(polygonToLine(cliff))) {
 				if (offFeat.geometry.type == "Polygon") {
-					fs2.features.push(polygon([cliff.geometry.coordinates[0], offFeat.geometry.coordinates[0]]));
+					backgroundFc.features.push(polygon([cliff.geometry.coordinates[0], offFeat.geometry.coordinates[0]]));
 				} else {
-					fs2.features.push(polygon([cliff.geometry.coordinates[0]].concat(offFeat.geometry.coordinates[0])));
+					backgroundFc.features.push(polygon([cliff.geometry.coordinates[0]].concat(offFeat.geometry.coordinates[0])));
 				}
-				
 			} else {
 				if (offFeat.geometry.type == "Polygon") {
-					fs2.features.push(polygon([offFeat.geometry.coordinates[0], cliff.geometry.coordinates[0]]));
+					backgroundFc.features.push(polygon([offFeat.geometry.coordinates[0], cliff.geometry.coordinates[0]]));
 				} else {
-					fs2.features.push(polygon([offFeat.geometry.coordinates[0]].concat(cliff.geometry.coordinates[0])));
+					backgroundFc.features.push(polygon([offFeat.geometry.coordinates[0]].concat(cliff.geometry.coordinates[0])));
 				}
 			}
-
 		}
 
-		fs.features.push(offFeat);
+		var flankFeature = multiLineString([]);
+		var ridgeLen = length(ridgeLine);
+		var basewidth = width - 2;
+		var varWidth = 0.1;
+
+		var stepLength = ridgeLen/math.floor(ridgeLen/5);
+
+		var currentLen = stepLength/2;
+		var tangentOffset = stepLength*2;
+		var lastLine = lineString([[5000,5000],[5001,5001]]);
+
+		while(currentLen < ridgeLen) {
+			var pnt = along(ridgeLine, currentLen)
+			var tangent = [along(ridgeLine, math.max(currentLen-tangentOffset, 0)).geometry.coordinates, along(ridgeLine, math.min(currentLen+tangentOffset, ridgeLen)).geometry.coordinates];
+			var tanLength = length(lineString(tangent));
+			var currentWidth = basewidth + varWidth * Number(pnt.geometry.coordinates[0].toString().slice(-1));
+
+			
+			var trans = math.matrix([[1, 0, -tangent[0][0]], [0, 1, -tangent[0][1]], [0,0,1]]);
+			var invtrans = math.matrix([[1, 0, pnt.geometry.coordinates[0]], [0,1, pnt.geometry.coordinates[1]], [0,0,1]]);
+			var scale =  math.matrix([[5*width/tanLength, 0, 0], [0,5*width/tanLength, 0], [0,0,1]]);
+			var rot = math.rotationMatrix(math.pi / 2, math.matrix([0, 0, 1]));
+			var normal = transformCoords(tangent, math.multiply(invtrans, (math.multiply(scale, math.multiply(rot, trans)))));
+			normal = lineSliceAlong(lineString(normal), 0, currentWidth);
+			if (booleanIntersects(lastLine, normal) || pointToLineDistance(point(normal.geometry.coordinates[1]), lastLine) < width/4) {
+				normal = lineSliceAlong(normal, 0, currentWidth/2);
+			} else {
+				lastLine = clone(normal);
+			}
+
+			flankFeature.geometry.coordinates.push(normal.geometry.coordinates);
+			
+			currentLen += stepLength;
+		}
+
+		flanksFc.features.push(flankFeature);
 	}
 
 	
 	
 
-	var vectorLayerCliffsOuter = new VectorLayer({
-		title: "[Gen] Cliffs Background",
+	var vectorLayerCliffsRidges = new VectorLayer({
+		title: "[Gen] Cliffs Ridges",
 		source: new VectorSource({
-			features: new GeoJSON().readFeatures(fs),
+			features: new GeoJSON().readFeatures(ridgesFc),
 		}),
 		style: new Style({ stroke: new Stroke({
 			color: 'rgba(0,0.0,0.0,1.0)',
@@ -493,19 +530,34 @@ function createCliffFeatures(layerGroups, transform){
 			}),
 		}),
 	});
-	layerGroups.getLayers().array_.push(vectorLayerCliffsOuter);
 
-	var vectorLayerCliffsInner = new VectorLayer({
-		title: "[Gen] Cliffs Borders",
+	var vectorLayerCliffsBackground = new VectorLayer({
+		title: "[Gen] Cliffs Background",
 		source: new VectorSource({
-			features: new GeoJSON().readFeatures(fs2),
+			features: new GeoJSON().readFeatures(backgroundFc),
 		}),
 		style: new Style({ fill: new Fill({
 			color: '#b2a49b',
 			}),
 		}),
 	});
-	layerGroups.getLayers().array_.push(vectorLayerCliffsInner);
+
+	var vectorLayerCliffsFlanks = new VectorLayer({
+		title: "[Gen] Cliffs Flanks",
+		source: new VectorSource({
+			features: new GeoJSON().readFeatures(flanksFc),
+		}),
+		style: new Style({ stroke: new Stroke({
+			color: 'rgba(0,0.0,0.0,1.0)',
+			width: 2.0,
+			lineCap: 'round'
+			}),
+		}),
+	});
+
+	layerGroups.getLayers().array_.push(vectorLayerCliffsBackground);
+	layerGroups.getLayers().array_.push(vectorLayerCliffsRidges);
+	layerGroups.getLayers().array_.push(vectorLayerCliffsFlanks);
 }
 
 function offsetFeature(feat, dist) {
@@ -527,6 +579,7 @@ function offsetFeature(feat, dist) {
 	var unkinked = unkinkPolygon(off);
 	
 	var mainPoly = unkinked.features.reduce((acc, x) => x.geometry.coordinates[0].length > acc.geometry.coordinates[0].length? x: acc);
+	var minLength = length(polygonToLine(mainPoly)) * 0.05;
 	var offFeat = multiPolygon([mainPoly.geometry.coordinates]);
 
 	while (mainPoly) {
@@ -540,15 +593,14 @@ function offsetFeature(feat, dist) {
 		mainPoly = null;
 		if (unkinked.features.length > 0){
 			mainPoly = unkinked.features.reduce((acc, x) => x.geometry.coordinates[0].length > acc.geometry.coordinates[0].length? x: acc);
-			offFeat.geometry.coordinates.push(mainPoly.geometry.coordinates);
+			if (length(polygonToLine(mainPoly)) > minLength) {
+				offFeat.geometry.coordinates.push(mainPoly.geometry.coordinates);
+			}
 		}
 	}
 
 	offFeat = polygonSmooth(offFeat, { iterations: 1 }).features[0];
-	//var offFeat = unkinked.features[0];
-	/*if(feat.geometry.type == "LineString") {
-		var offFeat = polygonToLine(offFeat);
-	}*/
+
 	if (offFeat.geometry.coordinates.length == 1){
 		offFeat = polygon(offFeat.geometry.coordinates[0]);
 	} else {
