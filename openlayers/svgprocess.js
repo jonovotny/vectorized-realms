@@ -652,6 +652,7 @@ function createMountainFeatures(layerGroups, transform) {
 	var ridgeFeats = featureCollection([]);
 	var flankDetailFeats = featureCollection([]);
 	var flankElements = featureCollection([]);
+	var backgroundElements = featureCollection([]);
 
 
 	for (var [name, data] of Object.entries(dataStore)) {
@@ -744,10 +745,21 @@ function createMountainFeatures(layerGroups, transform) {
 			}
 
 			var shadingBoundaries = featureCollection([]);
-
+			
 			var lastLine = lineString([along(ridgeLinestring, 0).geometry.coordinates, along(outlineLinestring, 0).geometry.coordinates]);
 			var lastInnerLine = lineString([[5000,5000],[5001,5001]]);
 			var lastOuterLine = lineString([[5000,5000],[5001,5001]]);
+
+			var lastShadingState = checkShadingStatus (lastLine, lightDir, lightCone, 0, -1);
+			var backgroundRidgeCoords = [];
+			var backgroundOutlineCoords = [];
+			if (lastShadingState){
+				//start tracking a shaded background polygon
+				backgroundRidgeCoords = [lastLine.geometry.coordinates[1]];
+				backgroundOutlineCoords = [lastLine.geometry.coordinates[0]];
+			}
+
+			var backgroundFeature = multiPolygon([]);
 
 			var alongRidge = ridgeOffset;
 			var alongOutline = outlineOffset;
@@ -806,8 +818,8 @@ function createMountainFeatures(layerGroups, transform) {
 					doAdjustmentStep = true;
 				}
 
-
 				var len = length(lastLine);
+
 				if (!doAdjustmentStep){
 					flankElements.features.push(lastLine);
 					
@@ -847,6 +859,21 @@ function createMountainFeatures(layerGroups, transform) {
 							lastOuterLine = clone(lastLine);
 						}
 						//shadingBoundaries.features.push(outerLine);
+					}
+
+					if (shadingStatus){
+						//track shaded background polygon
+						backgroundRidgeCoords.push(line.geometry.coordinates[1]);
+						backgroundOutlineCoords.push(line.geometry.coordinates[0]);
+					}
+
+					if (lastShadingState && !shadingStatus){
+						//complete and push the current shaded background polygon
+						backgroundRidgeCoords.push(line.geometry.coordinates[1]);
+						backgroundOutlineCoords.push(line.geometry.coordinates[0]);
+						backgroundFeature.geometry.coordinates.push([backgroundOutlineCoords.concat(backgroundRidgeCoords.reverse())]);
+						backgroundRidgeCoords = [];
+						backgroundOutlineCoords = [];
 					}
 					lastShadingState = shadingStatus;
 
@@ -903,9 +930,17 @@ function createMountainFeatures(layerGroups, transform) {
 					shadingBoundaries.features.push(lineSliceAlong(lastLine, len * (1.0-factor), len));
 				}
 			}
+
+			if (shadingStatus){
+				//complete and push the current shaded background polygon
+				backgroundFeature.geometry.coordinates.push([backgroundOutlineCoords.concat(backgroundRidgeCoords.reverse())]);
+			}
 			var shadedLineFeatures = combine(shadingBoundaries).features[0];
+
 			shadedLineFeatures.properties["label"] = name;
 			flankDetailFeats.features.push(shadedLineFeatures);
+			backgroundElements.features.push(backgroundFeature);
+			backgroundFeature = multiPolygon([]);
 		}
 	}
 
@@ -968,8 +1003,21 @@ function createMountainFeatures(layerGroups, transform) {
 		},
 	});
 
+	var vectorShadingBackground = new VectorLayer({
+		title: "[Gen] Shaded mountain",
+		source: new VectorSource({
+			features: new GeoJSON().readFeatures(backgroundElements),
+		}),
+		style: new Style({
+			fill: new Fill({
+				color: 'rgba(250, 0,0,1.0)',
+			}),
+		})
+	});
+
 
 	//layerGroups.getLayers().array_.push(vectorLayerRidges);
+	layerGroups.getLayers().array_.push(vectorShadingBackground);
 	layerGroups.getLayers().array_.push(vectorFlankLines);
 	layerGroups.getLayers().array_.push(vectorShadingBoundaries);
 	//console.log(ridgeFeats);
