@@ -226,7 +226,7 @@ const FaerunMaps = new LayerGroup({
   layers:[faerun2000, grat]
 });
 
-await parseSvg('_local/faerun-v012-test.svg', [-86.5, 10, -28, 49.1], SvgLayers);
+await parseSvg('_local/faerun-v013.svg', [-86.5, 10, -28, 49.1], SvgLayers);
 
 const torilmap = new Map({
   target: 'map',
