@@ -630,6 +630,12 @@ function createMountainFeatures(layerGroups, transform) {
 	for (var ridge of features.Ridges.features) {
 		var key = ridge.properties.label.substring(0, ridge.properties.label.length - 1);
 		var num = ridge.properties.label.slice(-1);
+
+		if (!isNaN(parseInt(key.at(-2)))) {
+			key = ridge.properties.label.substring(0, ridge.properties.label.length - 2);
+			num = ridge.properties.label.slice(-2);
+		}
+
 		if(ridge.geometry.type == "LineString" && dataStore[key]) {
 			dataStore[key]["ridges"][num] = truncate(lineString(ridge.geometry.coordinates), geoPrecision).geometry.coordinates;
 		}
@@ -682,7 +688,7 @@ function createMountainFeatures(layerGroups, transform) {
 			var outlineVertexLength = calculateDistances(outlineCoords);
 			var ridgeVertexLength = calculateDistances(ridgeCoords);
 
-			//console.log(name);
+			console.log(name);
 			if (sortedRidges.length > 1) {
 				for (var sideRidge of sortedRidges.slice(1)) {
 					processSideridge(ridgeCoords, ridgeVertexLength, sideRidge);
@@ -871,7 +877,7 @@ function createMountainFeatures(layerGroups, transform) {
 						//complete and push the current shaded background polygon
 						backgroundRidgeCoords.push(line.geometry.coordinates[1]);
 						backgroundOutlineCoords.push(line.geometry.coordinates[0]);
-						backgroundFeature.geometry.coordinates.push([backgroundOutlineCoords.concat(backgroundRidgeCoords.reverse())]);
+						backgroundFeature.geometry.coordinates.push([backgroundOutlineCoords.concat(backgroundRidgeCoords.reverse()).concat([backgroundOutlineCoords[0]])]);
 						backgroundRidgeCoords = [];
 						backgroundOutlineCoords = [];
 					}
