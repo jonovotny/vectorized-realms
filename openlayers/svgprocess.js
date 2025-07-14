@@ -1066,6 +1066,92 @@ function processSideridge(ridge, ridgeDistances, sideRidge) {
 	}
 }
 
+function createLight (direction = [-1 -1], rightBright = 45, rightUmbra = 0, leftBright = NaN, leftUmbra = NaN) {
+	// takes numeric light information and calculates repeatedly used vectors for light calculations
+	// 
+	// normalizing
+	var vDir = direction.concat(0);
+	vDir = math.divide(vDir, math.norm(vDir));
+
+	// mirror right angles if left  is not set
+	leftBright = isNaN(leftBright) ? rightBright : leftBright;
+	leftUmbra = isNaN(leftUmbra) ? rightUmbra : leftUmbra;
+
+	// check for negative angles
+	if (rightBright < 0 || rightUmbra < 0 || leftBright < 0 || leftUmbra < 0) {
+		console.warn("negative light angles not supported");
+		rightBright = (rightBright < 0) ? 0 : rightBright;
+		rightUmbra = (rightUmbra < 0) ? 0 : rightUmbra;
+		leftBright = (leftBright < 0) ? 0 : leftBright;
+		leftUmbra = (leftUmbra < 0) ? 0 : leftUmbra;
+	}
+
+	// check for angles over 180 degrees
+	if (rightBright + rightUmbra > 180 || leftBright + leftUmbra > 180) {
+		console.warn("Bright and Umbra angle adding up to more than 180 degrees, light calcs will be off");
+		rightBright = (rightBright > 180) ? 180 : rightBright;
+		rightUmbra = (rightUmbra + rightBright > 180) ? 180 - rightBright : rightUmbra;
+		leftBright = (leftBright > 180) ? 180 : leftBright;
+		leftUmbra = (leftUmbra + leftBright > 180) ? 180 - leftBright : leftUmbra;
+	}
+
+	var degToRad = math.pi/180;
+
+	return {
+		'vecDir': vDir,
+		'vecSrc': -vDir,
+		'vecBrightR': math.multiply(vDir, math.rotationMatrix(rightBright * degToRad)),
+		'vecUmbraR': math.multiply(vDir, math.rotationMatrix((rightBright + rightUmbra) * degToRad)),
+		'degBrightR': rightBright,
+		'degUmbraR': rightUmbra,
+		'vecBrightL': math.multiply(vDir, math.rotationMatrix(-leftBright * degToRad)),
+		'vecUmbraL': math.multiply(vDir, math.rotationMatrix(-(leftBright + leftUmbra) * degToRad)),
+		'degBrightL': leftBright,
+		'degUmbraL': leftUmbra
+	}
+}
+
+function shadingState2 (flankLine, light) {
+	// returns 1 if flank is fully lit, 0 if it is fully in shadow and a value between 1.0 and 0.0 in the umbra region
+	
+	var flank = math.subtract(flankLine.geometry.coordinates[1].concat(0), flankLine.geometry.coordinates[0].concat(0));
+	flank = math.divide(flank, math.norm(flank));
+
+	if (betweenNormVectors(flank, light.vecBrightL, light.vecBrightR)) {
+		return 1.0;
+	}
+
+	if (betweenNormVectors(flank, light.vecUmbraR, light.vecUmbraL)) {
+		return 0.0;
+	}
+
+	var crossFL = math.cross(flank, light.vecDir);
+	var angleFL = Math.acos(math.dot(flank, light.vecDir));
+	if (crossFL[2] >= 0) {
+		//resolve right side umbra
+		return 1.0 - (angleFL-light.degBrightR)/light.degUmbraR;
+	} else {
+		return (angleFL-light.degBrightL)/light.degUmbraL;
+	}
+
+	//Default return fully in shadow
+	return 1.0;
+}
+
+function betweenNormVectors (vecT, vecA, vecB) {
+	var crossAB = math.cross(vecA, vecB)[2];
+	if (crossAB >= 0){
+		if (math.cross(vecA, vecT)[2] >= 0 && math.cross(vecT, vecB)[2] >= 0) {
+			return math.cross(vecT, vecB)[2]/math.cross(vecA, vecB)[2];
+	}
+	} else {
+		if (math.cross(vecA, vecT)[2] >= 0 || math.cross(vecT, vecB)[2] >= 0) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
 function shadingState (flankLine, lightDir) {
 	var flank = math.subtract(flankLine.geometry.coordinates[1].concat(0), flankLine.geometry.coordinates[0].concat(0));
 	flank = math.divide(flank, math.norm(flank));
