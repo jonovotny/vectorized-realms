@@ -22,10 +22,6 @@ export default async function parseSvg(source, extent, layerGroup) {
 	.then(response => response.text())
 	.then(text => parser.parseFromString(text, "text/xml"))
 	.then(doc => processSvg(doc, extent, layerGroup));
-
-	//vectorSource.addFeatures(new GeoJSON().readFeatures(json));
-	//console.log(features);
-
 }
 
 export function processSvg(doc, extent, layerGroup) {
@@ -730,6 +726,8 @@ function createMountainFeatures(layerGroups, transform) {
 			var adjustmentFactor = 1;
 			var lastLine = lineString([[0,0],[1,0]]);
 
+			var flankLineLight = createLight([-1, -1], 90, 20);
+
 			var lightDir = [-1, -1];
 			var lightCone = 90;
 			var lightTolerance = 15;
@@ -756,7 +754,7 @@ function createMountainFeatures(layerGroups, transform) {
 			var lastInnerLine = lineString([[5000,5000],[5001,5001]]);
 			var lastOuterLine = lineString([[5000,5000],[5001,5001]]);
 
-			var lastShadingState = checkShadingStatus (lastLine, lightDir, lightCone, 0, -1);
+			var lastShadingState = shadowStatus(lastLine, flankLineLight) == 0;//checkShadingStatus (lastLine, lightDir, lightCone, 0, -1);
 			var backgroundRidgeCoords = [];
 			var backgroundOutlineCoords = [];
 			if (lastShadingState){
@@ -830,7 +828,7 @@ function createMountainFeatures(layerGroups, transform) {
 					flankElements.features.push(lastLine);
 					
 
-					var shadingStatus = checkShadingStatus (line, lightDir, lightCone, 0, -1);
+					var shadingStatus = shadowStatus(line, flankLineLight) == 0;//checkShadingStatus (line, lightDir, lightCone, 0, -1);
 					if (!shadingStatus) {
 						//shadingBoundaries.features.push(lastLine);
 						var innerDist = math.max(pointToLineDistance(point(lastLine.geometry.coordinates[1]), lastInnerLine), pointToLineDistance(point(lastInnerLine.geometry.coordinates[1]), lastLine));
@@ -925,7 +923,7 @@ function createMountainFeatures(layerGroups, transform) {
 				pointToLineDistance(point(lastLine.geometry.coordinates[1]), line) < minDistance))) {
 				flankElements.features.push(lastLine);
 
-				var shadingStatus = checkShadingStatus (line, lightDir, lightCone, 0, -1);
+				var shadingStatus = shadowStatus(line, flankLineLight) == 0;//checkShadingStatus (line, lightDir, lightCone, 0, -1);
 				if (!shadingStatus) {
 					shadingBoundaries.features.push(lastLine);
 				} else {
@@ -1099,43 +1097,45 @@ function createLight (direction = [-1 -1], rightBright = 45, rightUmbra = 0, lef
 
 	return {
 		'vecDir': vDir,
-		'vecSrc': -vDir,
-		'vecBrightR': math.multiply(vDir, math.rotationMatrix(rightBright * degToRad)),
-		'vecUmbraR': math.multiply(vDir, math.rotationMatrix((rightBright + rightUmbra) * degToRad)),
+		'radBrightR': rightBright*degToRad,
+		'radUmbraR': rightUmbra*degToRad,
+		'radTotalR': (rightBright + rightUmbra)*degToRad,
+		'radBrightL': leftBright*degToRad,
+		'radUmbraL': leftUmbra*degToRad,
+		'radTotalL': (leftBright + leftUmbra)*degToRad,
 		'degBrightR': rightBright,
 		'degUmbraR': rightUmbra,
-		'vecBrightL': math.multiply(vDir, math.rotationMatrix(-leftBright * degToRad)),
-		'vecUmbraL': math.multiply(vDir, math.rotationMatrix(-(leftBright + leftUmbra) * degToRad)),
 		'degBrightL': leftBright,
 		'degUmbraL': leftUmbra
 	}
 }
 
-function shadingState2 (flankLine, light) {
+function shadowStatus (flankLine, light) {
 	// returns 1 if flank is fully lit, 0 if it is fully in shadow and a value between 1.0 and 0.0 in the umbra region
 	
 	var flank = math.subtract(flankLine.geometry.coordinates[1].concat(0), flankLine.geometry.coordinates[0].concat(0));
 	flank = math.divide(flank, math.norm(flank));
 
-	if (betweenNormVectors(flank, light.vecBrightL, light.vecBrightR)) {
-		return 1.0;
-	}
-
-	if (betweenNormVectors(flank, light.vecUmbraR, light.vecUmbraL)) {
-		return 0.0;
-	}
-
 	var crossFL = math.cross(flank, light.vecDir);
 	var angleFL = Math.acos(math.dot(flank, light.vecDir));
 	if (crossFL[2] >= 0) {
 		//resolve right side umbra
-		return 1.0 - (angleFL-light.degBrightR)/light.degUmbraR;
+		if (angleFL <= light.radBrightR) {
+			return 1.0;
+		}
+		if (angleFL >= light.radTotalR) {
+			return 0.0;
+		}
+		return 1.0 - (angleFL-light.radBrightR)/light.radUmbraR;
 	} else {
-		return (angleFL-light.degBrightL)/light.degUmbraL;
+		if (angleFL <= light.radBrightL) {
+			return 1.0;
+		}
+		if (angleFL >= light.radTotalL) {
+			return 0.0;
+		}
+		return 1.0-(angleFL-light.radBrightL)/light.radUmbraL;
 	}
-
-	//Default return fully in shadow
-	return 1.0;
 }
 
 function betweenNormVectors (vecT, vecA, vecB) {
