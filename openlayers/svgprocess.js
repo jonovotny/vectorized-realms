@@ -1,15 +1,14 @@
-import {create, all, rightArithShift} from 'mathjs';
+import { create, all } from 'mathjs';
 import GeoJSON from 'ol/format/GeoJSON.js';
-import {Vector as VectorSource} from 'ol/source.js';
-import {Vector as VectorLayer} from 'ol/layer.js';
-import {Fill, Stroke, Style} from 'ol/style.js';
+import { Vector as VectorSource } from 'ol/source.js';
+import { Vector as VectorLayer } from 'ol/layer.js';
+import { Fill, Stroke, Style } from 'ol/style.js';
 import LayerGroup from 'ol/layer/Group';
 
 import geojson2svg from './geojsonprocess.js';
 import { styleLib } from './layerstyles.js';
 
-import {booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, difference, union, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanCrosses, booleanIntersects, lineSliceAlong} from '@turf/turf';
-import { MultiLineString } from 'ol/geom.js';
+import { booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanIntersects, lineSliceAlong } from '@turf/turf';
 
 var features = {};
 
@@ -52,6 +51,37 @@ export function processSvg(doc, extent, layerGroup) {
 	createBadlandsFeatures(layerGroup, transform);
 	createCliffFeatures(layerGroup, transform);
 	createMountainFeatures(layerGroup, transform);
+
+	var ridgeLayer = null;
+	var volcanoLayer = null;
+	layerGroup.getLayers().forEach(function (lay) {
+		if (lay.values_.title == "Ridges") {
+			lay.setZIndex(10);
+		}
+
+		if (lay.values_.title == "Rivers") {
+			lay.setZIndex(15);
+		}
+
+		if (lay.values_.title == "Lakes") {
+			lay.setZIndex(18);
+		}
+
+		if (lay.values_.title == "Volcanos") {
+			lay.setZIndex(20);
+		}
+
+		if (lay.values_.title == "Flanks") {
+			lay.values_.visible = false;
+		}
+
+		if (lay.values_.title == "Cliffs") {
+			lay.values_.visible = false;
+		}
+	});
+
+	//console.log(layerGroup.getLayers());
+	//layerGroup.getLayers().push(layerGroup.getLayers().remove(volcanoLayer));
 	//console.log(json);
 	//return json;
 }
@@ -318,16 +348,11 @@ function createSwampFeatures(layerGroups, transform){
 	}
 
 	var vectorLayerSwampInner = new VectorLayer({
-		title: "[Gen] Swamp Detail",
+		title: "[Gen] Swamps Detail",
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(fs),
 		}),
-		style: new Style({ stroke: new Stroke({
-			color: 'rgba(0,0.0,0.0,1.0)',
-			width: 2.0,
-			lineCap: 'round'
-			}),
-		}),
+		style: styleLib["[Gen] Swamps Detail"]
 	});
 	layerGroups.getLayers().array_.push(vectorLayerSwampInner);
 }
@@ -340,16 +365,11 @@ function createMarshFeatures(layerGroups, transform){
 	}
 
 	var vectorLayerMarshInner = new VectorLayer({
-		title: "[Gen] Marsh Detail",
+		title: "[Gen] Marshes Detail",
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(fs),
 		}),
-		style: new Style({ stroke: new Stroke({
-			color: 'rgba(0,0.0,0.0,1.0)',
-			width: 2.0,
-			lineCap: 'round'
-			}),
-		}),
+		style: styleLib["[Gen] Marshes Detail"]
 	});
 	layerGroups.getLayers().array_.push(vectorLayerMarshInner);
 }
@@ -362,16 +382,11 @@ function createMoorFeatures(layerGroups, transform){
 	}
 
 	var vectorLayerMoorInner = new VectorLayer({
-		title: "[Gen] Moor Detail",
+		title: "[Gen] Moors Detail",
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(fs),
 		}),
-		style: new Style({ stroke: new Stroke({
-			color: 'rgba(0,0.0,0.0,1.0)',
-			width: 2.0,
-			lineCap: 'round'
-			}),
-		}),
+		style: styleLib["[Gen] Moors Detail"]
 	});
 	layerGroups.getLayers().array_.push(vectorLayerMoorInner);
 }
@@ -384,16 +399,11 @@ function createBadlandsFeatures(layerGroups, transform){
 	}
 
 	var vectorLayerBadlandInner = new VectorLayer({
-		title: "[Gen] Badland Detail",
+		title: "[Gen] Badlands Detail",
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(fs),
 		}),
-		style: new Style({ stroke: new Stroke({
-			color: 'rgba(0,0.0,0.0,1.0)',
-			width: 2.0,
-			lineCap: 'round'
-			}),
-		}),
+		style: styleLib["[Gen] Badlands Detail"]
 	});
 	layerGroups.getLayers().array_.push(vectorLayerBadlandInner);
 }
@@ -511,20 +521,12 @@ function createCliffFeatures(layerGroups, transform){
 		flanksFc.features.push(flankFeature);
 	}
 
-	
-	
-
 	var vectorLayerCliffsRidges = new VectorLayer({
 		title: "[Gen] Cliffs Ridges",
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(ridgesFc),
 		}),
-		style: new Style({ stroke: new Stroke({
-			color: 'rgba(0,0.0,0.0,1.0)',
-			width: 2.0,
-			lineCap: 'round'
-			}),
-		}),
+		style: styleLib["[Gen] Cliffs Ridges"]
 	});
 
 	var vectorLayerCliffsBackground = new VectorLayer({
@@ -532,10 +534,7 @@ function createCliffFeatures(layerGroups, transform){
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(backgroundFc),
 		}),
-		style: new Style({ fill: new Fill({
-			color: '#b2a49b',
-			}),
-		}),
+		style: styleLib["[Gen] Cliffs Background"]
 	});
 
 	var vectorLayerCliffsFlanks = new VectorLayer({
@@ -543,12 +542,7 @@ function createCliffFeatures(layerGroups, transform){
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(flanksFc),
 		}),
-		style: new Style({ stroke: new Stroke({
-			color: 'rgba(0,0.0,0.0,1.0)',
-			width: 2.0,
-			lineCap: 'round'
-			}),
-		}),
+		style: styleLib["[Gen] Cliffs Flanks"]
 	});
 
 	layerGroups.getLayers().array_.push(vectorLayerCliffsBackground);
@@ -566,10 +560,6 @@ function offsetFeature(feat, dist) {
 		return lineString([]);
 	}
 	line = cleanCoords(line);
-
-	/*if (!booleanClockwise(line)) {
-		line = rewind(line);
-	}*/
 
 	var off = lineToPolygon(lineOffset(line,dist));
 	var unkinked = unkinkPolygon(off);
@@ -684,7 +674,7 @@ function createMountainFeatures(layerGroups, transform) {
 			var outlineVertexLength = calculateDistances(outlineCoords);
 			var ridgeVertexLength = calculateDistances(ridgeCoords);
 
-			console.log(name);
+			//console.log(name);
 			if (sortedRidges.length > 1) {
 				for (var sideRidge of sortedRidges.slice(1)) {
 					processSideridge(ridgeCoords, ridgeVertexLength, sideRidge);
@@ -724,13 +714,13 @@ function createMountainFeatures(layerGroups, transform) {
 			var minDistance = 3.5;
 			var defaultAdjustement = 0.1;
 			var adjustmentFactor = 1;
-			var lastLine = lineString([[0,0],[1,0]]);
+			var lastLine = lineString([[5000,5000],[5001,5001]]);
 
 			var flankLineLight = createLight([-1, -1], 90, 20);
 
-			var lightDir = [-1, -1];
+			/*var lightDir = [-1, -1];
 			var lightCone = 90;
-			var lightTolerance = 15;
+			var lightTolerance = 15;*/
 			var lastShadingState = -1;
 
 			var segment = 1;
@@ -754,7 +744,7 @@ function createMountainFeatures(layerGroups, transform) {
 			var lastInnerLine = lineString([[5000,5000],[5001,5001]]);
 			var lastOuterLine = lineString([[5000,5000],[5001,5001]]);
 
-			var lastShadingState = shadowStatus(lastLine, flankLineLight) == 0;//checkShadingStatus (lastLine, lightDir, lightCone, 0, -1);
+			var lastShadingState = 1.0 - shadowStatus(lastLine, flankLineLight);//checkShadingStatus (lastLine, lightDir, lightCone, 0, -1);
 			var backgroundRidgeCoords = [];
 			var backgroundOutlineCoords = [];
 			if (lastShadingState){
@@ -828,8 +818,8 @@ function createMountainFeatures(layerGroups, transform) {
 					flankElements.features.push(lastLine);
 					
 
-					var shadingStatus = shadowStatus(line, flankLineLight) == 0;//checkShadingStatus (line, lightDir, lightCone, 0, -1);
-					if (!shadingStatus) {
+					var shadingStatus = 1.0 - shadowStatus(lastLine, flankLineLight);//checkShadingStatus (line, lightDir, lightCone, 0, -1);
+					if (shadingStatus == 1.0) {
 						//shadingBoundaries.features.push(lastLine);
 						var innerDist = math.max(pointToLineDistance(point(lastLine.geometry.coordinates[1]), lastInnerLine), pointToLineDistance(point(lastInnerLine.geometry.coordinates[1]), lastLine));
 						var outerDist = math.max(pointToLineDistance(point(lastLine.geometry.coordinates[0]), lastOuterLine), pointToLineDistance(point(lastOuterLine.geometry.coordinates[0]), lastLine));
@@ -848,10 +838,10 @@ function createMountainFeatures(layerGroups, transform) {
 						}
 
 					} else {
-						//console.log(shadingState(line, lightDir));
+						//console.log(shadingStatus);
 						//console.log(Number(line.geometry.coordinates[1][0].toString().slice(-1)));
-						var innerFactor = 0.1 + 0.03 * Number(line.geometry.coordinates[0][0].toString().slice(-1)) + 0.3 * shadingState(line, lightDir);
-						var outerFactor = 0.1 + 0.03 * Number(line.geometry.coordinates[1][0].toString().slice(-1)) + 0.3 * shadingState(line, lightDir);
+						var innerFactor = 0.1 + 0.025 * Number(line.geometry.coordinates[0][0].toString().slice(-1)) + 0.15 * shadingStatus;//shadingState(line, lightDir);
+						var outerFactor = 0.1 + 0.025 * Number(line.geometry.coordinates[1][0].toString().slice(-1)) + 0.15 * shadingStatus;//shadingState(line, lightDir);
 						var innerLine = lineSliceAlong(lastLine, 0, len * innerFactor);
 						if ((pointToLineDistance(point(innerLine.geometry.coordinates[0]), lastInnerLine) >= minDistance || pointToLineDistance(point(innerLine.geometry.coordinates[1]), lastInnerLine) >= minDistance)) {
 							shadingBoundaries.features.push(innerLine);
@@ -865,13 +855,13 @@ function createMountainFeatures(layerGroups, transform) {
 						//shadingBoundaries.features.push(outerLine);
 					}
 
-					if (shadingStatus){
+					if (shadingStatus < 1.0){
 						//track shaded background polygon
-						backgroundRidgeCoords.push(line.geometry.coordinates[1]);
-						backgroundOutlineCoords.push(line.geometry.coordinates[0]);
+						backgroundRidgeCoords.push(lastLine.geometry.coordinates[1]);
+						backgroundOutlineCoords.push(lastLine.geometry.coordinates[0]);
 					}
 
-					if (lastShadingState && !shadingStatus){
+					if (lastShadingState && shadingStatus == 1.0){
 						//complete and push the current shaded background polygon
 						backgroundRidgeCoords.push(line.geometry.coordinates[1]);
 						backgroundOutlineCoords.push(line.geometry.coordinates[0]);
@@ -923,13 +913,13 @@ function createMountainFeatures(layerGroups, transform) {
 				pointToLineDistance(point(lastLine.geometry.coordinates[1]), line) < minDistance))) {
 				flankElements.features.push(lastLine);
 
-				var shadingStatus = shadowStatus(line, flankLineLight) == 0;//checkShadingStatus (line, lightDir, lightCone, 0, -1);
+				var shadingStatus = shadowStatus(line, flankLineLight);//checkShadingStatus (line, lightDir, lightCone, 0, -1);
 				if (!shadingStatus) {
 					shadingBoundaries.features.push(lastLine);
 				} else {
 					var len = length(lastLine);
 					//console.log(shadingState(line, lightDir));
-					var factor = 0.2 + 0.3 * shadingState(line, lightDir);
+					var factor = 0.2 + 0.3 * shadingStatus;//shadingState(line, lightDir);
 					shadingBoundaries.features.push(lineSliceAlong(lastLine, 0, len * factor));
 					shadingBoundaries.features.push(lineSliceAlong(lastLine, len * (1.0-factor), len));
 				}
@@ -961,62 +951,29 @@ function createMountainFeatures(layerGroups, transform) {
 		}),
 	});
 
-
-
-
 	var vectorFlankLines = new VectorLayer({
-		title: "[Gen] Initial Flank lines ",
+		title: "[Gen] Initial Flanklines",
+		visible: false,
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(flankElements),
 		}),
-		style: function (feature, resolution) {
-			var returnStyle = new Style({
-				stroke: new Stroke({
-					color: 'rgba(0,0,0,0.20)',
-					width: 3.0,
-					lineCap: 'round',
-					}),
-			});
-			if (feature.getProperties().isclose) {
-				returnStyle.getStroke().setColor('rgba(250, 60,60,1.0)');
-			}
-			return returnStyle;
-		},
+		style: styleLib["[Gen] Initial Flanklines"]
 	});
 
-		var vectorShadingBoundaries = new VectorLayer({
+	var vectorShadingBoundaries = new VectorLayer({
 		title: "[Gen] Detail Flanklines",
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(flankDetailFeats),
 		}),
-		style: function (feature, resolution) {
-			var returnStyle = new Style({
-				fill: new Fill({
-					color: 'rgba(250, 60,60,1.0)',
-				}),
-				stroke: new Stroke({
-					color: 'rgba(60, 255,60,1.0)',
-					width: 3.0,
-					lineCap: 'round',
-					}),
-			});
-			if (feature.getProperties().gtype == "cap") {
-				returnStyle.getFill().setColor('rgba(60,60,250,0.50)');
-			}
-			return returnStyle;
-		},
+		style: styleLib["[Gen] Detail Flanklines"]
 	});
 
 	var vectorShadingBackground = new VectorLayer({
-		title: "[Gen] Shaded mountain",
+		title: "[Gen] Mountain Illuminated",
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(backgroundElements),
 		}),
-		style: new Style({
-			fill: new Fill({
-				color: 'rgba(250, 0,0,1.0)',
-			}),
-		})
+		style: styleLib["[Gen] Mountain Illuminated"]
 	});
 
 
@@ -1113,7 +1070,7 @@ function createLight (direction = [-1 -1], rightBright = 45, rightUmbra = 0, lef
 function shadowStatus (flankLine, light) {
 	// returns 1 if flank is fully lit, 0 if it is fully in shadow and a value between 1.0 and 0.0 in the umbra region
 	
-	var flank = math.subtract(flankLine.geometry.coordinates[1].concat(0), flankLine.geometry.coordinates[0].concat(0));
+	var flank = math.subtract(flankLine.geometry.coordinates[0].concat(0), flankLine.geometry.coordinates[1].concat(0));
 	flank = math.divide(flank, math.norm(flank));
 
 	var crossFL = math.cross(flank, light.vecDir);

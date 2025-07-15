@@ -56,25 +56,91 @@ styleLib["Jungles"] = new Style({
 styleLib["Swamps"] = new Style({ 
 	fill: new Fill({
 		color: "#e6e9cd"
+	}),
+	stroke: new Stroke({
+		color: "#9d9182",
+		width: 1,
+		cap: 'round',
+		lineDash: [15, 3, 25, 6, 18, 4, 27, 8, 30, 5, 21, 3]
 	})
 });
 
+styleLib["[Gen] Swamps Detail"] = new Style({ 
+	stroke: new Stroke({
+		color: "#9d9182",
+		width: 1,
+		cap: 'round',
+		lineDash: [15, 3, 25, 6, 18, 4, 27, 8, 30, 5, 21, 3],
+		lineDashOffset: 12
+	})
+});
 
 styleLib["Marshes"] = new Style({ 
 	fill: new Fill({
 		color: "#e3e6e0"
+	}),
+	stroke: new Stroke({
+		color: "#878b8a",
+		width: 1,
+		cap: 'round',
+		lineDash: [15, 3, 25, 6, 18, 4, 27, 8, 30, 5, 21, 3]
+	})
+});
+
+styleLib["[Gen] Marshes Detail"] = new Style({ 
+	stroke: new Stroke({
+		color: "#878b8a",
+		width: 1,
+		cap: 'round',
+		lineDash: [15, 3, 25, 6, 18, 4, 27, 8, 30, 5, 21, 3],
+		lineDashOffset: 12
 	})
 });
 
 styleLib["Moors"] = new Style({ 
 	fill: new Fill({
 		color: "#dfdedc"
+	}),
+	stroke: new Stroke({
+		color: "#a1998d",
+		width: 1,
+		cap: 'round',
+		lineDash: [15, 3, 25, 6, 18, 4, 27, 8, 30, 5, 21, 3],
+		lineDashOffset: 12
+	})
+});
+
+styleLib["[Gen] Moors Detail"] = new Style({ 
+	stroke: new Stroke({
+		color: "#a1998d",
+		width: 1,
+		cap: 'round',
+		lineDash: [15, 3, 25, 6, 18, 4, 27, 8, 30, 5, 21, 3]
 	})
 });
 
 styleLib["Badlands"] = new Style({ 
 	fill: new Fill({
 		color: "#f7dfae"
+	}),
+	stroke: new Stroke({
+		color: "#8d8471",
+		width: 1,
+		cap: 'round',
+		lineDash: [7, 3, 12, 6, 9, 4, 13, 8, 10, 5, 8, 3]
+	})
+});
+
+styleLib["[Gen] Badlands Detail"] = new Style({ 
+	fill: new Fill({
+		color: "#f7dfae"
+	}),
+	stroke: new Stroke({
+		color: "#8d8471",
+		width: 1,
+		cap: 'round',
+		lineDash: [7, 3, 12, 6, 3, 4, 5, 8, 10, 5, 8, 3],
+		lineDashOffset: 12
 	})
 });
 
@@ -100,7 +166,7 @@ styleLib["Mountains"] = new Style({
 
 styleLib["Lakes"] = new Style({ 
 	fill: new Fill({
-		color: "#cdf2f7"
+		color: "#cde2f7"
 	}),
 	stroke: new Stroke({
 		color: "#bad9e8"
@@ -109,14 +175,19 @@ styleLib["Lakes"] = new Style({
 
 styleLib["Rivers"] = new Style({ 
 	stroke: new Stroke({
-		color: "#bad9e8"
+		color: "#bad9e8",
+		width: 3.0,
+		lineCap: 'round',
 	})
 });
 
 styleLib["Ridges"] = new Style({ 
 	stroke: new Stroke({
-		color: "#483e37"
-	})
+		color: '#80746d',
+		width: 3.0,
+		lineCap: 'round',
+	}),
+	zIndex: 10
 });
 
 styleLib["Flanks"] = new Style({ 
@@ -124,7 +195,6 @@ styleLib["Flanks"] = new Style({
 		color: "#483e37"
 	})
 });
-
 
 styleLib["Cliffs"] = new Style({ 
 	stroke: new Stroke({
@@ -137,7 +207,55 @@ styleLib["Volcanos"] = new Style({
 		color: "#ec7b1c"
 	}),
 	stroke: new Stroke({
-		color: "#483e37"
+		color: "#80746d",
+		width: 3.0,
+		lineCap: 'round',
+	}),
+	zIndex: 20,
+
+});
+
+styleLib["[Gen] Cliffs Ridges"] = new Style({ 
+	stroke: new Stroke({
+		color: '#80746d',
+		width: 3.0,
+		lineCap: 'round',
+	}),
+});
+
+styleLib["[Gen] Cliffs Flanks"] = new Style({ 
+	stroke: new Stroke({
+		color: '#80746d',
+		width: 3.0,
+		lineCap: 'round',
+	}),
+});
+
+styleLib["[Gen] Cliffs Background"] = new Style({ 
+	fill: new Fill({
+		color: "#b2a49b"
+	})
+});
+
+styleLib["[Gen] Initial Flanklines"] = new Style({ 
+	stroke: new Stroke({
+		color: '#80746d',
+		width: 3.0,
+		lineCap: 'round',
+	}),
+});
+
+styleLib["[Gen] Detail Flanklines"] = new Style({ 
+	stroke: new Stroke({
+		color: '#80746d',
+		width: 3.0,
+		lineCap: 'round',
+	}),
+});
+
+styleLib["[Gen] Mountain Illuminated"] = new Style({ 
+	fill: new Fill({
+		color: "#c7b2a1"
 	})
 });
 
@@ -146,5 +264,20 @@ styleLib["default"] = new Style({
 		color: "#ff0000"
 	})
 });
+
+// Geometry creation settings
+var generationParams= 
+{
+	"moor offset": 7,
+	"swamp offset": 7,
+	"marsh offset": 7,
+	"mountain flank distance": 7,
+	"mountain flank min distance": 3.5,
+	"mountain adjustment step": 1,
+	"mountain flank light": null,
+	"mountain background light": null,
+	"ridge width": 7,
+	"ridge flank offset": 7
+}
 
 export {styleLib};
