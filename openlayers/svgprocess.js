@@ -11,6 +11,7 @@ import { styleLib } from './layerstyles.js';
 import { booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanIntersects, lineSliceAlong } from '@turf/turf';
 
 var features = {};
+var exportFeatures = {};
 
 const math = create(all, {})
 
@@ -80,6 +81,7 @@ export function processSvg(doc, extent, layerGroup) {
 		}
 	});
 
+	geojson2svg(exportFeatures);
 	//console.log(layerGroup.getLayers());
 	//layerGroup.getLayers().push(layerGroup.getLayers().remove(volcanoLayer));
 	//console.log(json);
@@ -354,6 +356,7 @@ function createSwampFeatures(layerGroups, transform){
 		}),
 		style: styleLib["[Gen] Swamps Detail"]
 	});
+	exportFeatures["[Gen] Swamps Detail"] = fs;
 	layerGroups.getLayers().array_.push(vectorLayerSwampInner);
 }
 
@@ -371,6 +374,7 @@ function createMarshFeatures(layerGroups, transform){
 		}),
 		style: styleLib["[Gen] Marshes Detail"]
 	});
+	exportFeatures["[Gen] Marshes Detail"] = fs;
 	layerGroups.getLayers().array_.push(vectorLayerMarshInner);
 }
 
@@ -388,6 +392,7 @@ function createMoorFeatures(layerGroups, transform){
 		}),
 		style: styleLib["[Gen] Moors Detail"]
 	});
+	exportFeatures["[Gen] Moors Detail"] = fs;
 	layerGroups.getLayers().array_.push(vectorLayerMoorInner);
 }
 
@@ -405,6 +410,7 @@ function createBadlandsFeatures(layerGroups, transform){
 		}),
 		style: styleLib["[Gen] Badlands Detail"]
 	});
+	exportFeatures["[Gen] Badlands Detail"] = fs;
 	layerGroups.getLayers().array_.push(vectorLayerBadlandInner);
 }
 
@@ -544,6 +550,10 @@ function createCliffFeatures(layerGroups, transform){
 		}),
 		style: styleLib["[Gen] Cliffs Flanks"]
 	});
+
+	exportFeatures["[Gen] Cliffs Ridges"] = ridgesFc;
+	exportFeatures["[Gen] Cliffs Background"] = backgroundFc;
+	exportFeatures["[Gen] Cliffs Flanks"] = flanksFc;
 
 	layerGroups.getLayers().array_.push(vectorLayerCliffsBackground);
 	layerGroups.getLayers().array_.push(vectorLayerCliffsRidges);
@@ -943,8 +953,9 @@ function createMountainFeatures(layerGroups, transform) {
 			}
 			var shadedLineFeatures = combine(shadingBoundaries).features[0];
 
-			shadedLineFeatures.properties["label"] = name;
+			shadedLineFeatures.properties["inkscape:label"] = name;
 			flankDetailFeats.features.push(shadedLineFeatures);
+			backgroundFeature.properties["inkscape:label"] = name;
 			backgroundElements.features.push(backgroundFeature);
 			backgroundFeature = multiPolygon([]);
 		}
@@ -988,15 +999,14 @@ function createMountainFeatures(layerGroups, transform) {
 		style: styleLib["[Gen] Mountain Illuminated"]
 	});
 
-
+	exportFeatures["[Gen] Detail Flanklines"] = flankDetailFeats;
+	exportFeatures["[Gen] Mountain Illuminated"] = backgroundElements;
 	//layerGroups.getLayers().array_.push(vectorLayerRidges);
 	layerGroups.getLayers().array_.push(vectorShadingBackground);
 	layerGroups.getLayers().array_.push(vectorFlankLines);
 	layerGroups.getLayers().array_.push(vectorShadingBoundaries);
 	//console.log(ridgeFeats);
 	//console.log(dataStore);
-
-	geojson2svg(flankDetailFeats);
 }
 
 function alongFraction (line, frac) {
