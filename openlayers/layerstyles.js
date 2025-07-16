@@ -282,7 +282,7 @@ var generationParams=
 	"ridge flank offset": 7,
 	"river max width": 3,
 	"river min width": 1,
-	"river taper length":100,
+	"river taper length":50,
 	"river taper segments": 10
 }
 

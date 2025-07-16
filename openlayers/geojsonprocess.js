@@ -3,15 +3,22 @@ const math = create(all, {});
 
 export default function geojson2svg(jsonData, template = null) {
 	var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-	svg.setAttribute("width", "3055.408mm");
-	svg.setAttribute("height", "2043.6418mm");
-	svg.setAttribute("viewBox", "0 0 3055.4079 2043.6418");
-	svg.setAttribute("version", "1.1");
-
 	var vectorData = document.createElementNS("http://www.w3.org/2000/svg", "g");
-	vectorData.setAttribute("inkscape:groupmode", "layer");
-	vectorData.setAttribute("inkscape:label", "Vector data");
-	svg.append(vectorData);
+	if (template) {
+		svg = template;
+		vectorData = svg.getElementById("layer2");
+	} else {
+	
+		svg.setAttribute("width", "3055.408mm");
+		svg.setAttribute("height", "2043.6418mm");
+		svg.setAttribute("viewBox", "0 0 3055.4079 2043.6418");
+		svg.setAttribute("version", "1.1");
+
+		
+		vectorData.setAttribute("inkscape:groupmode", "layer");
+		vectorData.setAttribute("inkscape:label", "Vector data");
+		svg.append(vectorData);
+	}
 
 	for (const [key, value] of Object.entries(jsonData)) {
 		vectorData.append(convertLayer(key, value, null, vectorData));
@@ -47,7 +54,11 @@ function convertLayer(label, jsonData, frame, svgParent) {
 		for (var feature of jsonData.features) {
 			if (converter[feature.geometry.type]){
 				var svgFeature = converter[feature.geometry.type](feature, transform);
-				svgFeature.setAttribute("inkscape:label", feature.properties["inkscape:label"]);
+				for (var [key, value] of Object.entries(feature.properties)){
+					if(key != 'label'){
+						svgFeature.setAttribute(key, value);
+					}
+				}
 				parentGroup.append(svgFeature);
 			}
 		}

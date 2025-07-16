@@ -81,7 +81,7 @@ export function processSvg(doc, extent, layerGroup) {
 		}
 	});
 
-	geojson2svg(exportFeatures);
+	geojson2svg(exportFeatures, svg);
 	//console.log(layerGroup.getLayers());
 	//layerGroup.getLayers().push(layerGroup.getLayers().remove(volcanoLayer));
 	//console.log(json);
@@ -250,18 +250,31 @@ function processPath (elem, transform, json, current) {
 		vecSum = 0;
 	}
 
+	var props = {};
+	for (var attrib of elem.attributes) {
+		if (attrib.specified && attrib.name != "d" && attrib.name != "transform"){
+			props[attrib.name] = attrib.value;
+		}
+	}
+	//TODO eventually remove this
+	props["label"] = elem.getAttribute("inkscape:label");
+
 	if (lines.length > 0){
 		if (lines.length > 1) {
-			json.features.push({"type": "Feature", "geometry": {"type": "MultiLineString", "coordinates": lines}, "properties": {"label": elem.getAttribute("inkscape:label")}});
+			//json.features.push({"type": "Feature", "geometry": {"type": "MultiLineString", "coordinates": lines}, "properties": {"label": elem.getAttribute("inkscape:label")}});
+			json.features.push(multiLineString(lines, props));
 		} else {
-			json.features.push({"type": "Feature", "geometry": {"type": "LineString", "coordinates": lines[0]}, "properties": {"label": elem.getAttribute("inkscape:label")}});
+			//json.features.push({"type": "Feature", "geometry": {"type": "LineString", "coordinates": lines}, "properties": {"label": elem.getAttribute("inkscape:label")}});
+			json.features.push(lineString(lines[0], props));
 		}
 	}
 	if (polygons.length > 0) {
 		if (polygons.length > 1) {
-			json.features.push({"type": "Feature", "geometry": {"type": "MultiPolygon", "coordinates": [polygons]}, "properties": {"label": elem.getAttribute("inkscape:label")}});
+			//json.features.push({"type": "Feature", "geometry": {"type": "MultiPolygon", "coordinates": [polygons]}, "properties": {"label": elem.getAttribute("inkscape:label")}});
+			json.features.push(multiPolygon([polygons], props));
 		} else {
-			json.features.push({"type": "Feature", "geometry": {"type": "Polygon", "coordinates": polygons}, "properties": {"label": elem.getAttribute("inkscape:label")}});
+			//json.features.push({"type": "Feature", "geometry": {"type": "Polygon", "coordinates": polygons}, "properties": {"label": elem.getAttribute("inkscape:label")}});
+			json.features.push(polygon(polygons, props));
 		}
 	}
 	//console.log(json);
@@ -429,7 +442,7 @@ function createCliffFeatures(layerGroups, transform){
 			var coords = cliff.geometry.coordinates.slice(2,-2);
 
 			cliff.geometry.coordinates = coords;
-			ridgeLine = lineString(coords);
+			ridgeLine = lineString(coords, cliff.properties);
 			ridgesFc.features.push(cliff);
 
 			var background = polygonToLine(offFeat);
@@ -467,7 +480,7 @@ function createCliffFeatures(layerGroups, transform){
 			var endOffset = math.min(width/2, backLen/2);
 			background = lineSliceAlong(background, endOffset, backLen - endOffset);
 
-			backgroundFc.features.push(lineToPolygon(lineString(background.geometry.coordinates.concat(coords.reverse()))));
+			backgroundFc.features.push(lineToPolygon(lineString(background.geometry.coordinates.concat(coords.reverse())), {properties: cliff.properties}));
 		}
 
 		if (cliff.geometry.type == "Polygon"){
@@ -476,20 +489,20 @@ function createCliffFeatures(layerGroups, transform){
 			ridgeLine.geometry.coordinates = ridgeLine.geometry.coordinates.reverse();
 			if (booleanClockwise(polygonToLine(cliff))) {
 				if (offFeat.geometry.type == "Polygon") {
-					backgroundFc.features.push(polygon([cliff.geometry.coordinates[0], offFeat.geometry.coordinates[0]]));
+					backgroundFc.features.push(polygon([cliff.geometry.coordinates[0], offFeat.geometry.coordinates[0]], cliff.properties));
 				} else {
-					backgroundFc.features.push(polygon([cliff.geometry.coordinates[0]].concat(offFeat.geometry.coordinates[0])));
+					backgroundFc.features.push(polygon([cliff.geometry.coordinates[0]].concat(offFeat.geometry.coordinates[0]), cliff.properties));
 				}
 			} else {
 				if (offFeat.geometry.type == "Polygon") {
-					backgroundFc.features.push(polygon([offFeat.geometry.coordinates[0], cliff.geometry.coordinates[0]]));
+					backgroundFc.features.push(polygon([offFeat.geometry.coordinates[0], cliff.geometry.coordinates[0]], cliff.properties));
 				} else {
-					backgroundFc.features.push(polygon([offFeat.geometry.coordinates[0]].concat(cliff.geometry.coordinates[0])));
+					backgroundFc.features.push(polygon([offFeat.geometry.coordinates[0]].concat(cliff.geometry.coordinates[0]), cliff.properties));
 				}
 			}
 		}
 
-		var flankFeature = multiLineString([]);
+		var flankFeature = multiLineString([], cliff.properties);
 		var ridgeLen = length(ridgeLine);
 		var basewidth = width - 2;
 		var varWidth = 0.1;
@@ -600,9 +613,9 @@ function offsetFeature(feat, dist) {
 	if (offFeat.geometry.coordinates.length == 1){
 		offFeat = polygon(offFeat.geometry.coordinates[0]);
 	} else {
-		console.warn(feat.properties["label"]);
+		//console.warn(feat.properties["label"]);
 	}
-	offFeat.properties["label"] = feat.properties["label"];
+	offFeat.properties = feat.properties;
 	return offFeat;	
 }
 
