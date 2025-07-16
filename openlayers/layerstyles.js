@@ -271,13 +271,20 @@ var generationParams=
 	"moor offset": 7,
 	"swamp offset": 7,
 	"marsh offset": 7,
+	"badlands offset": 7,
 	"mountain flank distance": 7,
 	"mountain flank min distance": 3.5,
-	"mountain adjustment step": 1,
+	"mountain adjustment step": 0.1,
+	"light direction": [-1, -1],
 	"mountain flank light": null,
 	"mountain background light": null,
 	"ridge width": 7,
-	"ridge flank offset": 7
+	"ridge flank offset": 7,
+	"river max width": 3,
+	"river min width": 1,
+	"river taper length":100,
+	"river taper segments": 10
 }
 
 export {styleLib};
+export {generationParams};
