@@ -605,6 +605,7 @@ var geoPrecision = {precision: 5};
 function createMountainFeatures(layerGroups, transform) {
 	var dataStore = {};
 	// for every mountain outline we expect at least one ridgeline
+	//TODO: fix numbering scheme with regex pattern to be more flexible
 	for (var mountain of features.Mountains.features){
 		var outline = truncate(polygon([mountain.geometry.coordinates[0]]), geoPrecision);
 		if (booleanClockwise(outline)) {
@@ -612,7 +613,7 @@ function createMountainFeatures(layerGroups, transform) {
 		}
 		dataStore[mountain.properties.label.substring(0, mountain.properties.label.length - 1)] = {"outline": outline.geometry.coordinates[0], "ridges": {}, "flanks": {}};
 	}
-	// assign ridgelines to mountain features, use a map because we cannot expect features to be ordered by id
+	// assign ridgelines to mountain features, using a map because we cannot expect features to be ordered by id
 	for (var ridge of features.Ridges.features) {
 		var key = ridge.properties.label.substring(0, ridge.properties.label.length - 1);
 		var num = ridge.properties.label.slice(-1);
@@ -627,17 +628,18 @@ function createMountainFeatures(layerGroups, transform) {
 		}
 	}
 	for (var flank of features.Flanks.features) {
+		// for every mountain outline we expect one flank guideline made alternating between outline and ridge points counterclock wise around the outline shape
+		// at least one flank is required
 		var key = flank.properties.label.substring(0, flank.properties.label.length - 1);
-		//var num = flank.properties.label.slice(-2);
 
 		if(flank.geometry.type == "LineString" && dataStore[key]) {
 			var line = truncate(lineString(flank.geometry.coordinates), geoPrecision).geometry.coordinates;
 			for (var i = 0; i < math.floor(line.length/2); i++) {
 				dataStore[key]["flanks"][i] = line.slice(i*2, (i+1)*2);
 			}
-			//dataStore[key]["flanks"][num] = truncate(lineString(flank.geometry.coordinates), geoPrecision).geometry.coordinates;
 		}
 	}
+
 	// create the line segment pairs for flank lines by processing ridgelines in order. The first ridgeline is expected to have 2 open ends, each subsequent one needs to have one end point co-located with an already processed ridge point.
 	// The first and last two points of a ridgeline need to be on points of the outline to define the flank line arc connected to the end point at index 3/-3.
 
@@ -714,19 +716,13 @@ function createMountainFeatures(layerGroups, transform) {
 			var minDistance = 3.5;
 			var defaultAdjustement = 0.1;
 			var adjustmentFactor = 1;
-			var lastLine = lineString([[5000,5000],[5001,5001]]);
+			
 
 			var flankLineLight = createLight([-1, -1], 90, 20);
-
-			/*var lightDir = [-1, -1];
-			var lightCone = 90;
-			var lightTolerance = 15;*/
-			var lastShadingState = -1;
+			var backgroundLight = createLight([-1, -1], 110, 0);
 
 			var segment = 1;
-
 			var maxLen = Math.max(ridgeSegments[1], outlineSegments[1]);
-			//var maxStep = Math.trunc((maxLen)/lineDistance);
 			var ridgeLonger = ridgeSegments[1] >= outlineSegments[1];
 			var remainingFraction = 0;
 
@@ -738,42 +734,41 @@ function createMountainFeatures(layerGroups, transform) {
 				ridgeOffset = (ridgeSegments[1]/maxLen) * ridgeOffset;
 			}
 
+			var ridgeId = 0;
+			var outlineId = 0;
+
+
 			var shadingBoundaries = featureCollection([]);
 			
-			var lastLine = lineString([along(ridgeLinestring, 0).geometry.coordinates, along(outlineLinestring, 0).geometry.coordinates]);
+			// initialize line drawing
+			// we save the first line for comparisons when closing the loop
+			var firstLine = lineString([along(ridgeLinestring, 0).geometry.coordinates, along(outlineLinestring, 0).geometry.coordinates]);
+			
+			// we track previous lines to ensure minimum flank line distances, and initialize them as something far off the map
+			var lastLine = lineString([[5000,5000],[5001,5001]]);
 			var lastInnerLine = lineString([[5000,5000],[5001,5001]]);
 			var lastOuterLine = lineString([[5000,5000],[5001,5001]]);
 
-			var lastShadingState = 1.0 - shadowStatus(lastLine, flankLineLight);//checkShadingStatus (lastLine, lightDir, lightCone, 0, -1);
+			// we track the illumination status between steps to know when to start/finish illuminated background polygons
+			var lastIlluminationState = 0;
 			var backgroundRidgeCoords = [];
 			var backgroundOutlineCoords = [];
-			if (lastShadingState){
-				//start tracking a shaded background polygon
-				backgroundRidgeCoords = [lastLine.geometry.coordinates[1]];
-				backgroundOutlineCoords = [lastLine.geometry.coordinates[0]];
-			}
 
 			var backgroundFeature = multiPolygon([]);
 
-			var alongRidge = ridgeOffset;
-			var alongOutline = outlineOffset;
+			var alongRidge = 0;
+			var alongOutline = 0;
 			var doAdjustmentStep = false;
 			
 			while(alongOutline < outlineSegments.at(-1) ){
-
 				var line = lineString([along(ridgeLinestring, alongRidge).geometry.coordinates, along(outlineLinestring, alongOutline).geometry.coordinates]);
 
-
-				/*if (doAdjustmentStep){
-					line.properties["isclose"] = true;
-				}*/
-
-				//do checks/adjustments
+				//do checks/adjustments on a line that is slightly detached from ridge/outline to avoid accidental intersections
 				doAdjustmentStep = false;
 				var detachedLine = lineSliceAlong(line, 0.05, length(line)-0.05);
 
 				if (booleanIntersects(detachedLine, ridgeLinestring)) {
-					//this might happen close to fan shapes or steep ridge turns. After splitting the line the longest segment is most likely the correct one.
+					//this might happen close to fan shapes or steep ridge turns. After splitting the line the longest segment is most likely the correct one, but it isn't guaranteed
 					var lineSegments = lineSplit(line, ridgeLinestring);
 					var maxSegLength = 0;
 					for (var seg of lineSegments.features) {
@@ -801,7 +796,6 @@ function createMountainFeatures(layerGroups, transform) {
 				if (booleanIntersects(detachedLine, lastLine)) {
 					//if line intersects the previous line make an adjustment step and check again
 					doAdjustmentStep = true;
-					//line.properties["isclose"] = true;
 				}
 
 				if ((pointToLineDistance(point(line.geometry.coordinates[0]), lastLine) < minDistance ||
@@ -812,84 +806,84 @@ function createMountainFeatures(layerGroups, transform) {
 					doAdjustmentStep = true;
 				}
 
-				var len = length(lastLine);
-
-				if (!doAdjustmentStep){
-					flankElements.features.push(lastLine);
+				if (doAdjustmentStep){
+					// the current line position is not valid, so we skip it and try again a small step later
+					adjustmentFactor = defaultAdjustement;
 					
+				} else {
+					// the line position passed the initial checks, so we start drawing the geometric element(s)
+					// TODO: remove flankElements collection
+					flankElements.features.push(line);
 
-					var shadingStatus = 1.0 - shadowStatus(lastLine, flankLineLight);//checkShadingStatus (line, lightDir, lightCone, 0, -1);
+					var len = length(line);
+
+					var shadingStatus = 1.0 - illuminationStatus(line, flankLineLight);
 					if (shadingStatus == 1.0) {
-						//shadingBoundaries.features.push(lastLine);
-						var innerDist = math.max(pointToLineDistance(point(lastLine.geometry.coordinates[1]), lastInnerLine), pointToLineDistance(point(lastInnerLine.geometry.coordinates[1]), lastLine));
-						var outerDist = math.max(pointToLineDistance(point(lastLine.geometry.coordinates[0]), lastOuterLine), pointToLineDistance(point(lastOuterLine.geometry.coordinates[0]), lastLine));
+
+						var innerDist = math.max(pointToLineDistance(point(line.geometry.coordinates[0]), lastInnerLine), pointToLineDistance(point(lastInnerLine.geometry.coordinates[0]), line));
+						var outerDist = math.max(pointToLineDistance(point(line.geometry.coordinates[1]), lastOuterLine), pointToLineDistance(point(lastOuterLine.geometry.coordinates[1]), line));
 						if (innerDist < minDistance) {
-							var factor = 0.3 + 0.04 * Number(lastLine.geometry.coordinates[0][0].toString().slice(-1));
-							shadingBoundaries.features.push(lineSliceAlong(lastLine, 0, len*factor));
-							lastOuterLine = clone(lastLine);
+							var factor = 0.3 + 0.04 * Number(line.geometry.coordinates[0][0].toString().slice(-1));
+							shadingBoundaries.features.push(lineSliceAlong(line, factor*len, len));
+							lastOuterLine = clone(line);
 						} else if (outerDist < minDistance) {
-							var factor = 0.3 + 0.04 * Number(lastLine.geometry.coordinates[1][0].toString().slice(-1));
-							shadingBoundaries.features.push(lineSliceAlong(lastLine, factor*len, len));
-							lastInnerLine = clone(lastLine);
+							var factor = 0.3 + 0.04 * Number(line.geometry.coordinates[1][0].toString().slice(-1));
+							shadingBoundaries.features.push(lineSliceAlong(line, 0, len*factor));
+							lastInnerLine = clone(line);
 						} else {
-							shadingBoundaries.features.push(lastLine);
-							lastInnerLine = clone(lastLine);
-							lastOuterLine = clone(lastLine);
+							shadingBoundaries.features.push(line);
+							lastInnerLine = clone(line);
+							lastOuterLine = clone(line);
 						}
 
 					} else {
-						//console.log(shadingStatus);
-						//console.log(Number(line.geometry.coordinates[1][0].toString().slice(-1)));
-						var innerFactor = 0.1 + 0.025 * Number(line.geometry.coordinates[0][0].toString().slice(-1)) + 0.15 * shadingStatus;//shadingState(line, lightDir);
-						var outerFactor = 0.1 + 0.025 * Number(line.geometry.coordinates[1][0].toString().slice(-1)) + 0.15 * shadingStatus;//shadingState(line, lightDir);
-						var innerLine = lineSliceAlong(lastLine, 0, len * innerFactor);
+						var innerFactor = 0.1 + 0.025 * Number(line.geometry.coordinates[0][0].toString().slice(-1)) + 0.15 * shadingStatus;
+						var outerFactor = 0.1 + 0.025 * Number(line.geometry.coordinates[1][0].toString().slice(-1)) + 0.15 * shadingStatus;
+						var innerLine = lineSliceAlong(line, 0, len * innerFactor);
 						if ((pointToLineDistance(point(innerLine.geometry.coordinates[0]), lastInnerLine) >= minDistance || pointToLineDistance(point(innerLine.geometry.coordinates[1]), lastInnerLine) >= minDistance)) {
 							shadingBoundaries.features.push(innerLine);
-							lastInnerLine = clone(lastLine);
+							lastInnerLine = clone(line);
 						}
-						var outerLine = lineSliceAlong(lastLine, len * (1.0-outerFactor), len);
+						var outerLine = lineSliceAlong(line, len * (1.0-outerFactor), len);
 						if ((pointToLineDistance(point(outerLine.geometry.coordinates[0]), lastOuterLine) >= minDistance || pointToLineDistance(point(outerLine.geometry.coordinates[1]), lastOuterLine) >= minDistance)) {
 							shadingBoundaries.features.push(outerLine);
-							lastOuterLine = clone(lastLine);
+							lastOuterLine = clone(line);
 						}
-						//shadingBoundaries.features.push(outerLine);
 					}
 
-					if (shadingStatus < 1.0){
-						//track shaded background polygon
-						backgroundRidgeCoords.push(lastLine.geometry.coordinates[1]);
-						backgroundOutlineCoords.push(lastLine.geometry.coordinates[0]);
+					var illuminationState = illuminationStatus(line, backgroundLight);
+					if (!lastIlluminationState && illuminationState){
+						//track illuminated background polygon
+						backgroundRidgeCoords.push(line.geometry.coordinates[0]);
+						backgroundOutlineCoords.push(line.geometry.coordinates[1]);
 					}
 
-					if (lastShadingState && shadingStatus == 1.0){
-						//complete and push the current shaded background polygon
-						backgroundRidgeCoords.push(line.geometry.coordinates[1]);
-						backgroundOutlineCoords.push(line.geometry.coordinates[0]);
-						backgroundFeature.geometry.coordinates.push([backgroundOutlineCoords.concat(backgroundRidgeCoords.reverse()).concat([backgroundOutlineCoords[0]])]);
+					if (lastIlluminationState && !illuminationState){
+						//complete and push the current illuminated background polygon
+						if (backgroundRidgeCoords.length && backgroundOutlineCoords.length) {
+							backgroundRidgeCoords.push(lastLine.geometry.coordinates[0]);
+							backgroundOutlineCoords.push(lastLine.geometry.coordinates[1]);
+							backgroundFeature.geometry.coordinates.push([backgroundOutlineCoords.concat(backgroundRidgeCoords.reverse()).concat([backgroundOutlineCoords[0]])]);
+						}
 						backgroundRidgeCoords = [];
 						backgroundOutlineCoords = [];
 					}
-					lastShadingState = shadingStatus;
+					lastIlluminationState = illuminationState;
 
 					lastLine = line;
 					adjustmentFactor = 1.0;
-				} else {
-					//flankElements.features.push(lastLine);
-					//lastLine = line;
-					adjustmentFactor = defaultAdjustement;
-				} 
+				}
 
 				//increment along ridge and outline
 				if ((alongRidge + (ridgeOffset * adjustmentFactor)) > ridgeSegments[segment] || (alongOutline + (outlineOffset* adjustmentFactor)) > outlineSegments[segment]) {
+					//we are passing over a flank guideline and have to update offset sizes
 					if (ridgeLonger) {
 						remainingFraction = (alongRidge + ridgeOffset - ridgeSegments[segment])/lineDistance;
 					} else {
 						remainingFraction = (alongOutline + outlineOffset - outlineSegments[segment])/lineDistance;
 					}
-					/*if (name == "Thunder peaks 0") {
-						console.log(remainingFraction + " - " + ridgeLonger);
-					}*/
 					segment++;
+
 					var ridgeSegmentLength = ridgeSegments[segment] - ridgeSegments[segment-1];
 					var outlineSegmentLength = outlineSegments[segment] - outlineSegments[segment-1];
 					ridgeLonger = ridgeSegmentLength >= outlineSegmentLength;
@@ -900,20 +894,37 @@ function createMountainFeatures(layerGroups, transform) {
 					alongOutline = outlineSegments[segment-1] + (outlineOffset * remainingFraction);
 
 				} else {
+					//within a segment we can just add the offset 
 					alongRidge += ridgeOffset * adjustmentFactor;
 					alongOutline += outlineOffset * adjustmentFactor;
+				}
+
+				//track the ridge and outline verts passed durin this step and add them to illumination polygon if lit
+				while(ridgeId < ridgeVertexLength.length && alongRidge >= ridgeVertexLength[ridgeId]){
+					if (lastIlluminationState){
+						backgroundRidgeCoords.push(ridgeCoords[ridgeId]);
+						//if (name == "Test Ring 0") console.log ("Inner " + ridgeId);
+					}
+					ridgeId++;
+				}
+				while(outlineId < outlineVertexLength.length && alongOutline >= outlineVertexLength[outlineId]){
+					if (lastIlluminationState){
+						backgroundOutlineCoords.push(outlineCoords[outlineId]);
+						//if (name == "Test Ring 0") console.log ("Outer " + outlineId);
+					}
+					outlineId++;
 				}
 			}
 
 			//Proximity check between the final line and the first line of the mountain, skip the final line if it is too close.
-			var line = lineString([along(ridgeLinestring, 0).geometry.coordinates, along(outlineLinestring, 0).geometry.coordinates]);
+			/*var line = lineString([along(ridgeLinestring, 0).geometry.coordinates, along(outlineLinestring, 0).geometry.coordinates]);
 			if (!((pointToLineDistance(point(line.geometry.coordinates[0]), lastLine) < minDistance ||
 				pointToLineDistance(point(lastLine.geometry.coordinates[0]), line) < minDistance) && 
 				(pointToLineDistance(point(line.geometry.coordinates[1]), lastLine) < minDistance || 
 				pointToLineDistance(point(lastLine.geometry.coordinates[1]), line) < minDistance))) {
 				flankElements.features.push(lastLine);
 
-				var shadingStatus = shadowStatus(line, flankLineLight);//checkShadingStatus (line, lightDir, lightCone, 0, -1);
+				var shadingStatus = illuminationStatus(line, flankLineLight);//checkShadingStatus (line, lightDir, lightCone, 0, -1);
 				if (!shadingStatus) {
 					shadingBoundaries.features.push(lastLine);
 				} else {
@@ -923,11 +934,15 @@ function createMountainFeatures(layerGroups, transform) {
 					shadingBoundaries.features.push(lineSliceAlong(lastLine, 0, len * factor));
 					shadingBoundaries.features.push(lineSliceAlong(lastLine, len * (1.0-factor), len));
 				}
-			}
+			}*/
 
-			if (shadingStatus){
+			if (lastIlluminationState){
 				//complete and push the current shaded background polygon
-				backgroundFeature.geometry.coordinates.push([backgroundOutlineCoords.concat(backgroundRidgeCoords.reverse())]);
+				if(illuminationStatus(firstLine, backgroundLight)){
+					backgroundRidgeCoords.push(firstLine.geometry.coordinates[0]);
+					backgroundOutlineCoords.push(firstLine.geometry.coordinates[1]);
+				}
+				backgroundFeature.geometry.coordinates.push([backgroundOutlineCoords.concat(backgroundRidgeCoords.reverse()).concat([backgroundOutlineCoords[0]])]);
 			}
 			var shadedLineFeatures = combine(shadingBoundaries).features[0];
 
@@ -1067,7 +1082,7 @@ function createLight (direction = [-1 -1], rightBright = 45, rightUmbra = 0, lef
 	}
 }
 
-function shadowStatus (flankLine, light) {
+function illuminationStatus (flankLine, light) {
 	// returns 1 if flank is fully lit, 0 if it is fully in shadow and a value between 1.0 and 0.0 in the umbra region
 	
 	var flank = math.subtract(flankLine.geometry.coordinates[0].concat(0), flankLine.geometry.coordinates[1].concat(0));
