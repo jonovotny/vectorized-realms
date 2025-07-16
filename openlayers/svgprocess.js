@@ -737,6 +737,7 @@ function createMountainFeatures(layerGroups, transform) {
 			var ridgeId = 0;
 			var outlineId = 0;
 
+			var lastFlanklineFeatures = 0;
 
 			var shadingBoundaries = featureCollection([]);
 			
@@ -835,19 +836,24 @@ function createMountainFeatures(layerGroups, transform) {
 							lastInnerLine = clone(line);
 							lastOuterLine = clone(line);
 						}
+						lastFlanklineFeatures = 1;
 
 					} else {
+						lastFlanklineFeatures = 0;
+
 						var innerFactor = 0.1 + 0.025 * Number(line.geometry.coordinates[0][0].toString().slice(-1)) + 0.15 * shadingStatus;
 						var outerFactor = 0.1 + 0.025 * Number(line.geometry.coordinates[1][0].toString().slice(-1)) + 0.15 * shadingStatus;
 						var innerLine = lineSliceAlong(line, 0, len * innerFactor);
 						if ((pointToLineDistance(point(innerLine.geometry.coordinates[0]), lastInnerLine) >= minDistance || pointToLineDistance(point(innerLine.geometry.coordinates[1]), lastInnerLine) >= minDistance)) {
 							shadingBoundaries.features.push(innerLine);
 							lastInnerLine = clone(line);
+							lastFlanklineFeatures++;
 						}
 						var outerLine = lineSliceAlong(line, len * (1.0-outerFactor), len);
 						if ((pointToLineDistance(point(outerLine.geometry.coordinates[0]), lastOuterLine) >= minDistance || pointToLineDistance(point(outerLine.geometry.coordinates[1]), lastOuterLine) >= minDistance)) {
 							shadingBoundaries.features.push(outerLine);
 							lastOuterLine = clone(line);
+							lastFlanklineFeatures++;
 						}
 					}
 
@@ -916,25 +922,16 @@ function createMountainFeatures(layerGroups, transform) {
 				}
 			}
 
-			//Proximity check between the final line and the first line of the mountain, skip the final line if it is too close.
-			/*var line = lineString([along(ridgeLinestring, 0).geometry.coordinates, along(outlineLinestring, 0).geometry.coordinates]);
-			if (!((pointToLineDistance(point(line.geometry.coordinates[0]), lastLine) < minDistance ||
-				pointToLineDistance(point(lastLine.geometry.coordinates[0]), line) < minDistance) && 
-				(pointToLineDistance(point(line.geometry.coordinates[1]), lastLine) < minDistance || 
-				pointToLineDistance(point(lastLine.geometry.coordinates[1]), line) < minDistance))) {
-				flankElements.features.push(lastLine);
-
-				var shadingStatus = illuminationStatus(line, flankLineLight);//checkShadingStatus (line, lightDir, lightCone, 0, -1);
-				if (!shadingStatus) {
-					shadingBoundaries.features.push(lastLine);
-				} else {
-					var len = length(lastLine);
-					//console.log(shadingState(line, lightDir));
-					var factor = 0.2 + 0.3 * shadingStatus;//shadingState(line, lightDir);
-					shadingBoundaries.features.push(lineSliceAlong(lastLine, 0, len * factor));
-					shadingBoundaries.features.push(lineSliceAlong(lastLine, len * (1.0-factor), len));
-				}
-			}*/
+			//Proximity check between the final line and the first line of the mountain, remove the last one or two lines if too close.
+			if (!((pointToLineDistance(point(firstLine.geometry.coordinates[0]), lastLine) < minDistance ||
+				pointToLineDistance(point(lastLine.geometry.coordinates[0]), firstLine) < minDistance) && 
+				(pointToLineDistance(point(firstLine.geometry.coordinates[1]), lastLine) < minDistance || 
+				pointToLineDistance(point(lastLine.geometry.coordinates[1]), firstLine) < minDistance))) {
+					shadingBoundaries.features.pop();
+					if (lastFlanklineFeatures == 2) {
+						shadingBoundaries.features.pop();
+					}
+			}
 
 			if (lastIlluminationState){
 				//complete and push the current shaded background polygon
