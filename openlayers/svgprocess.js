@@ -8,7 +8,7 @@ import LayerGroup from 'ol/layer/Group';
 import geojson2svg from './geojsonprocess.js';
 import { styleLib } from './layerstyles.js';
 
-import { booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanIntersects, lineSliceAlong } from '@turf/turf';
+import { dissolve, simplify, flatten, booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanIntersects, lineSliceAlong } from '@turf/turf';
 
 var features = {};
 var exportFeatures = {};
@@ -50,6 +50,7 @@ export function processSvg(doc, extent, layerGroup) {
 	createMarshFeatures(layerGroup, transform);
 	createMoorFeatures(layerGroup, transform);
 	createBadlandsFeatures(layerGroup, transform);
+	createSnowFeatures(layerGroup, transform);
 	createCliffFeatures(layerGroup, transform);
 	createMountainFeatures(layerGroup, transform);
 
@@ -89,15 +90,8 @@ export function processSvg(doc, extent, layerGroup) {
 }
 
 function processGroup(grp, transform, parentLayer, current){
-	//console.log("G - " +  grp.getAttribute("inkscape:label"))
-	/*if (!(grp.getAttribute("inkscape:label") == "Vector data" || grp.getAttribute("inkscape:label") == "Water - continental shelf")) {
-		return json;
-	}*/
-	
 	var comb_trans = processTransform (grp, transform);
 	var comb_json = { "type": "FeatureCollection", "features": []};
-	var style = null;
-	var color = 'rgba(0,0,0,1.0)';
 
 	for (var elem of Array.from(grp.children)){
 		switch (elem.tagName) {
@@ -119,7 +113,6 @@ function processGroup(grp, transform, parentLayer, current){
 
 				break;
 			case "path":
-				style = elem.getAttribute("style");
 				processPath(elem, comb_trans, comb_json, current);
 				break;
 		}
@@ -132,13 +125,6 @@ function processGroup(grp, transform, parentLayer, current){
 	var vectorSource = new VectorSource({
 		features: new GeoJSON().readFeatures(comb_json),
 	});
-
-	/*if (style) {
-		color = style.match(/#[0-9aAbBcCdDeEfF]{6}/g);
-		if (color){
-			color = color[0];
-		}
-	}*/
 
 	var layerStyle = styleLib["default"];
 	if (styleLib.hasOwnProperty(grp.getAttribute("inkscape:label"))) {
@@ -164,6 +150,7 @@ function processPath (elem, transform, json, current) {
 	var coordinates = [];
 	var lines = [];
 	var polygons = [];
+	var holes = [];
 
 	var modeAbs = false;
 
@@ -194,8 +181,13 @@ function processPath (elem, transform, json, current) {
 					vecSum += (current[0]-previous[0])*(current[1]+previous[1]);
 				}
 				coordinates = transformCoords(coordinates, comb_trans);
-				//console.log(vecSum);
-				polygons.push(coordinates);
+				if(coordinates.length > 2){
+					if(booleanClockwise(lineString(coordinates))){
+						holes.push(coordinates);
+					} else {
+						polygons.push(coordinates);
+					}
+				}
 				coordinates = [];
 				vecSum = 0;
 			}
@@ -271,13 +263,22 @@ function processPath (elem, transform, json, current) {
 	if (polygons.length > 0) {
 		if (polygons.length > 1) {
 			//json.features.push({"type": "Feature", "geometry": {"type": "MultiPolygon", "coordinates": [polygons]}, "properties": {"label": elem.getAttribute("inkscape:label")}});
-			json.features.push(multiPolygon([polygons], props));
+			json.features.push(multiPolygon(polygons.map((x) => [x].concat(holes)), props));
 		} else {
 			//json.features.push({"type": "Feature", "geometry": {"type": "Polygon", "coordinates": polygons}, "properties": {"label": elem.getAttribute("inkscape:label")}});
-			json.features.push(polygon(polygons, props));
+			console.log(elem.getAttribute("inkscape:label"));
+			json.features.push(polygon([polygons[0]].concat(holes), props));
+		}
+	} else {
+		if (holes.length > 0) {
+			if (holes.length > 1) {
+				json.features.push(multiPolygon(holes.map((x) => [x]), props));
+			} else {
+				json.features.push(polygon(holes, props));
+			}
 		}
 	}
-	//console.log(json);
+	console.log(json);
 	
 	current = transformCoords([current], comb_trans)[0];
 	
@@ -427,6 +428,31 @@ function createBadlandsFeatures(layerGroups, transform){
 	layerGroups.getLayers().array_.push(vectorLayerBadlandInner);
 }
 
+function createSnowFeatures(layerGroups, transform){
+	var processedFeatures = featureCollection([]);
+	var layerName = "[Gen] Snow Detail";
+	if (!features.Snow) return;
+
+	for (var snow of features.Snow.features) {
+		var shadowRidge = offsetFeature(snow, -7);
+		shadowRidge = simplify(shadowRidge, { tolerance: 0.005, highQuality: false });
+
+		processedFeatures.features.push(shadowRidge);
+	}
+	processedFeatures = polygonSmooth(processedFeatures);
+
+	var outputLayer = new VectorLayer({
+		title: layerName,
+		source: new VectorSource({
+			features: new GeoJSON().readFeatures(processedFeatures),
+		}),
+		style: styleLib[layerName]
+	});
+	exportFeatures[layerName] = processedFeatures;
+	layerGroups.getLayers().array_.push(outputLayer);
+}
+
+
 function createCliffFeatures(layerGroups, transform){
 	var ridgesFc = featureCollection([]);
 	var backgroundFc = featureCollection([]);
@@ -574,6 +600,15 @@ function createCliffFeatures(layerGroups, transform){
 }
 
 function offsetFeature(feat, dist) {
+	//split multi feature apart and call recursive
+	if (feat.geometry.type == "MultiPolygon" || feat.geometry.type == "MultiLine") {
+		var singleFeats = featureCollection([]);
+		for (var singleFeat of flatten(feat).features) {
+			singleFeats.features.push(offsetFeature(singleFeat, dist));
+		}
+		return combine(singleFeats).features[0];
+	}
+
 	var line;
 	if(feat.geometry.type == "Polygon") {
 		line = polygonToLine(polygon(feat.geometry.coordinates));	
@@ -588,7 +623,7 @@ function offsetFeature(feat, dist) {
 	var unkinked = unkinkPolygon(off);
 	
 	var mainPoly = unkinked.features.reduce((acc, x) => x.geometry.coordinates[0].length > acc.geometry.coordinates[0].length? x: acc);
-	var minLength = length(polygonToLine(mainPoly)) * 0.05;
+	var minLength = length(polygonToLine(mainPoly)) * 0.25;
 	var offFeat = multiPolygon([mainPoly.geometry.coordinates]);
 
 	while (mainPoly) {
@@ -617,10 +652,6 @@ function offsetFeature(feat, dist) {
 	}
 	offFeat.properties = feat.properties;
 	return offFeat;	
-}
-
-function coordEquals(b) {
-	return (a) => Math.abs(a[0] - b[0]) <= 0.0005 && Math.abs(a[1] - b[1]) <= 0.0005;
 }
 
 var geoPrecision = {precision: 5};
@@ -679,8 +710,6 @@ function createMountainFeatures(layerGroups, transform) {
 
 			var sortedFlanks = Object.entries(data["flanks"]);
 			//sortedFlanks = sortedFlanks.sort((a, b) => a[0] - b[0]).map(a => a[1]);
-
-			
 
 			// shift polygon indices to avoid dealing with seams
 			var flanksplit = sortedFlanks[0][1];
@@ -1022,14 +1051,6 @@ function createMountainFeatures(layerGroups, transform) {
 	//console.log(dataStore);
 }
 
-function alongFraction (line, frac) {
-	var len = length(line);
-	if (len == 0) {
-		return line.geometry.coordinates[0];
-	}
-	return along(line, frac).geometry.coordinates;
-}
-
 function calculateDistances (line) {
 	var remainingLine = JSON.parse(JSON.stringify(line));
 	var distances = [];
@@ -1130,188 +1151,6 @@ function illuminationStatus (flankLine, light) {
 	}
 }
 
-function betweenNormVectors (vecT, vecA, vecB) {
-	var crossAB = math.cross(vecA, vecB)[2];
-	if (crossAB >= 0){
-		if (math.cross(vecA, vecT)[2] >= 0 && math.cross(vecT, vecB)[2] >= 0) {
-			return math.cross(vecT, vecB)[2]/math.cross(vecA, vecB)[2];
-	}
-	} else {
-		if (math.cross(vecA, vecT)[2] >= 0 || math.cross(vecT, vecB)[2] >= 0) {
-			return 1;
-		}
-	}
-	return 0;
-}
-
-function shadingState (flankLine, lightDir) {
-	var flank = math.subtract(flankLine.geometry.coordinates[1].concat(0), flankLine.geometry.coordinates[0].concat(0));
-	flank = math.divide(flank, math.norm(flank));
-	return betweenVectors2(flank,math.rotate(lightDir, math.pi / 2.5), math.rotate(lightDir, math.pi / 2));
-}
-
-function checkShadingStatus (flankLine, lightDir, lightCone, tolerance, prevState) {
-	//check a flank line for its shading status, where -1 is unclear, 0 is shaded, and 1 is illuminated
-	var flank = math.subtract(flankLine.geometry.coordinates[1].concat(0), flankLine.geometry.coordinates[0].concat(0));
-	var halfAngle  = (-lightCone/2 + tolerance) + "deg";
-	var halfAngle2  = (lightCone/2 - tolerance) + "deg";
-	//console.log(flank);
-	//console.log(math.rotate(lightDir, -math.pi / 4));
-	//console.log(math.rotate(lightDir, math.pi / 4));
-		if (betweenVectors(flank, math.rotate(lightDir, -math.pi / 2), math.rotate(lightDir, math.pi / 2.5))) {
-			return 0;
-		} else {
-			return 1;
-		}
-	//if the previous state was unclear, we check if it is within either shaded or lit direction with the least tolerance otherwise it remains unclear
-	/*if (prevState == -1) {
-		var halfAngle  = (lightCone/2 - tolerance) + "deg";
-		if (betweenVectors(flank, math.rotate(lightDir, -math.unit(halfAngle)), math.rotate(lightDir, math.unit(halfAngle)))) {
-			return 0;
-		}
-
-		halfAngle  = (lightCone/2 + tolerance) + "deg";
-		if (betweenVectors(flank, math.rotate(lightDir, -math.unit(halfAngle)), math.rotate(lightDir, math.unit(halfAngle)))) {
-			return 1;
-		}
-		return -1;
-	}
-	if (prevState == 0) {
-		var halfAngle  = (lightCone/2 - tolerance) + "deg";
-		if (betweenVectors(flank, math.rotate(lightDir, -math.unit(halfAngle)), math.rotate(lightDir, math.unit(halfAngle)))) {
-			return 0;
-		}
-		return 1;
-	}
-	if (prevState == 1) {
-		var halfAngle  = (lightCone/2 - tolerance) + "deg";
-		if (betweenVectors(flank, math.rotate(lightDir, -math.unit(halfAngle)), math.rotate(lightDir, math.unit(halfAngle)))) {
-			return 0;
-		}
-		return 1;
-	}*/
-	return -1;
-}
-
-function betweenVectors2 (normal, start, end) {
-	var vecT = math.divide(normal, math.norm(normal));
-	var vecA = start.concat(0);
-	vecA = math.divide(vecA, math.norm(vecA));
-	var vecB = end.concat(0);
-	vecB = math.divide(vecB, math.norm(vecB));
-	var crossAB = math.cross(vecA, vecB)[2];
-	if (crossAB >= 0){
-		if (math.cross(vecA, vecT)[2] >= 0 && math.cross(vecT, vecB)[2] >= 0) {
-			return math.cross(vecT, vecB)[2]/math.cross(vecA, vecB)[2];
-	}
-	} else {
-		if (math.cross(vecA, vecT)[2] >= 0 || math.cross(vecT, vecB)[2] >= 0) {
-			return 1;
-		}
-	}
-	return 0;
-}
-
-
-function betweenVectors (normal, start, end) {
-	var vecT = math.divide(normal, math.norm(normal));
-	var vecA = start.concat(0);
-	vecA = math.divide(vecA, math.norm(vecA));
-	var vecB = end.concat(0);
-	vecB = math.divide(vecB, math.norm(vecB));
-	var crossAB = math.cross(vecA, vecB)[2];
-	if (crossAB >= 0){
-		if (math.cross(vecA, vecT)[2] >= 0 && math.cross(vecT, vecB)[2] >= 0) {
-			return true;
-	}
-	} else {
-		if (math.cross(vecA, vecT)[2] >= 0 || math.cross(vecT, vecB)[2] >= 0) {
-			return true;
-		}
-	}
-	return false;
-}
-
-function lineIntersect(lineA, lineB) {
-	var dx = lineB[0][0] - lineA[0][0];
-	var dy = lineB[0][1] - lineA[0][1];
-	var ad = [lineA[1][0] - lineA[0][0], lineA[1][1] - lineA[0][1]];
-	var bd = [lineB[1][0] - lineB[0][0], lineB[1][1] - lineB[0][1]];
-	var det = bd[0] * ad[1] - bd[1] * ad[0];
-	var u = (dy * bd[0] - dx * bd[1]) / det;
-	var v = (dy * ad[0] - dx * ad[1]) / det;
-
-	var x = lineA[0][0] + u * ad[0];
-	var y = lineA[0][1] + u * ad[1];
-	return [x,y];
-	console.log(x + ", " + y);
-}
-
-/*
-function processSideridge(inner, outer, sideRidge) {
-	var sideTangent = math.subtract(sideRidge[3].concat(0), sideRidge[2].concat(0));
-	var id = null;
-	var i = 0;
-	for (var seg of inner) {
-		id = findSegmentId(seg, sideRidge[2], sideTangent);
-		if (id) {
-			console.log("First end on Segment - " + i);
-			break;
-		}
-		i++;
-	}
-
-	sideTangent = math.subtract(sideRidge.at(-4).concat(0), sideRidge.at(-3).concat(0));
-	i = 0;
-	for (var seg of inner) {
-		id = findSegmentId(seg, sideRidge.at(-3), sideTangent);
-		if (id) {
-			console.log("Second end on Segment - " + i);
-			break;
-		}
-		i++;
-	}
-	return id;
-}*/
-
-function findSegmentId(line, point, normal, distances) {
-	var id = line.findIndex(compareCoordinates(point, 0.00005));
-
-	// Point is at the end of a line
-	if (compareCoordinates2(line[id-1], line[id+1], 0.00005)) {
-		return id;
-	}
-
-	// Found first vertex and check side of the sideline compared to central difference
-	if (id >= 0) {
-		var tangent = [1, 0, 0];
-		if (id == 0 || id == line.length){
-			tangent = math.subtract(line[0].concat(0), line[1].concat(0));
-		}
-		var tangent = math.subtract(line[id+1].concat(0), line[id].concat(0));
-		var side = math.cross(tangent, normal);
-		/*console.log("Tangent Check")
-		console.log(tangent);
-		console.log(normal);
-		console.log(side);*/
-		
-		if (side[2] <= 0) {
-			console.log("Attached to first vertex");
-			return id;
-		}
-	}
-
-	// If the ridge attached to the wrong side first, then it has to fit to the second vertex
-	var id2 = ridge.findLastIndex(compareCoordinates(point, 0.00005));
-	if (id2 > id) {
-		console.log("Attached to second vertex");
-		return id2;
-	}
-
-	console.log("Could not find attachment point for side ridge");
-	return null;
-}
-
 function findVertAlong (line, fromId, point, normal) {
 	var ids = [];
 	var startIdx = fromId;
@@ -1324,10 +1163,6 @@ function findVertAlong (line, fromId, point, normal) {
 			startIdx = line.length;
 		}
 	}
-	//console.log(ids.length)
-
-	//var id = line.findIndex(compareCoordinates(point, 0.00005));
-	//var id2 = line.findLastIndex(compareCoordinates(point, 0.00005));
 
 	if (ids.length === 0) {
 		console.warn("Couldn't find vertex along line");
@@ -1367,331 +1202,8 @@ function findVertAlong (line, fromId, point, normal) {
 
 	console.warn("Couldn't find vertex matching normal");
 	return null;
-	/*var dist = distances[id];
-	var tangent = approximateTangent(line, dist);
-	var side = math.cross(tangent, normal);
-
-	if (side[2] <= 0) {
-		return id;
-	} else {
-		return id2;
-	}*/
-}
-
-function approximateTangent(line, distance) {
-	var tangentOffset = 0.1;
-	var prevPoint = along(line, math.max(0, distance - tangentOffset));
-	var postPoint = along(line, math.min(length(line), distance + tangentOffset));
-	return math.subtract(prevPoint.concat(0), postPoint.concat(0));
-}
-
-
-
-function createMountainFeatures2(layerGroups, transform){
-	var dataPairs = {};
-	for (var ridge of features.Ridges.features) {
-		if(ridge.geometry.type == "LineString") {
-			dataPairs[ridge.properties.label] = [ridge.geometry.coordinates];
-		}
-	}
-	for (var mountain of features.Mountains.features){
-		if (dataPairs[mountain.properties.label]) {
-			dataPairs[mountain.properties.label].push(mountain.geometry.coordinates[0]);
-		}
-	}
-
-	var fd = {"type": "FeatureCollection", "features": []};
-	var fb = {"type": "FeatureCollection", "features": []};
-	var sided = {"type": "FeatureCollection", "features": []};
-	var sideb = {"type": "FeatureCollection", "features": []};
-	var ridges = {"type": "FeatureCollection", "features": []};
-
-	for (var [key,data] of Object.entries(dataPairs)) {
-		var split1 = data[1].findIndex(compareCoordinates(data[0][2],0.00001));
-		var split2 = data[1].findIndex(compareCoordinates(data[0].at(-3),0.00001));
-		var flank_dark, flank_bright;
-
-		//console.log(key + ": " + split1 + ", " + split2);
-		if (split1 > split2) {
-			flank_dark = data[1].slice(split1).concat(data[1].slice(0,split2+1));
-			flank_bright = data[1].slice(split2,split1+1);
-		} else {
-			flank_dark = data[1].slice(split1,split2+1);
-			flank_bright = data[1].slice(split2).concat(data[1].slice(0,split1+1));
-		}
-
-		var dark = flank_dark.concat(data[0].slice(3,-3).reverse());
-		dark = dark.concat([data[1][split1]]);
-		var bright = flank_bright.concat(data[0].slice(3,-3));
-		bright = bright.concat([data[1][split2]]);
-
-		fd.features.push({"type": "Feature", "geometry": {"type": "Polygon", "coordinates": [dark]}, "properties": {"label": key}});
-		fb.features.push({"type": "Feature", "geometry": {"type": "Polygon", "coordinates": [bright]}, "properties": {"label": key}});
-
-		var centerstart = 0;
-		if (data[0][2][0] == data[0][3][0] && data[0][2][1] == data[0][3][1]) {
-			centerstart = 1;
-		}
-
-		var centerend = 0;
-		if (data[0].at(-3)[0] == data[0].at(-4)[0] && data[0].at(-3)[1] == data[0].at(-4)[1]) {
-			centerend = 1;
-		}
-
-		var darkCenter = sampleMiddle(data[0].slice(2,-2),flank_dark.slice(centerstart,flank_dark.length-centerend),5.0);
-		darkCenter.unshift(data[0][1]);
-		darkCenter.push(data[0].at(-1));
-		sided.features.push({"type": "Feature", "geometry": {"type": "LineString", "coordinates": darkCenter}, "properties": {"label": key}});
-
-		var darkCenter2 = sampleMiddle(data[0].slice(2,-2),flank_dark.slice(centerstart,flank_dark.length-centerend),5.0);
-		darkCenter2.unshift(data[0][1]);
-		darkCenter2.push(data[0].at(-1));
-		darkCenter2 = createOffsetLine(darkCenter2, -0.05, false);
-		sided.features.push({"type": "Feature", "geometry": {"type": "LineString", "coordinates": darkCenter2}, "properties": {"label": key}});
-
-		var brightCenter = sampleMiddle(data[0].slice(2,-2),flank_bright.slice(centerend,flank_bright.length-centerstart).reverse(),5.0);
-		brightCenter.unshift(data[0][0]);
-		brightCenter.push(data[0].at(-2));
-		sideb.features.push({"type": "Feature", "geometry": {"type": "LineString", "coordinates": brightCenter}, "properties": {"label": key}});
-
-		ridges.features.push({"type": "Feature", "geometry": {"type": "LineString", "coordinates": data[0].slice(3,-3)}, "properties": {"label": key}});
-	
-	}
-
-	var vectorLayerD = new VectorLayer({
-		title: "Dark Flanks",
-		source: new VectorSource({
-			features: new GeoJSON().readFeatures(fd),
-		}),
-		style: new Style({ fill: new Fill({
-			color: 'rgba(230,60,60,0.3)',
-			}),
-		}),
-	});
-
-	var vectorLayerB = new VectorLayer({
-		title: "Bright Flanks",
-		source: new VectorSource({
-			features: new GeoJSON().readFeatures(fb),
-		}),
-		style: new Style({ fill: new Fill({
-			color: 'rgba(60,230,60,0.3)',
-			}),
-		}),
-	});
-
-	var vectorLayerSideB = new VectorLayer({
-		title: "Bright Sideridges",
-		source: new VectorSource({
-			features: new GeoJSON().readFeatures(sideb),
-		}),
-		style: new Style({ stroke: new Stroke({
-			color: 'rgba(60,60,230,1.0)',
-			width: 2.0,
-			lineDash: [1, 5],
-			lineCap: 'butt',
-			}),
-		}),
-	});
-
-	var vectorLayerSideD = new VectorLayer({
-		title: "Dark Sideridges",
-		source: new VectorSource({
-			features: new GeoJSON().readFeatures(sided),
-		}),
-		style: new Style({ stroke: new Stroke({
-			color: 'rgba(60,60,230,1.0)',
-			width: 2.0,
-			lineDash: [1, 5],
-			lineCap: 'butt',
-			}),
-		}),
-	});
-
-	var vectorLayerRidges = new VectorLayer({
-		title: "Processed Ridges",
-		source: new VectorSource({
-			features: new GeoJSON().readFeatures(ridges),
-		}),
-		style: new Style({ stroke: new Stroke({
-			color: 'rgba(60,60,230,1.0)',
-			width: 2.0,
-			lineCap: 'round',
-			}),
-		}),
-	});
-
-	layerGroups.getLayers().array_.push(vectorLayerD);
-	layerGroups.getLayers().array_.push(vectorLayerB);
-	layerGroups.getLayers().array_.push(vectorLayerSideB);
-	layerGroups.getLayers().array_.push(vectorLayerSideD);
-	layerGroups.getLayers().array_.push(vectorLayerRidges);
-
-
-	//const inv_transform = transform.inv();
-	for (var f of sided.features) {
-		featureToPath(f, math.inv(transform),0.2);
-	}
-
-	var outputSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-
-	var ridgeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-	ridgeGroup.setAttribute('inkscape:label', 'Generated Ridges');
-	outputSvg.appendChild(ridgeGroup);
-
-	var iconPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-
-	//console.log(dataPairs);
-	return;
 }
 
 function compareCoordinates(target, precision){
 	return (coord) => (Math.abs(coord[0] - target[0]) <= precision && Math.abs(coord[1] - target[1]) <= precision);
 }
-
-function compareCoordinates2(coord, target, precision){
-	return Math.abs(coord[0] - target[0]) <= precision && Math.abs(coord[1] - target[1]) <= precision;
-}
-
-function sampleMiddle(a,b,minSample){
-	var distListA = createDistList(a);
-	var distListB = createDistList(b);
-
-	var samples = 8;
-	var segA = distListA.at(-1)[0]/samples;
-	var segB = distListB.at(-1)[0]/samples;
-	var limA = 0;
-	var limB = 0;
-	var posA = 1;
-	var posB = 1;
-	var factA = 0;
-	var factB = 0;
-	var pointA, pointB;
-
-	var midpoints = [];
-
-	for (var i = 1; i < samples; i++) {
-		limA += segA;
-		limB += segB;
-
-		while(distListA[posA][0] < limA) {
-			posA++;
-		}
-		factA = (limA-distListA[posA-1][0])/(distListA[posA][0]-distListA[posA-1][0]);
-		pointA = [distListA[posA-1][1][0]*(1.0-factA)+distListA[posA][1][0]*factA, distListA[posA-1][1][1]*(1.0-factA)+distListA[posA][1][1]*factA];
-
-		while(distListB[posB][0] < limB) {
-			posB++;
-		}
-		factB = (limB-distListB[posB-1][0])/(distListB[posB][0]-distListB[posB-1][0]);
-		pointB = [distListB[posB-1][1][0]*(1.0-factB)+distListB[posB][1][0]*factB, distListB[posB-1][1][1]*(1.0-factB)+distListB[posB][1][1]*factB];
-
-		midpoints.push([(pointA[0]+pointB[0])/2,(pointA[1]+pointB[1])/2]);
-
-	}
-	return midpoints;
-}
-
-function createDistList(line) {
-	var dist = 0.0;
-	var distList = [[dist,line[0]]];
-
-	for (var i = 1; i < line.length; i++) {
-		dist += Math.sqrt(Math.pow(line[i][0]-line[i-1][0],2)+Math.pow(line[i][1]-line[i-1][1],2));
-		distList.push([dist,line[i]]);
-	}
-	return distList;
-}
-
-function createOffsetLine(linein, offset, loop) {
-	var line = linein;
-	var offsetLine = [];
-	var tempLine = [];
-	if (loop) {
-		line.push(linein[1]);
-	}
-	for (var i = 0; i < line.length -1; i++) {
-		var offVec = math.subtract(line[i+1], line[i]);
-		offVec = [-offVec[1], offVec[0]];
-		offVec = math.multiply(offVec, offset/math.norm(offVec));
-		tempLine.push(math.add(line[i], offVec));
-		tempLine.push(math.add(line[i+1], offVec));
-		if (i == 0) {
-			offsetLine.push(tempLine[0]);
-		}
-		if (i > 0) {
-			var inter = lineIntersection(tempLine[0], tempLine[1], tempLine[2], tempLine[3]);
-			var a = math.subtract(tempLine[0], inter);
-			var b = math.subtract(tempLine[3], inter);
-			a.push(0);
-			b.push(0);
-			var side = math.cross(a,b);
-			
-			if (side[2] >= 0) {
-				offsetLine.push(inter);
-			} else {
-				var corner = math.subtract(line[i], inter);
-				corner = math.multiply(corner, offset/math.norm(corner));
-				offsetLine.push(tempLine[1]);
-				offsetLine.push(math.add(line[i],corner));
-				offsetLine.push(tempLine[2]);
-			}
-			tempLine = [tempLine[2],tempLine[3]];
-		}
-		if (i == line.length - 2) {
-			if (!loop) {
-				offsetLine.push(math.add(line[i+1], offVec));
-			} else {
-				offsetLine.shift();
-			}
-		}
-	}
-
-	return offsetLine;
-}
-
-function lineIntersection(p1, p2, p3, p4) {
-	var x = ((p1[0]*p2[1] - p1[1]*p2[0])*(p3[0]-p4[0]) - (p3[0]*p4[1] - p3[1]*p4[0])*(p1[0]-p2[0]))/((p1[0]-p2[0])*(p3[1]-p4[1])-(p1[1]-p2[1])*(p3[0]-p4[0]));
-	var y = ((p1[0]*p2[1] - p1[1]*p2[0])*(p3[1]-p4[1]) - (p3[0]*p4[1] - p3[1]*p4[0])*(p1[1]-p2[1]))/((p1[0]-p2[0])*(p3[1]-p4[1])-(p1[1]-p2[1])*(p3[0]-p4[0]));
-	return [x,y];
-}
-
-function featureToPath(feature, transform, smooth = 0.0) {
-	var shapes = feature.geometry.coordinates;
-	var pathString = "";
-	var postfix = "";
-	if (feature.geometry.type == "Polygon" || feature.geometry.type == "MultiPolygon") {
-		postfix = "z ";
-	}
-
-	if (feature.geometry.type == "LineString") {
-		shapes = [shapes];
-	}
-	if (feature.geometry.type == "MultiPolygon") {
-		shapes = shapes.flat(1);
-	}
-
-	for (var coords of shapes) {
-		pathString += "M ";
-		var tcoords = transformCoords(coords, transform);
-		if (smooth > 0) {
-			pathString += tcoords[0][0] + "," +tcoords[0][1] + " C ";
-			for (var i = 0; i < tcoords.length-1; i++) {
-				var tangStart = getPathTangent(tcoords[(i-1<0?0:i-1)], tcoords[i], tcoords[i+1], smooth);
-				var tangEnd = getPathTangent(tcoords[i], tcoords[i+1], tcoords[(i+2>=tcoords.length?tcoords.length-1:i+2)], -smooth);
-				pathString += tangStart[0] + "," + tangStart[1] + " " + tangEnd[0] + "," + tangEnd[1] + " " + tcoords[i+1][0] + "," + tcoords[i+1][1] + " ";
-			}
-		} else {
-			pathString += JSON.stringify(tcoords).replaceAll("],[", " ").replace("[[","").replace("]]","") + " ";
-		}
-		pathString += postfix;
-	}
-	//console.log(pathString);
-}
-
-function getPathTangent(prev, current, next, scale = 0.2) {
-	return [current[0]+(next[0]-prev[0])*scale, current[1]+(next[1]-prev[1])*scale];
-}
-
-//3055.408
-//6110.816

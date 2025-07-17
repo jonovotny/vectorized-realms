@@ -41,17 +41,31 @@ styleLib["Desert rocky"] = new Style({
 	})
 });
 
-styleLib["Forests"] = new Style({ 
+styleLib["Forests"] = [new Style({ 
 	fill: new Fill({
 		color: "#c8d09d"
+		})
+	}),
+	new Style({ 
+		stroke: new Stroke({
+			color: "#8c867a",
+			width: 1
+		})
 	})
-});
+];
 
-styleLib["Jungles"] = new Style({ 
+styleLib["Jungles"] = [new Style({ 
 	fill: new Fill({
 		color: "#bdd99e"
+		})
+	}),
+	new Style({ 
+		stroke: new Stroke({
+			color: "#8c867a",
+			width: 1
+		})
 	})
-});
+];
 
 styleLib["Swamps"] = new Style({ 
 	fill: new Fill({
@@ -201,6 +215,25 @@ styleLib["Cliffs"] = new Style({
 		color: "#61534a"
 	})
 });
+
+styleLib["Snow"] = new Style({ 
+	fill: new Fill({
+		color: "#fcfcfc"
+	})
+});
+
+styleLib["[Gen] Snow Detail"] = new Style({ 
+	stroke: new Stroke({
+		color: "#9aa09e"
+	})
+});
+
+styleLib["Mountain snow"] = new Style({ 
+	fill: new Fill({
+		color: "#fcfcfc"
+	})
+});
+
 
 styleLib["Volcanos"] = new Style({ 
 	fill: new Fill({
