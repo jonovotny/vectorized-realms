@@ -300,8 +300,8 @@ styleLib["default"] = new Style({
 
 styleLib["[Gen] River Width"] = new Style({ 
 	stroke: new Stroke({
-		color: '#00bb00',
-		width: 3.0,
+		color: '#ff0000',
+		width: 5.0,
 		lineCap: 'round',
 	}),
 });
