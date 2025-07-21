@@ -54,7 +54,6 @@ export function processSvg(doc, extent, layerGroup) {
 	createSnowFeatures(layerGroup, transform);
 	createCliffFeatures(layerGroup, transform);
 	createMountainFeatures(layerGroup, transform);*/
-	console.log(features.Rivers.features[21].geometry.coordinates[0]);
 	createRiverFeatures(layerGroup, transform);
 
 	var ridgeLayer = null;
@@ -552,12 +551,12 @@ function createRiverFeatures(layerGroups, transform){
 
 	for (var river of features.Rivers.features) {
 
-		console.log(features.Rivers.features[21].geometry.coordinates[0]);
+		//console.log(features.Rivers.features[21].geometry.coordinates[0]);
 		
 		var lakeDrain = null;
 		var lakeSource = null;
 		var sourceLength = 0;
-		var seaOffset = 1;
+		var lineExtension = 0.1;
 
 		var detailRiver = clone(river);
 
@@ -578,8 +577,10 @@ function createRiverFeatures(layerGroups, transform){
 						lakeDrain = chunk.properties["inkscape:label"];
 						//processedFeatures.features.push(river);
 
-						var extensionDir = math.subtract(river.geometry.coordinates[0][0], river.geometry.coordinates[1][0]);
-						console.log(extensionDir);
+						var extensionDir = math.subtract(river.geometry.coordinates[1], river.geometry.coordinates[0]);
+						var scaledOffset = lineSliceAlong(lineString([river.geometry.coordinates[0], math.subtract(river.geometry.coordinates[0],extensionDir)]), 0, lineExtension);
+						//console.log(scaledOffset);
+						detailRiver.geometry.coordinates = [scaledOffset.geometry.coordinates[1]].concat(detailRiver.geometry.coordinates);
 
 						break;
 					}
@@ -596,7 +597,12 @@ function createRiverFeatures(layerGroups, transform){
 					}
 					if (chunkCoords.findIndex(compareCoordinates(riverSource.geometry.coordinates, 0.0001)) > -1) {
 						lakeSource = chunk.properties["inkscape:label"];
-						//processedFeatures.features.push(river);
+
+						var extensionDir = math.subtract(river.geometry.coordinates.at(-2), river.geometry.coordinates.at(-1));
+						var scaledOffset = lineSliceAlong(lineString([river.geometry.coordinates.at(-1), math.subtract(river.geometry.coordinates[0],extensionDir)]), 0, lineExtension);
+						//console.log(scaledOffset);
+						detailRiver.geometry.coordinates.push(scaledOffset.geometry.coordinates[1]);
+
 						break;
 					}
 				}
@@ -620,45 +626,14 @@ function createRiverFeatures(layerGroups, transform){
 		}
 
 
-		var taperedEnd = taperLineEnd(river, taperLength, minWidth, maxWidth, steps);
-		if (taperedEnd.features.length > 0) {
-			//processedFeatures.features = processedFeatures.features.concat(taperedEnd.features);
+		if (!lakeSource) {
+			detailRiver = taperLineEnd(detailRiver, taperLength, minWidth, maxWidth, steps, sourceLength);
 		}
-/*
-[
-    [
-        -62.253584203981305,
-        33.95332659629995
-    ],
-    [
-        -62.26801483013398,
-        33.96273156470986
-    ],
-    [
-        -62.33271619003543,
-        33.96520826825292
-    ],
-    [
-        -62.40525799230058,
-        33.91564473332484
-    ],
-    [
-        -62.43734540953457,
-        33.873003723510315
-    ],
-    [
-        -62.488186705389424,
-        33.79882984841634
-    ],
-    [
-        -62.5206723673149,
-        33.697992332080844
-    ],
-    [
-        -62.575875208396745,
-        33.643590759107695
-    ]
-]*/
+		
+		//if (taperedEnd.features.length > 0) {
+			//processedFeatures.features = processedFeatures.features.concat(taperedEnd.features);
+		//}
+
 		
 
 
@@ -667,7 +642,17 @@ function createRiverFeatures(layerGroups, transform){
 			processedFeaturesDetail.features = processedFeaturesDetail.features.concat(detailLine.features);
 		}*/
 		
+	
+		if (detailRiver.type == "FeatureCollection") {
+			processedFeatures.features = processedFeatures.features.concat(detailRiver.features);
+		} else {
+			detailRiver.properties["inkscape:label"] = detailRiver.properties["inkscape:label"] + " w" + maxWidth;
+			detailRiver.properties["style"] = 'stroke-width:' + maxWidth + '; stroke-linecap:round; stroke-linejoin:round; fill:none; stroke: #000000;';
+			processedFeatures.features.push(detailRiver);
+		}
 	}
+
+
 
 	var outputLayer = new VectorLayer({
 		title: layerName,
@@ -690,35 +675,42 @@ function createRiverFeatures(layerGroups, transform){
 	//layerGroups.getLayers().array_.push(outputLayerDetail);
 }
 
-function taperLineEnd(line, taperLen, minWidth, maxWidth, steps) {
+function taperLineEnd(line, taperLen, minWidth, maxWidth, steps, skipLength) {
 	if (line.geometry.type == "MultiLineString") {
 		var singleFeats = featureCollection([]);
-		console.log(line.geometry.type);
+		//console.log(line.geometry.type);
 		for (var singleFeat of flatten(line).features) {
-			console.log(line.geometry.type);
-			singleFeats.features.concat(taperLineEnd(singleFeat, taperLen, minWidth, maxWidth, steps).features);
+			//console.log(line.geometry.type);
+			singleFeats.features.concat(taperLineEnd(singleFeat, taperLen, minWidth, maxWidth, steps, skip).features);
 		}
 		return singleFeats;
 	}
 
 	var widthStep = (maxWidth-minWidth)/(steps + 1);
+	var lengthStep = taperLen/steps;
+	var skip = Math.trunc(skipLength/lengthStep);
+	if (skip >= steps) {
+		return line;
+	}
+
 	var len = length(line);
 	var taperedEnd = clone(line);
-	var mainLine = null;
-	console.log(line.properties["inkscape:label"]);
+ 	var mainLine = null;
+	//console.log(line.properties["inkscape:label"]);
+
 
 	if (len > taperLen) {
-		taperedEnd = lineSliceAlong(line, len-taperLen, len);
-		mainLine = lineSliceAlong(line, 0, len-taperLen);
+		taperedEnd = lineSliceAlong(line, len-taperLen-(skip*lengthStep), len);
+		mainLine = lineSliceAlong(line, 0, len-taperLen-(skip*lengthStep));
 		mainLine.properties["inkscape:label"] = line.properties["inkscape:label"] + " w" + maxWidth;
-		mainLine.properties["style"] = 'stroke-width:' + maxWidth + '; stroke-linecap:round; stroke-linejoin:round; fill: none; stroke: #000000;';
+		mainLine.properties["style"] = 'stroke-width:' + maxWidth + '; stroke-linecap:round; stroke-linejoin:round; fill:none; stroke: #000000;';
 	}
 	taperedEnd = lineChunk(taperedEnd, taperLen/steps, {reverse: true});
 
-	var lineWidth = minWidth;
+	var lineWidth = minWidth+skip*widthStep;
 	for (var chunk of taperedEnd.features) {
 		chunk.properties["inkscape:label"] = line.properties["inkscape:label"] + " w" + lineWidth;
-		chunk.properties["style"] = 'stroke-width:' + lineWidth + '; stroke-linecap:round; stroke-linejoin:round; fill: none; stroke: #000000;';
+		chunk.properties["style"] = 'stroke-width:' + lineWidth + '; stroke-linecap:round; stroke-linejoin:round; fill:none; stroke: #000000;';
 		lineWidth += widthStep;
 	}
 
