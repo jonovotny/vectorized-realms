@@ -8,7 +8,7 @@ import LayerGroup from 'ol/layer/Group';
 import geojson2svg from './geojsonprocess.js';
 import { styleLib } from './layerstyles.js';
 
-import { dissolve, simplify, flatten, booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanIntersects, lineSliceAlong } from '@turf/turf';
+import { bboxPolygon, booleanWithin, bbox, pointToPolygonDistance, explode, lineChunk, simplify, flatten, booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanIntersects, lineSliceAlong } from '@turf/turf';
 
 var features = {};
 var exportFeatures = {};
@@ -40,19 +40,21 @@ export function processSvg(doc, extent, layerGroup) {
 			defs = elem;
 		}
 		if (elem.tagName == "g") {
+			// we don't care for anything but the raw data groups
 			if ((elem.getAttribute("inkscape:label") == "Vector data")) {
 				processGroup(elem, transform, layerGroup, current);
 			}
 		}
 	}
 
-	createSwampFeatures(layerGroup, transform);
+	/*createSwampFeatures(layerGroup, transform);
 	createMarshFeatures(layerGroup, transform);
 	createMoorFeatures(layerGroup, transform);
 	createBadlandsFeatures(layerGroup, transform);
 	createSnowFeatures(layerGroup, transform);
 	createCliffFeatures(layerGroup, transform);
-	createMountainFeatures(layerGroup, transform);
+	createMountainFeatures(layerGroup, transform);*/
+	createRiverFeatures(layerGroup, transform);
 
 	var ridgeLayer = null;
 	var volcanoLayer = null;
@@ -253,19 +255,15 @@ function processPath (elem, transform, json, current) {
 
 	if (lines.length > 0){
 		if (lines.length > 1) {
-			//json.features.push({"type": "Feature", "geometry": {"type": "MultiLineString", "coordinates": lines}, "properties": {"label": elem.getAttribute("inkscape:label")}});
 			json.features.push(multiLineString(lines, props));
 		} else {
-			//json.features.push({"type": "Feature", "geometry": {"type": "LineString", "coordinates": lines}, "properties": {"label": elem.getAttribute("inkscape:label")}});
 			json.features.push(lineString(lines[0], props));
 		}
 	}
 	if (polygons.length > 0) {
 		if (polygons.length > 1) {
-			//json.features.push({"type": "Feature", "geometry": {"type": "MultiPolygon", "coordinates": [polygons]}, "properties": {"label": elem.getAttribute("inkscape:label")}});
 			json.features.push(multiPolygon(polygons.map((x) => [x].concat(holes)), props));
 		} else {
-			//json.features.push({"type": "Feature", "geometry": {"type": "Polygon", "coordinates": polygons}, "properties": {"label": elem.getAttribute("inkscape:label")}});
 			console.log(elem.getAttribute("inkscape:label"));
 			json.features.push(polygon([polygons[0]].concat(holes), props));
 		}
@@ -278,7 +276,7 @@ function processPath (elem, transform, json, current) {
 			}
 		}
 	}
-	console.log(json);
+	//console.log(json);
 	
 	current = transformCoords([current], comb_trans)[0];
 	
@@ -432,14 +430,17 @@ function createSnowFeatures(layerGroups, transform){
 	var processedFeatures = featureCollection([]);
 	var layerName = "[Gen] Snow Detail";
 	if (!features.Snow) return;
+	var driftLight = createLight([-1,0.5], 70, 0);
 
 	for (var snow of features.Snow.features) {
 		var shadowRidge = offsetFeature(snow, -7);
-		shadowRidge = simplify(shadowRidge, { tolerance: 0.005, highQuality: false });
+		shadowRidge = polygonSmooth(simplify(shadowRidge, { tolerance: 0.005, highQuality: false })).features[0];
+		shadowRidge = createDriftEdge(shadowRidge, driftLight);
+
 
 		processedFeatures.features.push(shadowRidge);
 	}
-	processedFeatures = polygonSmooth(processedFeatures);
+	//processedFeatures = polygonSmooth(processedFeatures);
 
 	var outputLayer = new VectorLayer({
 		title: layerName,
@@ -450,6 +451,188 @@ function createSnowFeatures(layerGroups, transform){
 	});
 	exportFeatures[layerName] = processedFeatures;
 	layerGroups.getLayers().array_.push(outputLayer);
+}
+
+function createDriftEdge(feat, light) {
+	//split multi feature apart and call recursive
+	if (feat.geometry.type == "MultiPolygon" || feat.geometry.type == "MultiLine") {
+		var singleFeats = featureCollection([]);
+		for (var singleFeat of flatten(feat).features) {
+			singleFeats.features.push(createDriftEdge(singleFeat, light));
+		}
+		return combine(singleFeats).features[0];
+	}
+
+	var coords = [];
+	if(feat.geometry.type == "Polygon") {
+		coords = feat.geometry.coordinates[0];
+	} else if (feat.geometry.type == "LineString"){
+		coords = feat.geometry.coordinates;
+	}
+
+	if (booleanClockwise(lineString(coords))){
+		coords = coords.reverse();
+	}
+
+	var driftLines = multiLineString([])
+	var segment = []
+	for (var i = 0; i < coords.length-1; i++) {
+		if (illuminationStatus(lineString([coords[i], coords[i+1]]), light) > 0){
+			if (segment.length == 0){
+				//start new segment
+				segment.push(coords[i]);
+			} 
+			//add current line to segment
+			segment.push(coords[i+1]);
+		} else {
+			if (segment.length > 0){
+				driftLines.geometry.coordinates.push(segment);
+				segment = [];
+			}
+		}
+	}
+	//close last linesegment
+	if (segment.length > 0){
+		if (driftLines.geometry.coordinates.length > 0 && segment.at(-1) == driftLines.geometry.coordinates[0][0]) {
+			driftLines.geometry.coordinates[0] = segment.slice(0, -1).concat(driftLines.geometry.coordinates[0]);
+		} else {
+			driftLines.geometry.coordinates.push(segment);
+		}
+	}
+
+	return driftLines;
+}
+
+function createRiverFeatures(layerGroups, transform){
+	var processedFeatures = featureCollection([]);
+	var layerName = "[Gen] River Width";
+
+	if (!features.Rivers) return;
+	var taperLength = 150;
+	var maxWidth = 3;
+	var minWidth = 2;
+	var steps = 4;
+
+	/*var processedFeaturesDetail = featureCollection([]);
+	var layerNameDetail = "[Gen] River Detail";
+	var offset = 50;*/
+	var faerun = features.Land.features.find((x) => x.properties["inkscape:label"] == "Faerun");
+	var coordArrayId = 0;
+	var chunkSize = 200;
+	var searchChunks = [];
+	for (var poly of faerun.geometry.coordinates) {
+		for (var i = 0; i < poly.length ; i += chunkSize) {
+			var chunk = lineString(poly.slice(i, (i+chunkSize) < poly.length ? (i+chunkSize) : poly.length-1));
+			chunk.bbox = bbox(chunk);
+			chunk.properties = {"inkscape:label":faerun.properties["inkscape:label"], "coordArrayId":coordArrayId , "offset":i};
+			processedFeatures.features.push(bboxPolygon(chunk.bbox));
+			searchChunks.push(chunk);
+		}
+		coordArrayId++;
+	}
+
+
+	for (var river of features.Rivers.features) {
+		var taperedEnd = taperLineEnd(river, taperLength, minWidth, maxWidth, steps);
+		if (taperedEnd.features.length > 0) {
+			//processedFeatures.features = processedFeatures.features.concat(taperedEnd.features);
+		}
+		var riverBB = bbox(river);
+		if (river.geometry.type == "LineString"){
+			var startPoint = point(river.geometry.coordinates[0]);
+			for (var chunk of searchChunks) {
+				if (booleanWithin(startPoint, bboxPolygon(chunk.bbox))) {
+					console.log("inBB");
+				}
+			}
+		}
+		
+		/*var detailLine = shortenLineEnd(river, offset);
+		if (detailLine.features.length > 0){
+			processedFeaturesDetail.features = processedFeaturesDetail.features.concat(detailLine.features);
+		}*/
+		
+	}
+
+	var outputLayer = new VectorLayer({
+		title: layerName,
+		source: new VectorSource({
+			features: new GeoJSON().readFeatures(processedFeatures),
+		}),
+		style: styleLib[layerName]
+	});
+
+	/*var outputLayerDetail = new VectorLayer({
+		title: layerNameDetail,
+		source: new VectorSource({
+			features: new GeoJSON().readFeatures(processedFeaturesDetail),
+		}),
+		style: styleLib[layerNameDetail]
+	});*/
+	exportFeatures[layerName] = processedFeatures;
+	//exportFeatures[layerNameDetail] = processedFeaturesDetail;
+	layerGroups.getLayers().array_.push(outputLayer);
+	//layerGroups.getLayers().array_.push(outputLayerDetail);
+}
+
+function taperLineEnd(line, taperLen, minWidth, maxWidth, steps) {
+	if (line.geometry.type == "MultiLineString") {
+		var singleFeats = featureCollection([]);
+		console.log(line.geometry.type);
+		for (var singleFeat of flatten(line).features) {
+			console.log(line.geometry.type);
+			singleFeats.features.concat(taperLineEnd(singleFeat, taperLen, minWidth, maxWidth, steps).features);
+		}
+		return singleFeats;
+	}
+
+	var widthStep = (maxWidth-minWidth)/(steps + 1);
+	var len = length(line);
+	var taperedEnd = line;
+	var mainLine = null;
+	console.log(line.properties["inkscape:label"]);
+
+	if (len > taperLen) {
+		taperedEnd = lineSliceAlong(line, len-taperLen, len);
+		mainLine = lineSliceAlong(line, 0, len-taperLen);
+		mainLine.properties["inkscape:label"] = line.properties["inkscape:label"] + " w" + maxWidth;
+		mainLine.properties["style"] = 'stroke-width:' + maxWidth + '; stroke-linecap:round; stroke-linejoin:round; fill: none; stroke: #000000;';
+	}
+	taperedEnd = lineChunk(taperedEnd, taperLen/steps, {reverse: true});
+
+	var lineWidth = minWidth;
+	for (var chunk of taperedEnd.features) {
+		chunk.properties["inkscape:label"] = line.properties["inkscape:label"] + " w" + lineWidth;
+		chunk.properties["style"] = 'stroke-width:' + lineWidth + '; stroke-linecap:round; stroke-linejoin:round; fill: none; stroke: #000000;';
+		lineWidth += widthStep;
+	}
+
+	if (mainLine) {
+		taperedEnd.features.push(mainLine);
+	}
+
+	return taperedEnd;
+}
+
+function shortenLineEnd(line, offset) {
+	if (line.geometry.type == "MultiLineString") {
+		var singleFeats = featureCollection([]);
+		for (var singleFeat of flatten(line).features) {
+			var shortLine = shortenLineEnd(singleFeat, offset);
+			if (shortLine.features.length > 0) {
+				singleFeats.features.concat(shortLine.features);
+			}
+		}
+		return singleFeats;
+	}
+
+	var len = length(line);
+	var mainLine = featureCollection([]);
+	if (len > offset) {
+		mainLine.features.push(lineSliceAlong(line, 0, len-offset));
+	}
+
+	return mainLine;
 }
 
 

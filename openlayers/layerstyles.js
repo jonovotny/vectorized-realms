@@ -298,6 +298,22 @@ styleLib["default"] = new Style({
 	})
 });
 
+styleLib["[Gen] River Width"] = new Style({ 
+	stroke: new Stroke({
+		color: '#00bb00',
+		width: 3.0,
+		lineCap: 'round',
+	}),
+});
+
+styleLib["[Gen] River Detail"] = new Style({ 
+	stroke: new Stroke({
+		color: '#0000bb',
+		width: 1.0,
+		lineCap: 'round',
+	}),
+});
+
 // Geometry creation settings
 var generationParams= 
 {
