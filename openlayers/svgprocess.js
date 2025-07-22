@@ -8,7 +8,7 @@ import LayerGroup from 'ol/layer/Group';
 import geojson2svg from './geojsonprocess.js';
 import { styleLib } from './layerstyles.js';
 
-import { bboxPolygon, booleanWithin, bbox, pointToPolygonDistance, explode, lineChunk, simplify, flatten, booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanIntersects, lineSliceAlong } from '@turf/turf';
+import { bezierSpline, bboxPolygon, booleanWithin, bbox, pointToPolygonDistance, explode, lineChunk, simplify, flatten, booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanIntersects, lineSliceAlong } from '@turf/turf';
 
 var features = {};
 var exportFeatures = {};
@@ -47,13 +47,13 @@ export function processSvg(doc, extent, layerGroup) {
 		}
 	}
 
-	/*createSwampFeatures(layerGroup, transform);
+	createSwampFeatures(layerGroup, transform);
 	createMarshFeatures(layerGroup, transform);
 	createMoorFeatures(layerGroup, transform);
 	createBadlandsFeatures(layerGroup, transform);
 	createSnowFeatures(layerGroup, transform);
 	createCliffFeatures(layerGroup, transform);
-	createMountainFeatures(layerGroup, transform);*/
+	createMountainFeatures(layerGroup, transform);
 	createRiverFeatures(layerGroup, transform);
 
 	var ridgeLayer = null;
@@ -68,7 +68,7 @@ export function processSvg(doc, extent, layerGroup) {
 		}
 
 		if (lay.values_.title == "Lakes") {
-			lay.setZIndex(18);
+			//lay.setZIndex(18);
 		}
 
 		if (lay.values_.title == "Volcanos") {
@@ -280,9 +280,11 @@ function processPath (elem, transform, json, current) {
 	var precision = 0.0001;
 
 	if (feat) {
+		feat = cleanCoords(feat);
 		var bb = bbox(feat);
 		bb = [bb[0] - precision, bb[1] - precision, bb[2] + precision, bb[3] + precision];
 		feat.bbox = bb;
+		//
 		json.features.push(feat);
 	}
 
@@ -550,83 +552,123 @@ function createRiverFeatures(layerGroups, transform){
 
 
 	for (var river of features.Rivers.features) {
+		if (river.geometry.type != 'LineString') {
+			console.warn('River "' + river.properties["inkscape:label"] + '" is not a LinseString - skipping')
+			continue;
+		}
 
 		//console.log(features.Rivers.features[21].geometry.coordinates[0]);
 		
 		var lakeDrain = null;
 		var lakeSource = null;
 		var sourceLength = 0;
-		var lineExtension = 0.1;
+		var lineExtension = 1.5;
 
 		var detailRiver = clone(river);
+		var riverMouth = point(river.geometry.coordinates[0]);
+		var riverSource = point(river.geometry.coordinates.at(-1));
 
-		if (river.geometry.type == "LineString"){
-			var riverMouth = point(river.geometry.coordinates[0]);
-			var riverSource = point(river.geometry.coordinates.at(-1));
+		//check if the river drains into a lake or an ocean
+		//we need to extend the touching segment to account for the river linecap ending to early
+		for (var chunk of searchChunks) {
+			if (booleanWithin(riverMouth, bboxPolygon(chunk.bbox))) {
+				//console.log( " checking " + chunk.properties["inkscape:label"])
+				var chunkCoords = chunk.geometry.coordinates;
+				if (chunk.geometry.type == "Polygon" ) {
+					chunkCoords = chunkCoords[0].slice(1);
+				}
 
-			//check if the river drains into a lake or an ocean
-			//we need to extend the touching segment to account for the river linecap ending to early
-			for (var chunk of searchChunks) {
-				if (booleanWithin(riverMouth, bboxPolygon(chunk.bbox))) {
-					//console.log( " checking " + chunk.properties["inkscape:label"])
-					var chunkCoords = chunk.geometry.coordinates;
-					if (chunk.geometry.type == "MultiLineString" || chunk.geometry.type == "Polygon" ) {
-						chunkCoords = chunkCoords[0];
-					}
-					if (chunkCoords.findIndex(compareCoordinates(riverMouth.geometry.coordinates, 0.0001)) > -1) {
-						lakeDrain = chunk.properties["inkscape:label"];
-						//processedFeatures.features.push(river);
+				var chunkVertId = chunkCoords.findIndex(compareCoordinates(riverMouth.geometry.coordinates, precision));
+				
+				if (chunkVertId > -1) {
+					lakeDrain = chunk.properties["inkscape:label"];
+					console.log(river.properties["inkscape:label"]);
+					//processedFeatures.features.push(river);
+
+					if (chunk.geometry.type == "Polygon" || chunkVertId > 0 && chunkVertId < chunkCoords.length ){
+						//extend the river in between the two coast line vectors
+						var vecFrom = math.subtract(chunkCoords[(chunkVertId-1) >= 0 ? chunkVertId-1 : chunkCoords.length - 1], chunkCoords[chunkVertId]);
+						vecFrom = math.divide(vecFrom, math.norm(vecFrom));
+						var vecTo = math.subtract(chunkCoords[(chunkVertId+1) < chunkCoords.length ? chunkVertId+1 : 0], chunkCoords[chunkVertId]);
+						vecTo = math.divide(vecTo, math.norm(vecTo));
+						var vec = math.add(vecFrom, vecTo);
+						//console.log(river.properties["inkscape:label"]);
+						//console.log(vec);
+						var scaledOffset = lineSliceAlong(lineString([river.geometry.coordinates[0], math.add(river.geometry.coordinates[0],vec)]), 0, lineExtension);
+						detailRiver.geometry.coordinates = [scaledOffset.geometry.coordinates[1]].concat(detailRiver.geometry.coordinates);
+
+					} else {
 
 						var extensionDir = math.subtract(river.geometry.coordinates[1], river.geometry.coordinates[0]);
 						var scaledOffset = lineSliceAlong(lineString([river.geometry.coordinates[0], math.subtract(river.geometry.coordinates[0],extensionDir)]), 0, lineExtension);
 						//console.log(scaledOffset);
 						detailRiver.geometry.coordinates = [scaledOffset.geometry.coordinates[1]].concat(detailRiver.geometry.coordinates);
-
-						break;
 					}
+
+					break;
 				}
 			}
+		}
 
-			//check if the river originates from a lake
-			//we need to extend the touching segment to account for the river linecap ending to early and this river will start at full width
-			for (var chunk of features.Lakes.features) {
-				if (booleanWithin(riverSource, bboxPolygon(chunk.bbox))) {
-					var chunkCoords = chunk.geometry.coordinates;
-					if (chunk.geometry.type == "MultiLineString" || chunk.geometry.type == "Polygon" ) {
-						chunkCoords = chunkCoords[0];
-					}
-					if (chunkCoords.findIndex(compareCoordinates(riverSource.geometry.coordinates, 0.0001)) > -1) {
-						lakeSource = chunk.properties["inkscape:label"];
+		//check if the river originates from a lake
+		//we need to extend the touching segment to account for the river linecap ending to early and this river will start at full width
+		for (var chunk of features.Lakes.features) {
 
-						var extensionDir = math.subtract(river.geometry.coordinates.at(-2), river.geometry.coordinates.at(-1));
-						var scaledOffset = lineSliceAlong(lineString([river.geometry.coordinates.at(-1), math.subtract(river.geometry.coordinates[0],extensionDir)]), 0, lineExtension);
-						//console.log(scaledOffset);
+			if (booleanWithin(riverSource, bboxPolygon(chunk.bbox))) {
+				var chunkCoords = chunk.geometry.coordinates;
+				if (chunk.geometry.type == "Polygon" ) {
+					chunkCoords = chunkCoords[0].slice(1);
+				}
+				var chunkVertId = chunkCoords.findIndex(compareCoordinates(riverSource.geometry.coordinates, precision));
+				
+				if (chunkVertId > -1) {
+					
+					lakeSource = chunk.properties["inkscape:label"];
+
+					if (chunk.geometry.type == "Polygon" || chunkVertId > 0 && chunkVertId < chunkCoords.length ){
+						//extend the river in between the two coast line vectors
+						var vecFrom = math.subtract(chunkCoords[(chunkVertId-1) >= 0 ? chunkVertId-1 : chunkCoords.length - 1], chunkCoords[chunkVertId]);
+						vecFrom = math.divide(vecFrom, math.norm(vecFrom));
+						var vecTo = math.subtract(chunkCoords[(chunkVertId+1) < chunkCoords.length ? chunkVertId+1 : 0], chunkCoords[chunkVertId]);
+						vecTo = math.divide(vecTo, math.norm(vecTo));
+						var vec = math.add(vecFrom, vecTo);
+						//console.log(river.properties["inkscape:label"]);
+						//console.log(vec);
+						var scaledOffset = lineSliceAlong(lineString([river.geometry.coordinates.at(-1), math.add(river.geometry.coordinates.at(-1),vec)]), 0, lineExtension);
 						detailRiver.geometry.coordinates.push(scaledOffset.geometry.coordinates[1]);
 
-						break;
+					} else {
+						//fallback, extend the length of the river along its last segment
+						//console.log(chunkVertId + " " + chunkCoords.length);
+						var extensionDir = math.subtract(river.geometry.coordinates.at(-2), river.geometry.coordinates.at(-1));
+						var scaledOffset = lineSliceAlong(lineString([river.geometry.coordinates.at(-1), math.subtract(river.geometry.coordinates.at(-1),extensionDir)]), 0, lineExtension);
+						//console.log(scaledOffset);
+						detailRiver.geometry.coordinates.push(scaledOffset.geometry.coordinates[1]);
 					}
+					break;
 				}
 			}
+		}
 
-			//check if the river originates from another river
-			//We need to consider the other rivers length during tapering
-			//TODO: This doesn't consider chains of starting rivers, so it might need improvement later on
-			for (var chunk of features.Rivers.features) {
-				if (chunk.properties["inkscape:label"] != river.properties["inkscape:label"] && booleanWithin(riverSource, bboxPolygon(chunk.bbox))) {
-					var chunkCoords = chunk.geometry.coordinates;
-					var chunkVertId = chunkCoords.findIndex(compareCoordinates(riverSource.geometry.coordinates, 0.0001));
-					if (chunkVertId > -1) {
-						//lakeSource = chunk.properties["inkscape:label"];
-						sourceLength = length(lineString(chunkCoords.slice(chunkVertId)));
+		//check if the river originates from another river
+		//We need to consider the other rivers length during tapering
+		//TODO: This doesn't consider chains of starting rivers, so it might need improvement later on
+		for (var chunk of features.Rivers.features) {
+			if (chunk.properties["inkscape:label"] != river.properties["inkscape:label"] && booleanWithin(riverSource, bboxPolygon(chunk.bbox))) {
+				var chunkCoords = chunk.geometry.coordinates;
+				var chunkVertId = chunkCoords.findIndex(compareCoordinates(riverSource.geometry.coordinates, precision));
+				if (chunkVertId > -1) {
+					//lakeSource = chunk.properties["inkscape:label"];
+					sourceLength = length(lineString(chunkCoords.slice(chunkVertId)));
 
-						//processedFeatures.features.push(river);
-					}
+					//processedFeatures.features.push(river);
 				}
 			}
 		}
 
 
-		if (!lakeSource) {
+		if (!lakeSource && !river.properties["inkscape:label"].startsWith("Underground")) {
+			//console.log(river.properties["inkscape:label"]);
 			detailRiver = taperLineEnd(detailRiver, taperLength, minWidth, maxWidth, steps, sourceLength);
 		}
 		
@@ -642,14 +684,18 @@ function createRiverFeatures(layerGroups, transform){
 			processedFeaturesDetail.features = processedFeaturesDetail.features.concat(detailLine.features);
 		}*/
 		
-	
+		if(!river.properties["inkscape:label"].startsWith("Invisible")){
 		if (detailRiver.type == "FeatureCollection") {
 			processedFeatures.features = processedFeatures.features.concat(detailRiver.features);
 		} else {
 			detailRiver.properties["inkscape:label"] = detailRiver.properties["inkscape:label"] + " w" + maxWidth;
 			detailRiver.properties["style"] = 'stroke-width:' + maxWidth + '; stroke-linecap:round; stroke-linejoin:round; fill:none; stroke: #000000;';
+			if(river.properties["inkscape:label"].startsWith("Underground")) {
+				detailRiver.properties["style"] = 'stroke-width:' + maxWidth + '; stroke-linecap:butt; stroke-linejoin:round; fill:none; stroke: #000000; stroke-dasharray:' + maxWidth;
+			}
 			processedFeatures.features.push(detailRiver);
 		}
+	}
 	}
 
 
@@ -699,9 +745,9 @@ function taperLineEnd(line, taperLen, minWidth, maxWidth, steps, skipLength) {
 	//console.log(line.properties["inkscape:label"]);
 
 
-	if (len > taperLen) {
-		taperedEnd = lineSliceAlong(line, len-taperLen-(skip*lengthStep), len);
-		mainLine = lineSliceAlong(line, 0, len-taperLen-(skip*lengthStep));
+	if (len > taperLen-(skip*lengthStep)) {
+		taperedEnd = lineSliceAlong(line, len-(taperLen-(skip*lengthStep)), len);
+		mainLine = lineSliceAlong(line, 0, len-(taperLen-(skip*lengthStep)));
 		mainLine.properties["inkscape:label"] = line.properties["inkscape:label"] + " w" + maxWidth;
 		mainLine.properties["style"] = 'stroke-width:' + maxWidth + '; stroke-linecap:round; stroke-linejoin:round; fill:none; stroke: #000000;';
 	}
@@ -711,6 +757,9 @@ function taperLineEnd(line, taperLen, minWidth, maxWidth, steps, skipLength) {
 	for (var chunk of taperedEnd.features) {
 		chunk.properties["inkscape:label"] = line.properties["inkscape:label"] + " w" + lineWidth;
 		chunk.properties["style"] = 'stroke-width:' + lineWidth + '; stroke-linecap:round; stroke-linejoin:round; fill:none; stroke: #000000;';
+		if(line.properties["inkscape:label"].startsWith("Underground")) {
+			chunk.properties["style"] += '; stroke-dasharray:' + lineWidth;
+		}
 		lineWidth += widthStep;
 	}
 
