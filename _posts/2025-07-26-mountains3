@@ -13,10 +13,19 @@ The shading of terrain, i.e. showing flanks illuminated by a virtual sun in a br
 
 Fortunately, the 3.5e map isn't very consistent with its shading, so our recreation can also use approximations that create a visually similar output.
 
-For the flank lines this is relatively easy. Each flankline can be interpreted as the slope direction of the flank in the areas next to the line. A flankline is effectively a 2D vector pointing from the outline to a mountains ridge. We can also define thedirection of the sunlight as a vector from NE to SW. If the vectors point in close to the same direction, the mountain side is illuminated and flanklines should be broken up. If vectors point in opposite directions flanklines should remain continuous to mimic shadowing. This is a rather simple light model based on basic vector calculations. Let's create a ringshaped mountain as a test scenario:
+For the flanklines this is relatively easy. Each flankline can be interpreted as the slope direction of the flank in the areas next to the line. A flankline is effectively a 2D vector pointing from the outline to a mountains ridge. We can also define thedirection of the sunlight as a vector from NE to SW. If the vectors point in close to the same direction, the mountain side is illuminated and flanklines should be broken up. If vectors point in opposite directions flanklines should remain continuous to mimic shadowing. This is a rather simple light model based on basic vector calculations. Let's create a ringshaped mountain as a test scenario:
 
 
-Two things stand out, the separation between light and dark side is rather abrupt, and the broken lines look a bit too well aligned. We can define a transition zone around perpendicular to the light direction, where the gap between broken flanklines closes for a smoother aesthetic look. T
+Two things stand out, the separation between light and dark side is rather abrupt, and the broken lines look a bit too well aligned. We can define a transition zone around perpendicular to the light direction, where the gap between broken flanklines closes for a smoother aesthetic look. The monotonous look can be changed by adding a bit of randomness, or let's say pseudo-randomness. Ideally, map features should look the same as long as we do not change its shape, so the random number for a given line has to be the same every time split it for illumination. We'll use a clever trick here. While adjacent points in the map share the first few digits of their coordinates, the farther we go into the decimal digits, the more random they appear. So by varying each flankline break by the least significant digit of one of the line coordinate numbers, we get a value that is kind of random but still the same whenever we look it up. (This assumption breaks if the outline of the mountain exactly follows a latitude line for some distance, but let's not worry about that here...)
+
+
+This looks a bit better. Let's add shading to the background as well. The exact boundary between shaded and illuminated sides has a complex shape that is hard to calculate without going to full 3D rendering. Instead, we will create polygons enveloping the illuminated flanklines, which is a very crude approximation but it still enhances the visual style of the terrain.
+
+# The mountain sandwich
+
+
+
+
 
 
 
