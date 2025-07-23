@@ -1,0 +1,24 @@
+---
+layout: post
+title: Mountains pt. 3 - Putting the icing on
+date: 2025-07-15
+published: false
+---
+
+Time to finish the climb by adding the last details to mountain features. The flank lines created in the last post give a decent indication of the 3D shape of a given mountain, but we can do much better.
+
+The shading of terrain, i.e. showing flanks illuminated by a virtual sun in a brighter color than thee shadowed side, has long been used by map makers to create more intuitive maps. The 3.5e map is no different. Flank lines on the north to eastern sides of moutains are broken up in the middle to give a brighter appearance. These sides also have a lighter background color. This indicates that the sun is assumed to be in the northeastern position, which is one of the two most common map drawing configurations. To get the shading perfectly correct, we could use 3d rendering software like blender.
+
+
+
+Fortunately, the 3.5e map isn't very consistent with its shading, so our recreation can also use approximations that create a visually similar output.
+
+For the flank lines this is relatively easy. Each flankline can be interpreted as the slope direction of the flank in the areas next to the line. A flankline is effectively a 2D vector pointing from the outline to a mountains ridge. We can also define thedirection of the sunlight as a vector from NE to SW. If the vectors point in close to the same direction, the mountain side is illuminated and flanklines should be broken up. If vectors point in opposite directions flanklines should remain continuous to mimic shadowing. This is a rather simple light model based on basic vector calculations. Let's create a ringshaped mountain as a test scenario:
+
+
+Two things stand out, the separation between light and dark side is rather abrupt, and the broken lines look a bit too well aligned. We can define a transition zone around perpendicular to the light direction, where the gap between broken flanklines closes for a smoother aesthetic look. T
+
+
+
+
+
