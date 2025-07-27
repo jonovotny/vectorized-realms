@@ -48,7 +48,15 @@ function convertLayer(label, jsonData, frame, svgParent) {
 	var extent = [-86.5, 10, -28, 49.1];
 	var transform = math.multiply(math.matrix([[Math.abs(svgextent.width - svgextent.x)/Math.abs(extent[2]-extent[0]), 0, 0], [0, -Math.abs(svgextent.height - svgextent.y)/Math.abs(extent[3]-extent[1]), 0], [0,0,1]]),math.matrix([[1, 0, -extent[0]], [0, 1, -extent[3]], [0,0,1]]));
 	var parentGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-	parentGroup.setAttribute("inkscape:label", label)
+	parentGroup.setAttribute("inkscape:label", label);
+
+	var existingLayer = Array.from(svgParent.children).find((x) => x.getAttribute("inkscape:label") == label);
+	if (existingLayer) {
+		console.log("replacing " + label);
+		existingLayer.textContent = '';
+		parentGroup = existingLayer;
+
+	}
 
 	if(jsonData.type == "FeatureCollection") {
 		for (var feature of jsonData.features) {

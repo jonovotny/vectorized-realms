@@ -53,12 +53,21 @@ export function processSvg(doc, extent, layerGroup) {
 	createBadlandsFeatures(layerGroup, transform);
 	createSnowFeatures(layerGroup, transform);
 	createCliffFeatures(layerGroup, transform);
-	createMountainFeatures(layerGroup, transform);
 	createRiverFeatures(layerGroup, transform);
+	createMountainFeatures(layerGroup, transform);
+
 
 	var ridgeLayer = null;
 	var volcanoLayer = null;
 	layerGroup.getLayers().forEach(function (lay) {
+		if (lay.values_.title == "Mountain snow") {
+			lay.setZIndex(7);
+		}
+
+		if (lay.values_.title == "[Gen] Detail Flanklines") {
+			lay.setZIndex(9);
+		}
+
 		if (lay.values_.title == "Ridges") {
 			lay.setZIndex(10);
 		}
@@ -98,6 +107,7 @@ function processGroup(grp, transform, parentLayer, current){
 	for (var elem of Array.from(grp.children)){
 		switch (elem.tagName) {
 			case "g":
+				if (elem.getAttribute("inkscape:label").startsWith("[Gen]")) continue;
 				var layerGrp = new LayerGroup({
 					title: elem.getAttribute("inkscape:label"),
 					visible: true,
@@ -370,7 +380,7 @@ function createSwampFeatures(layerGroups, transform){
 	var fs = {"type": "FeatureCollection", "features": []};
 
 	for (var swamp of features.Swamps.features) {
-		fs.features.push(offsetFeature(swamp, 7));
+		fs.features.push(offsetFeature(swamp, 6));
 	}
 
 	var vectorLayerSwampInner = new VectorLayer({
@@ -388,7 +398,7 @@ function createMarshFeatures(layerGroups, transform){
 	var fs = {"type": "FeatureCollection", "features": []};
 
 	for (var marsh of features.Marshes.features) {
-		fs.features.push(offsetFeature(marsh, 7));
+		fs.features.push(offsetFeature(marsh, 6));
 	}
 
 	var vectorLayerMarshInner = new VectorLayer({
@@ -406,7 +416,7 @@ function createMoorFeatures(layerGroups, transform){
 	var fs = {"type": "FeatureCollection", "features": []};
 
 	for (var moor of features.Moors.features) {
-		fs.features.push(offsetFeature(moor, 7));
+		fs.features.push(offsetFeature(moor, 6));
 	}
 
 	var vectorLayerMoorInner = new VectorLayer({
@@ -872,7 +882,7 @@ function createCliffFeatures(layerGroups, transform){
 		var basewidth = width - 2;
 		var varWidth = 0.1;
 
-		var stepLength = ridgeLen/math.floor(ridgeLen/5);
+		var stepLength = ridgeLen/math.floor(ridgeLen/6);
 
 		var currentLen = stepLength/2;
 		var tangentOffset = stepLength*2;
