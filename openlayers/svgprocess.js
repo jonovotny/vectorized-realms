@@ -70,6 +70,7 @@ export function processSvg(doc, extent, layerGroup) {
 
 		if (lay.values_.title == "Ridges") {
 			lay.setZIndex(10);
+			lay.setMinZoom(7);
 		}
 
 		if (lay.values_.title == "Rivers") {
@@ -209,7 +210,6 @@ function processPath (elem, transform, json, current) {
 		switch (modeGeo) {
 			case "m":
 			case "l":
-			case "a":
 				current = nextCoord(current, [Number(val),Number(values[i+1])], modeAbs);
 				coordinates.push(current);
 				i++;
@@ -230,11 +230,18 @@ function processPath (elem, transform, json, current) {
 				i += 3;
 				break;
 			case "c":
-			case "a":
 				//ignore curves for now
+				console.log(elem.getAttribute("inkscape:label"));
 				current = nextCoord(current, [Number(values[i+4]),Number(values[i+5])], modeAbs);
 				coordinates.push(current);
 				i += 5;
+				break;
+			case "a":
+				//ignore arcs for now
+				//console.log(elem.getAttribute("inkscape:label"));
+				current = nextCoord(current, [Number(values[i+5]),Number(values[i+6])], modeAbs);
+				coordinates.push(current);
+				i += 6;
 				break;
 			case "z":
 				console.log("Received value with invalid draw mode");
@@ -388,6 +395,7 @@ function createSwampFeatures(layerGroups, transform){
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(fs),
 		}),
+		minZoom: 7,
 		style: styleLib["[Gen] Swamps Detail"]
 	});
 	exportFeatures["[Gen] Swamps Detail"] = fs;
@@ -406,6 +414,7 @@ function createMarshFeatures(layerGroups, transform){
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(fs),
 		}),
+		minZoom: 7,
 		style: styleLib["[Gen] Marshes Detail"]
 	});
 	exportFeatures["[Gen] Marshes Detail"] = fs;
@@ -424,6 +433,7 @@ function createMoorFeatures(layerGroups, transform){
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(fs),
 		}),
+		minZoom: 7,
 		style: styleLib["[Gen] Moors Detail"]
 	});
 	exportFeatures["[Gen] Moors Detail"] = fs;
@@ -442,6 +452,7 @@ function createBadlandsFeatures(layerGroups, transform){
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(fs),
 		}),
+		minZoom: 7,
 		style: styleLib["[Gen] Badlands Detail"]
 	});
 	exportFeatures["[Gen] Badlands Detail"] = fs;
@@ -592,7 +603,7 @@ function createRiverFeatures(layerGroups, transform){
 				
 				if (chunkVertId > -1) {
 					lakeDrain = chunk.properties["inkscape:label"];
-					console.log(river.properties["inkscape:label"]);
+					//console.log(river.properties["inkscape:label"]);
 					//processedFeatures.features.push(river);
 
 					if (chunk.geometry.type == "Polygon" || chunkVertId > 0 && chunkVertId < chunkCoords.length ){
@@ -920,6 +931,7 @@ function createCliffFeatures(layerGroups, transform){
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(ridgesFc),
 		}),
+		minZoom: 7,
 		style: styleLib["[Gen] Cliffs Ridges"]
 	});
 
@@ -936,6 +948,7 @@ function createCliffFeatures(layerGroups, transform){
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(flanksFc),
 		}),
+		minZoom: 7,
 		style: styleLib["[Gen] Cliffs Flanks"]
 	});
 
@@ -1371,6 +1384,7 @@ function createMountainFeatures(layerGroups, transform) {
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(flankElements),
 		}),
+		minZoom: 7,
 		style: styleLib["[Gen] Initial Flanklines"]
 	});
 
@@ -1379,6 +1393,7 @@ function createMountainFeatures(layerGroups, transform) {
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(flankDetailFeats),
 		}),
+		minZoom: 7,
 		style: styleLib["[Gen] Detail Flanklines"]
 	});
 

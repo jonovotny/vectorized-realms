@@ -93,7 +93,7 @@ function convertLineString(jsonData, transform) {
 	var svgShape = document.createElementNS("http://www.w3.org/2000/svg", "path");
 	var coordData = "";
 	var mode = "M ";
-	console.log(jsonData.properties["inkscape:label"]);
+	//console.log(jsonData.properties["inkscape:label"]);
 	for (var coord of jsonData.geometry.coordinates){
 		var tcoord = math.multiply(transform, math.matrix([[coord[0]],[coord[1]],[1.0]]))._data
 		//tcoordinates.push([tcoord[0][0],tcoord[1][0]]);
