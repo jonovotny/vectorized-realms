@@ -230,7 +230,7 @@ styleLib["[Gen] Snow Detail"] = new Style({
 
 styleLib["Mountain snow"] = new Style({ 
 	fill: new Fill({
-		color: "#fcfcfc"
+		color: "#fcfcfc88"
 	})
 });
 
@@ -300,8 +300,8 @@ styleLib["default"] = new Style({
 
 styleLib["[Gen] River Width"] = new Style({ 
 	stroke: new Stroke({
-		color: '#ff0000',
-		width: 5.0,
+		color: "#bad9e8",
+		width: 3.0,
 		lineCap: 'round',
 	}),
 });
