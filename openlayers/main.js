@@ -222,11 +222,11 @@ const grat = new Graticule({
 const FaerunMaps = new LayerGroup({
   title: 'Faerun',
   visible: true,
-  //layers: [faerun2000warped, faerun2000, faerunRaw, faerunDetail, faerun2000dist],
-  layers:[faerun2000, grat]
+  layers: [faerun2000warped, faerun2000, faerunRaw, faerunDetail, faerun2000dist],
+  //layers:[faerun2000, grat]
 });
 
-await parseSvg('_local/faerun-v015.svg', [-86.5, 10, -28, 49.1], SvgLayers);
+//await parseSvg('_local/faerun-v015.svg', [-86.5, 10, -28, 49.1], SvgLayers);
 
 const torilmap = new Map({
   target: 'map',

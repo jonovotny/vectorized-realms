@@ -8,3 +8,4 @@ Gemfile
 Gemfile.lock
 node_modules
 openlayers/package-lock.json
+openlayers/.vite/
