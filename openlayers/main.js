@@ -157,16 +157,16 @@ const faerun2000dist = new ImageLayer({
     attributions: '&copy; WotC 2000',
   }),
   title: 'Faerun WotC (3e) distortion',
-  visible: true,
+  visible: false,
 });
 
 const faerunDetail = new ImageLayer({
   source: new Static({
-    url:'https://raw.githubusercontent.com/jonovotny/vectorized-realms/main/faerun-3e/faerun-v004.jpg',
+    url:'https://raw.githubusercontent.com/jonovotny/vectorized-realms/main/faerun-3e/faerun-v016-40dpi.jpg',
     projection: 'EPSG:4326',
     imageExtent: [-86.5, 10, -28, 49.1],
   }),
-  visible: false,
+  visible: true,
   title: 'Vectorized Realms Detail (3e)'
 });
 
