@@ -114,7 +114,7 @@ const FRIAMap = new ImageLayer({
   title: 'FR Interactive Atlas (2e)',
 });
 
-const FRIAGlobe = new ImageLayer({
+/*const FRIAGlobe = new ImageLayer({
   source: new Static({
     url:'https://raw.githubusercontent.com/jonovotny/vectorized-realms/main/toril-2e/toril-fria-globemap.png',
     projection: 'EPSG:4326',
@@ -124,7 +124,7 @@ const FRIAGlobe = new ImageLayer({
   }),
   type: 'base',
   title: 'FR Interactive Globe (2e)',
-});
+});*/
 
 const faerun2000 = new ImageLayer({
   source: new Static({
@@ -137,7 +137,7 @@ const faerun2000 = new ImageLayer({
   title: 'Faerun WotC (3e)',
   visible: true,
 });
-
+/*
 const faerun2000warped = new ImageLayer({
   source: new Static({
     url:'https://raw.githubusercontent.com/jonovotny/vectorized-realms/main/faerun-3e/faerun-3e-warped.png',
@@ -158,7 +158,7 @@ const faerun2000dist = new ImageLayer({
   }),
   title: 'Faerun WotC (3e) distortion',
   visible: false,
-});
+});*/
 
 const faerunDetail = new ImageLayer({
   source: new Static({
@@ -169,7 +169,7 @@ const faerunDetail = new ImageLayer({
   visible: true,
   title: 'Vectorized Realms Detail (3e)'
 });
-
+/*
 const faerunRaw = new ImageLayer({
   source: new Static({
     url:'https://raw.githubusercontent.com/jonovotny/vectorized-realms/main/faerun-3e/faerun-data.svg',
@@ -178,7 +178,7 @@ const faerunRaw = new ImageLayer({
   }),
   title: 'Vectorized Realms Raw Data (3e)',
   visible: false,
-});
+});*/
 
 const TorilMaps = new LayerGroup({
   title: 'Toril/World',
@@ -222,7 +222,8 @@ const grat = new Graticule({
 const FaerunMaps = new LayerGroup({
   title: 'Faerun',
   visible: true,
-  layers: [faerun2000warped, faerun2000, faerunRaw, faerunDetail, faerun2000dist],
+  layers: [faerun2000, faerunDetail],
+  //layers: [faerun2000warped, faerun2000, faerunRaw, faerunDetail, faerun2000dist],
   //layers:[faerun2000, grat]
 });
 
