@@ -44,8 +44,8 @@ export default function geojson2svg(jsonData, template = null) {
 }
 
 function convertLayer(label, jsonData, frame, svgParent) {
-	var svgextent = {x: 0, y: 0, width: 3055.407958984375, height: 2043.641845703125};
-	var extent = [-86.5, 10, -28, 49.1];
+	var svgextent = {x: 0, y: 0, width: 18572, height: 9286};//{x: 0, y: 0, width: 3055.407958984375, height: 2043.641845703125};
+	var extent = [-180,-90,180,90];//[-86.5, 10, -28, 49.1];
 	var transform = math.multiply(math.matrix([[Math.abs(svgextent.width - svgextent.x)/Math.abs(extent[2]-extent[0]), 0, 0], [0, -Math.abs(svgextent.height - svgextent.y)/Math.abs(extent[3]-extent[1]), 0], [0,0,1]]),math.matrix([[1, 0, -extent[0]], [0, 1, -extent[3]], [0,0,1]]));
 	var parentGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
 	parentGroup.setAttribute("inkscape:label", label);

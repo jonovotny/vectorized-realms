@@ -8,7 +8,7 @@ import LayerGroup from 'ol/layer/Group';
 import geojson2svg from './geojsonprocess.js';
 import { styleLib } from './layerstyles.js';
 
-import { bezierSpline, bboxPolygon, booleanWithin, bbox, pointToPolygonDistance, explode, lineChunk, simplify, flatten, booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanIntersects, lineSliceAlong } from '@turf/turf';
+import { area, bezierSpline, bboxPolygon, booleanWithin, bbox, pointToPolygonDistance, explode, lineChunk, simplify, flatten, booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanIntersects, lineSliceAlong } from '@turf/turf';
 
 var features = {};
 var exportFeatures = {};
@@ -53,8 +53,8 @@ export function processSvg(doc, extent, layerGroup) {
 	createBadlandsFeatures(layerGroup, transform);
 	createSnowFeatures(layerGroup, transform);
 	createCliffFeatures(layerGroup, transform);
-	createRiverFeatures(layerGroup, transform);
-	createMountainFeatures(layerGroup, transform);
+	//createRiverFeatures(layerGroup, transform);
+	//createMountainFeatures(layerGroup, transform);
 
 
 	var ridgeLayer = null;
@@ -170,7 +170,12 @@ function processPath (elem, transform, json, current) {
 	var values = elem.getAttribute("d").replaceAll(/\s+|\s*,\s*|([MLHVCSQTAZmlhvcsqtaz])(\d)|(\d)(-)/g, "$1 $2").split(" ");
 	var prevModeGeo = "m";
 	var modeGeo = "m";
-	var vecSum = 0
+	var vecSum = 0;
+	var simplifyFeature = false;
+	
+	if(elem.getAttribute("inkscape:label") == "Toril2") {
+		simplifyFeature = true;
+	}
 
 	for (var i = 0; i < values.length; i++) {
 		var val = values[i];
@@ -231,7 +236,7 @@ function processPath (elem, transform, json, current) {
 				break;
 			case "c":
 				//ignore curves for now
-				console.log(elem.getAttribute("inkscape:label"));
+				//console.log(elem.getAttribute("inkscape:label"));
 				current = nextCoord(current, [Number(values[i+4]),Number(values[i+5])], modeAbs);
 				coordinates.push(current);
 				i += 5;
@@ -245,6 +250,8 @@ function processPath (elem, transform, json, current) {
 				break;
 			case "z":
 				console.log("Received value with invalid draw mode");
+				break;
+			case "":
 				break;
 			default:
 		}
@@ -298,11 +305,20 @@ function processPath (elem, transform, json, current) {
 
 	if (feat) {
 		feat = cleanCoords(feat);
+		if (false){//simplifyFeature) {
+			feat = simplify(feat, { tolerance: 0.025, highQuality: false });
+		}
 		var bb = bbox(feat);
 		bb = [bb[0] - precision, bb[1] - precision, bb[2] + precision, bb[3] + precision];
 		feat.bbox = bb;
 		//
-		json.features.push(feat);
+		if(elem.getAttribute("inkscape:label") == "Toril") {
+			console.log(area(feat));
+		}
+		if (area(feat) > 0) {
+			json.features.push(feat);
+		}
+
 	}
 
 	//console.log(json);
@@ -316,7 +332,7 @@ function transformCoords(coordinates, transform) {
 	var tcoordinates = [];
 	for (var i = 0; i < coordinates.length; i++) {
 		var tcoord = math.multiply(transform,math.matrix([[coordinates[i][0]],[coordinates[i][1]],[1.0]]))._data
-		tcoordinates.push([tcoord[0][0],tcoord[1][0]]);
+		tcoordinates.push([tcoord[0][0], tcoord[1][0]]);
 	}
 	return tcoordinates;
 }
@@ -444,7 +460,9 @@ function createBadlandsFeatures(layerGroups, transform){
 	var fs = {"type": "FeatureCollection", "features": []};
 
 	for (var badland of features.Badlands.features) {
-		fs.features.push(offsetFeature(badland, 7));
+		if (area(badland) > 100000000){
+			fs.features.push(offsetFeature(badland, -7))
+		};
 	}
 
 	var vectorLayerBadlandInner = new VectorLayer({
@@ -821,6 +839,7 @@ function createCliffFeatures(layerGroups, transform){
 	var ridgeLine = lineString([[0,0],[0,0]]);
 
 	for (var cliff of features.Cliffs.features) {
+		console.log(cliff.properties["id"]);
 		
 		var offFeat = offsetFeature(cliff, width);
 
