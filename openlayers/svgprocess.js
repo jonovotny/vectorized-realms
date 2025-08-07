@@ -305,20 +305,10 @@ function processPath (elem, transform, json, current) {
 
 	if (feat) {
 		feat = cleanCoords(feat);
-		if (false){//simplifyFeature) {
-			feat = simplify(feat, { tolerance: 0.025, highQuality: false });
-		}
 		var bb = bbox(feat);
 		bb = [bb[0] - precision, bb[1] - precision, bb[2] + precision, bb[3] + precision];
 		feat.bbox = bb;
-		//
-		if(elem.getAttribute("inkscape:label") == "Toril") {
-			console.log(area(feat));
-		}
-		if (area(feat) > 0) {
-			json.features.push(feat);
-		}
-
+		json.features.push(feat);
 	}
 
 	//console.log(json);

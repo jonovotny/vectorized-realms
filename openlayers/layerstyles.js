@@ -8,7 +8,7 @@ styleLib["Deepsea"] = new Style({
 	})
 });
 
-styleLib["Water - continental shelf"] = new Style({ 
+styleLib["Continental shelf"] = new Style({ 
 	fill: new Fill({
 		color: "#cde2f7"
 	})
