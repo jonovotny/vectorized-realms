@@ -8,8 +8,10 @@ import Graticule from 'ol/layer/Graticule.js';
 import LayerGroup from 'ol/layer/Group';
 import 'ol-layerswitcher/dist/ol-layerswitcher.css';
 import LayerSwitcher from 'ol-layerswitcher';
+import {Draw, Snap} from 'ol/interaction.js';
 import OLCesium from 'olcs';
 import FeatureConverter from 'olcs';
+import Collection from 'ol/Collection.js';
 
 //, VectorSynchronizer
 
@@ -188,8 +190,15 @@ const TorilMaps = new LayerGroup({
 });
 
 const SvgLayers = new LayerGroup({
-  title: 'SVG Layers',
+  title: 'SVG Toril',
   visible: true,
+  fold: true,
+});
+
+const SvgLayersFaerun = new LayerGroup({
+  title: 'SVG Faerun',
+  visible: true,
+  fold: true,
 });
 /*
 const vectorSource = new VectorSource({
@@ -227,17 +236,33 @@ const FaerunMaps = new LayerGroup({
   //layers:[faerun2000, grat]
 });
 
-//await parseSvg('_local/faerun-v015.svg', [-86.5, 10, -28, 49.1], SvgLayers);
-await parseSvg('_local/Toril-2e-base-v2.0.svg', [-180, -90, 180, 90], SvgLayers);
+const controlpoints = new VectorLayer({
+  source: new VectorSource(),
+  style: {
+    'fill-color': 'rgba(255, 255, 255, 0.2)',
+    'stroke-color': '#ffcc33',
+    'stroke-width': 2,
+    'circle-radius': 7,
+    'circle-fill-color': '#ffcc33',
+  },
+});
+
+
+
+
+await parseSvg('_local/faerun-v016.svg', [-76.5, 10, -18, 49.1], SvgLayersFaerun);
+await parseSvg('_local/Toril-2e-base-v3.svg', [-180, -90, 180, 90], SvgLayers);
 
 
 const torilmap = new Map({
   target: 'map',
   controls: defaultControls().extend([new Map3DControl()]),
   layers: [
-    TorilMaps,
-    FaerunMaps,
+    //TorilMaps,
+    //FaerunMaps,
     SvgLayers,
+    SvgLayersFaerun,
+    controlpoints
   ],
   view: new View({
     center: [-38, 13],
@@ -272,4 +297,124 @@ document.addEventListener("keypress", function(event) {
   if (event.key == 'c') {
     ol3d.setEnabled(!ol3d.getEnabled());
   }
+  if (event.key == "Escape") {
+    if (DrawControlPoint.activeDraw) {
+      DrawControlPoint.activeDraw.abortDrawing();
+    }
+  }
+  if (event.key == "s") {
+    DrawControlPoint.setActive(false);
+
+    var dlAnchorElem = document.getElementById('downloadAnchorElem');
+    
+    var writer = new GeoJSON();
+    var geojsonStr = writer.writeFeatures(controlpoints.getSource().getFeatures());
+
+    var file = new Blob([geojsonStr], {type: 'text/plain'});
+    dlAnchorElem.href = URL.createObjectURL(file);
+    dlAnchorElem.setAttribute("download", "controlpoint.json");
+    dlAnchorElem.click();
+  }
 });
+
+const DrawControlPoint = {
+  init: function () {
+    torilmap.addInteraction(this.LineString);
+    this.LineString.setActive(false);
+  },
+  LineString: new Draw({
+    source: controlpoints.getSource(),
+    type: 'LineString'
+  }),
+  activeDraw: null,
+  origin: null,
+  destination: null,
+  drawing: false,
+  setActive: function (active) {
+    if (this.activeDraw) {
+      this.activeDraw.setActive(false);
+      this.activeDraw = null;
+    }
+    if (active) {
+      const type = 'LineString';
+      this.activeDraw = this[type];
+      this.activeDraw.setActive(true);
+    }
+  },
+};
+DrawControlPoint.init();
+DrawControlPoint.setActive(true);
+DrawControlPoint.LineString.on('drawstart', function (event) {
+  if(!lastSnap){
+    DrawControlPoint.LineString.abortDrawing();
+    DrawControlPoint.drawing = false;
+  } else {
+    DrawControlPoint.drawing = true;
+    torilmap.removeInteraction(snapOrigin);
+    torilmap.addInteraction(snapDestination);
+  }
+});
+
+DrawControlPoint.LineString.on('change', function (event) {
+  closestOnCircle.log(event);
+});
+
+DrawControlPoint.LineString.on('drawend', function (event) {
+  DrawControlPoint.drawing = false;
+  torilmap.removeInteraction(snapDestination);
+  torilmap.addInteraction(snapOrigin);
+});
+
+var lastSnap = null;
+
+torilmap.on('click', function(e){
+  if(DrawControlPoint.drawing){
+    if (lastSnap) {
+      if(DrawControlPoint.LineString.sketchCoords_.length == 3){
+        DrawControlPoint.LineString.finishDrawing();
+      }
+    } else {
+      DrawControlPoint.LineString.removeLastPoint();
+    }
+    
+  }
+
+});
+
+SvgLayersFaerun.getLayers().getArray()[2].setStyle(new Style({
+  stroke: new Stroke({
+    color: 'red'
+  })
+}))
+
+SvgLayers.getLayers().getArray()[2].setStyle(new Style({
+  stroke: new Stroke({
+    color: 'blue'
+  })
+}))
+const snapOrigin = new Snap({
+  source: SvgLayersFaerun.getLayers().getArray()[2].getSource(),
+  interaction: true
+});
+snapOrigin.on('snap', function (event) {
+    lastSnap = event.feature;
+})
+snapOrigin.on('unsnap', function (event) {
+    lastSnap = null;
+    console.log("unsnapped");
+})
+
+
+const snapDestination = new Snap({
+  source: SvgLayers.getLayers().getArray()[2].getSource()
+});
+snapDestination.on('snap', function (event) {
+    lastSnap = event.feature;
+})
+snapDestination.on('unsnap', function (event) {
+    lastSnap = null;
+    console.log("unsnapped");
+})
+
+
+torilmap.addInteraction(snapOrigin);

@@ -6,7 +6,7 @@ import { Fill, Stroke, Style } from 'ol/style.js';
 import LayerGroup from 'ol/layer/Group';
 
 import geojson2svg from './geojsonprocess.js';
-import { styleLib } from './layerstyles.js';
+import { styleLib } from './layerstyles-nofill.js';
 
 import { area, bezierSpline, bboxPolygon, booleanWithin, bbox, pointToPolygonDistance, explode, lineChunk, simplify, flatten, booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanIntersects, lineSliceAlong } from '@turf/turf';
 

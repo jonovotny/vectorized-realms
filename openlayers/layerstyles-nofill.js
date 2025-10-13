@@ -3,52 +3,49 @@ import {Fill, Stroke, Style} from 'ol/style.js';
 var styleLib = {};
 
 styleLib["Deepsea"] = new Style({ 
-	fill: new Fill({
+	stroke: new Stroke({
 		color: "#c2d6ed"
 	})
 });
 
 styleLib["Water - continental shelf"] = new Style({ 
-	fill: new Fill({
+	stroke: new Stroke({
 		color: "#cde2f7"
 	})
 });
 
 styleLib["Continental shelf"] = new Style({ 
-	fill: new Fill({
+	stroke: new Stroke({
 		color: "#cde2f7"
 	})
 });
 
 styleLib["Land"] = new Style({ 
-	fill: new Fill({
-		color: "#fcf0e0"
-	}),
 	stroke: new Stroke({
 		color: "#bad9e8"
 	})
 });
 
 styleLib["Grasslands"] = new Style({ 
-	fill: new Fill({
+	stroke: new Stroke({
 		color: "#e9edd2"
 	})
 });
 
 styleLib["Desert sandy"] = new Style({ 
-	fill: new Fill({
+	stroke: new Stroke({
 		color: "#fceebf"
 	})
 });
 
 styleLib["Desert rocky"] = new Style({ 
-	fill: new Fill({
+	stroke: new Stroke({
 		color: "#faddb3"
 	})
 });
 
 styleLib["Forests"] = [new Style({ 
-	fill: new Fill({
+	stroke: new Stroke({
 		color: "#c8d09d"
 		})
 	}),
@@ -61,7 +58,7 @@ styleLib["Forests"] = [new Style({
 ];
 
 styleLib["Jungles"] = [new Style({ 
-	fill: new Fill({
+	stroke: new Stroke({
 		color: "#bdd99e"
 		})
 	}),
@@ -74,9 +71,6 @@ styleLib["Jungles"] = [new Style({
 ];
 
 styleLib["Swamps"] = new Style({ 
-	fill: new Fill({
-		color: "#e6e9cd"
-	}),
 	stroke: new Stroke({
 		color: "#9d9182",
 		width: 1,
@@ -96,9 +90,6 @@ styleLib["[Gen] Swamps Detail"] = new Style({
 });
 
 styleLib["Marshes"] = new Style({ 
-	fill: new Fill({
-		color: "#e3e6e0"
-	}),
 	stroke: new Stroke({
 		color: "#878b8a",
 		width: 1,
@@ -118,9 +109,6 @@ styleLib["[Gen] Marshes Detail"] = new Style({
 });
 
 styleLib["Moors"] = new Style({ 
-	fill: new Fill({
-		color: "#dfdedc"
-	}),
 	stroke: new Stroke({
 		color: "#a1998d",
 		width: 1,
@@ -140,9 +128,6 @@ styleLib["[Gen] Moors Detail"] = new Style({
 });
 
 styleLib["Badlands"] = new Style({ 
-	fill: new Fill({
-		color: "#f7dfae"
-	}),
 	stroke: new Stroke({
 		color: "#8d8471",
 		width: 1,
@@ -152,9 +137,6 @@ styleLib["Badlands"] = new Style({
 });
 
 styleLib["[Gen] Badlands Detail"] = new Style({ 
-	fill: new Fill({
-		color: "#f7dfae"
-	}),
 	stroke: new Stroke({
 		color: "#8d8471",
 		width: 1,
@@ -165,13 +147,13 @@ styleLib["[Gen] Badlands Detail"] = new Style({
 });
 
 styleLib["Glaciers"] = new Style({ 
-	fill: new Fill({
+	stroke: new Stroke({
 		color: "#fcfcfc"
 	})
 });
 
 styleLib["Hills above"] = new Style({ 
-	fill: new Fill({
+	stroke: new Stroke({
 		color: "#d6c1a4"
 	})
 });
@@ -179,15 +161,12 @@ styleLib["Hills above"] = new Style({
 styleLib["Hills below"] = styleLib["Hills above"];
 
 styleLib["Mountains"] = new Style({ 
-	fill: new Fill({
+	stroke: new Stroke({
 		color: "#b2a49b"
 	})
 });
 
 styleLib["Lakes"] = new Style({ 
-	fill: new Fill({
-		color: "#cde2f7"
-	}),
 	stroke: new Stroke({
 		color: "#bad9e8"
 	})
@@ -223,7 +202,7 @@ styleLib["Cliffs"] = new Style({
 });
 
 styleLib["Snow"] = new Style({ 
-	fill: new Fill({
+	stroke: new Stroke({
 		color: "#fcfcfc"
 	})
 });
@@ -235,16 +214,13 @@ styleLib["[Gen] Snow Detail"] = new Style({
 });
 
 styleLib["Mountain snow"] = new Style({ 
-	fill: new Fill({
+	stroke: new Stroke({
 		color: "#fcfcfc88"
 	})
 });
 
 
 styleLib["Volcanos"] = new Style({ 
-	fill: new Fill({
-		color: "#ec7b1c"
-	}),
 	stroke: new Stroke({
 		color: "#80746d",
 		width: 3.0,
@@ -271,7 +247,7 @@ styleLib["[Gen] Cliffs Flanks"] = new Style({
 });
 
 styleLib["[Gen] Cliffs Background"] = new Style({ 
-	fill: new Fill({
+	stroke: new Stroke({
 		color: "#b2a49b"
 	})
 });
@@ -293,7 +269,7 @@ styleLib["[Gen] Detail Flanklines"] = new Style({
 });
 
 styleLib["[Gen] Mountain Illuminated"] = new Style({ 
-	fill: new Fill({
+	stroke: new Stroke({
 		color: "#c7b2a1"
 	})
 });
