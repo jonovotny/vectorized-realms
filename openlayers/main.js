@@ -12,7 +12,9 @@ import {Draw, Snap} from 'ol/interaction.js';
 import OLCesium from 'olcs';
 import FeatureConverter from 'olcs';
 import Collection from 'ol/Collection.js';
-
+import LayerEditor from './LayerEditor.js';
+import './LayerEditor.css';
+import 'ol-ext/dist/ol-ext.css';
 //, VectorSynchronizer
 
 import {Control, defaults as defaultControls} from 'ol/control.js';
@@ -238,6 +240,7 @@ const FaerunMaps = new LayerGroup({
 
 const controlpoints = new VectorLayer({
   source: new VectorSource(),
+  title: 'Control Points',
   style: {
     'fill-color': 'rgba(255, 255, 255, 0.2)',
     'stroke-color': '#ffcc33',
@@ -245,6 +248,7 @@ const controlpoints = new VectorLayer({
     'circle-radius': 7,
     'circle-fill-color': '#ffcc33',
   },
+  displayInLayerSwitcher: false
 });
 
 
@@ -254,14 +258,45 @@ await parseSvg('_local/faerun-v016.svg', [-76.5, 10, -18, 49.1], SvgLayersFaerun
 await parseSvg('_local/Toril-2e-base-v3.svg', [-180, -90, 180, 90], SvgLayers);
 
 
+
+var veclayers = {};
+
+SvgLayers.getLayers().forEach(function(l) {
+  var title = l.get('title');
+  if (!veclayers[title]) {
+    veclayers[title] = new LayerGroup({
+      title: title
+    });
+  }
+  l.set('title', 'Toril');
+  veclayers[title].getLayers().getArray().push(l);
+})
+
+SvgLayersFaerun.getLayers().forEach(function(l) {
+  var title = l.get('title');
+  if (!veclayers[title]) {
+    veclayers[title] = new LayerGroup({
+      title: title
+    });
+  }
+  l.set('title', 'Faerun');
+  veclayers[title].getLayers().getArray().push(l);
+})
+
+
+const VectorMaps = new LayerGroup({
+  title: 'Vector Maps',
+  visible: true,
+  layers: Object.values(veclayers)
+});
+
 const torilmap = new Map({
   target: 'map',
   controls: defaultControls().extend([new Map3DControl()]),
   layers: [
     //TorilMaps,
     //FaerunMaps,
-    SvgLayers,
-    SvgLayersFaerun,
+    VectorMaps,
     controlpoints
   ],
   view: new View({
@@ -272,12 +307,15 @@ const torilmap = new Map({
   })
 });
 
-const layerSwitcher = new LayerSwitcher({
-  reverse: true,
-  groupSelectStyle: 'children'
-});
 
-torilmap.addControl(layerSwitcher);
+
+var ctrl = new LayerEditor({
+  reordering: false,
+  layerGroup: VectorMaps
+});
+torilmap.addControl(ctrl);
+
+//torilmap.addControl(layerSwitcher);
 
 const button2D = new Map2DControl();
 

@@ -829,7 +829,7 @@ function createCliffFeatures(layerGroups, transform){
 	var ridgeLine = lineString([[0,0],[0,0]]);
 
 	for (var cliff of features.Cliffs.features) {
-		console.log(cliff.properties["id"]);
+		//console.log(cliff.properties["id"]);
 		
 		var offFeat = offsetFeature(cliff, width);
 
