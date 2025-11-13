@@ -15,6 +15,7 @@ import Collection from 'ol/Collection.js';
 import LayerEditor from './LayerEditor.js';
 import './LayerEditor.css';
 import 'ol-ext/dist/ol-ext.css';
+import EditBar from 'ol-ext/control/EditBar'
 //, VectorSynchronizer
 
 import {Control, defaults as defaultControls} from 'ol/control.js';
@@ -96,6 +97,67 @@ class Map2DControl extends Control {
     //console.log(ol3d);
     attribution3D.remove();
     ol3d.setEnabled(false);
+  }
+}
+
+class LoadControl extends Control {
+  /**
+   * @param {Object} [opt_options] Control options.
+   */
+  constructor(opt_options) {
+    const options = opt_options || {};
+
+    const button = document.createElement('button');
+    button.type= 'button';
+    button.innerHTML = '<span style="font-size: small;font-family: \'Font Awesome 7 Free\'\"><i class="fa-solid fa-folder-open"></i></span>';
+
+    const element = document.createElement('div');
+    element.className = 'button-load ol-unselectable ol-control';
+    element.appendChild(button);
+/*
+    fileInput.addEventListener('change', function() {
+    var file = fileInput.files[0];
+
+    if (file.name.match(/\.(txt|json)$/)) {
+        var reader = new FileReader();
+
+        reader.onload = function() {
+            console.log(reader.result);
+        };
+
+        reader.readAsText(file);    
+    } else {
+        alert("File not supported, .txt or .json files only");
+    }
+});*/
+
+    super({
+      element: element,
+      target: options.target,
+    });
+  }
+}
+
+
+class SaveControl extends Control {
+  /**
+   * @param {Object} [opt_options] Control options.
+   */
+  constructor(opt_options) {
+    const options = opt_options || {};
+
+    const button = document.createElement('button');
+    button.type= 'button';
+    button.innerHTML = '<span style="font-size: small;font-family: \'Font Awesome 7 Free\'\"><i class="fa-solid fa-download"></i></span>';
+
+    const element = document.createElement('div');
+    element.className = 'button-save ol-unselectable ol-control';
+    element.appendChild(button);
+
+    super({
+      element: element,
+      target: options.target,
+    });
   }
 }
 
@@ -307,17 +369,26 @@ const torilmap = new Map({
   })
 });
 
-
-
 var ctrl = new LayerEditor({
   reordering: false,
-  layerGroup: VectorMaps
+  layerGroup: VectorMaps,
+  onSnapSource: function (l) {console.log(l.get('title'))},
+  onSnapTarget: function (l) {console.log(l.get('title'))}
 });
 torilmap.addControl(ctrl);
+
+//var editBar = new EditBar({});
+//torilmap.addControl(editBar);
 
 //torilmap.addControl(layerSwitcher);
 
 const button2D = new Map2DControl();
+
+const buttonLoad = new LoadControl();
+torilmap.addControl(buttonLoad);
+
+const buttonSave = new SaveControl();
+torilmap.addControl(buttonSave);
 
 const ol3d = new OLCesium({
   map: torilmap

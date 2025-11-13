@@ -16,11 +16,29 @@ html, body {
   left: .5em;
 }
 
-.button-map2d {
-  top: .5em;
+.ol-touch .button-map3d {
+  top: 80px;
+}
+
+.button-load {
+  top: 90px;
   left: .5em;
 }
 
-.ol-touch .button-map3d {
-  top: 80px;
+.ol-touch .button-load {
+  top: 105px;
+}
+
+.button-save {
+  top: 115px;
+  left: .5em;
+}
+
+.ol-touch .button-save {
+  top: 130px;
+}
+
+.button-map2d {
+  top: .5em;
+  left: .5em;
 }

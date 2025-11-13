@@ -63,6 +63,8 @@ var ol_control_LayerEditor = class olcontrolLayerEditor extends ol_control_Contr
     var self = this
     this.dcount = 0
     this.show_progress = options.show_progress
+    this.onSnapSource = (typeof (options.onSnapSource) == 'function' ? options.onSnapSource : null)
+    this.onSnapTarget = (typeof (options.onSnapTarget) == 'function' ? options.onSnapTarget : null)
     this.oninfo = (typeof (options.oninfo) == 'function' ? options.oninfo : null)
     this.onextent = (typeof (options.onextent) == 'function' ? options.onextent : null)
     this.hasextent = options.extent || options.onextent
@@ -727,6 +729,22 @@ var ol_control_LayerEditor = class olcontrolLayerEditor extends ol_control_Contr
         self.onchangeCheck(l)
       }
     }
+    // Snap Source button click
+    function onSnapSource(e) {
+      e.stopPropagation()
+      e.preventDefault()
+      var l = self._getLayerForLI(this.parentNode.parentNode)
+      self.onSnapSource(l)
+      self.dispatchEvent({ type: "snapsource", layer: l })
+    }
+    // Snap Target button click
+    function onSnapTarget(e) {
+      e.stopPropagation()
+      e.preventDefault()
+      var l = self._getLayerForLI(this.parentNode.parentNode)
+      self.onSnapTarget(l)
+      self.dispatchEvent({ type: "snaptarget", layer: l })
+    }
     // Info button click
     function onInfo(e) {
       e.stopPropagation()
@@ -927,6 +945,26 @@ var ol_control_LayerEditor = class olcontrolLayerEditor extends ol_control_Contr
             parent: layer_buttons
           })
         }
+      }
+
+      // SourceSnap button
+      if (this.onSnapSource) {
+        ol_ext_element.create('DIV', {
+          className: 'layerSnapSource',
+          title: this.tip.snapSource,
+          click: onSnapSource,
+          parent: layer_buttons
+        })
+      }
+
+      // TargetSnap button
+      if (this.onSnapTarget) {
+        ol_ext_element.create('DIV', {
+          className: 'layerSnapTarget',
+          title: this.tip.snapTarget,
+          click: onSnapTarget,
+          parent: layer_buttons
+        })
       }
 
       // Info button
