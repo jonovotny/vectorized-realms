@@ -300,8 +300,13 @@ const FaerunMaps = new LayerGroup({
   //layers:[faerun2000, grat]
 });
 
+var prevCP = new VectorSource({
+  url: '_local/controlpoint.json',
+  format: new GeoJSON()
+});
+
 const controlpoints = new VectorLayer({
-  source: new VectorSource(),
+  source: prevCP,//new VectorSource(),
   title: 'Control Points',
   style: {
     'fill-color': 'rgba(255, 255, 255, 0.2)',
