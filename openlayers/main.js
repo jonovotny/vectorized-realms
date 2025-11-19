@@ -324,7 +324,9 @@ const controlpoints = new VectorLayer({
 await parseSvg('_local/faerun-v016.svg', [-76.5, 10, -18, 49.1], SvgLayersFaerun);
 await parseSvg('_local/Toril-2e-base-v3.svg', [-180, -90, 180, 90], SvgLayers);
 
-
+function storeVis(event) {
+  localStorage.setItem("visible_" + event.target.get("title"), layer.getVisible());
+}
 
 var veclayers = {};
 
@@ -350,6 +352,12 @@ SvgLayersFaerun.getLayers().forEach(function(l) {
   veclayers[title].getLayers().getArray().push(l);
 })
 
+for (const [key, l] of Object.entries(veclayers)) {
+  if(localStorage.getItem("visible_" + key) == "false") {
+    l.setVisible(false);
+  }
+  l.on("change:visible", storeVis)
+}
 
 const VectorMaps = new LayerGroup({
   title: 'Vector Maps',
