@@ -310,7 +310,7 @@ const controlpoints = new VectorLayer({
   title: 'Control Points',
   style: {
     'fill-color': 'rgba(255, 255, 255, 0.2)',
-    'stroke-color': '#ffcc33',
+    'stroke-color': '#ffcc3366',
     'stroke-width': 2,
     'circle-radius': 7,
     'circle-fill-color': '#ffcc33',
@@ -318,10 +318,18 @@ const controlpoints = new VectorLayer({
   displayInLayerSwitcher: false
 });
 
+/*
+[[ 1.05086797,  0.15345622, -0.80539519], [-0.15345622,  1.05086797, -9.50121843], [ 0.,  0.,  1.]]
 
+[[ 1.02527195, 0.17727907, -2.69205963],[ -0.15348232, 1.11323577, -11.05916435],[0., 0., 1.]]
+ 
+[[ 0.98950545,  0.14449557, -3.67929573],[-0.14449557,  0.98950545, -7.51735217],[ 0., 0., 1.]]
+ 
+[[ 1.051, 0, 3.025],[0,1.051, -1.755],[0,0,1]]
+ 
+[ 1.043e+00  1.068e+00  2.618e+00 -2.193e+00]*/
 
-
-await parseSvg('_local/faerun-v016.svg', [-76.5, 10, -18, 49.1], SvgLayersFaerun);
+await parseSvg('_local/faerun-v016-03.svg', [-76.5, 10, -18, 49.1], SvgLayersFaerun);
 await parseSvg('_local/Toril-2e-base-v3.svg', [-180, -90, 180, 90], SvgLayers);
 
 function storeVis(event) {
@@ -385,9 +393,16 @@ const torilmap = new Map({
 var ctrl = new LayerEditor({
   reordering: false,
   layerGroup: VectorMaps,
-  onSnapSource: function (l) {console.log(l.get('title'))},
+  onSnapSource: sourceLog,
   onSnapTarget: function (l) {console.log(l.get('title'))}
 });
+
+function sourceLog(e) {
+  console.log(
+    e.get('title')
+  );
+}
+
 torilmap.addControl(ctrl);
 
 //var editBar = new EditBar({});

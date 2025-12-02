@@ -28,9 +28,14 @@ export function processSvg(doc, extent, layerGroup) {
 	var svg = doc.querySelector('svg');
 	var defs;
 	var svgextent = svg.viewBox.baseVal;
-
-	var transform = math.matrix([[Math.abs(extent[2]-extent[0])/Math.abs(svgextent.width - svgextent.x), 0, extent[0]], [0, -Math.abs(extent[3]-extent[1])/Math.abs(svgextent.height - svgextent.y), extent[3]], [0,0,1]]);
-	//transform = math.identity(3);
+	var transform = math.identity(3)
+	if (Array.isArray(extent[0])) {
+		transform = math.matrix([[Math.abs(extent[0][2]-extent[0][0])/Math.abs(svgextent.width - svgextent.x), 0, extent[0][0]], [0, -Math.abs(extent[0][3]-extent[0][1])/Math.abs(svgextent.height - svgextent.y), extent[0][3]], [0,0,1]]);
+		var correction = math.matrix(extent[1]);
+		transform = math.multiply(correction, transform);
+	} else {
+		transform = math.matrix([[Math.abs(extent[2]-extent[0])/Math.abs(svgextent.width - svgextent.x), 0, extent[0]], [0, -Math.abs(extent[3]-extent[1])/Math.abs(svgextent.height - svgextent.y), extent[3]], [0,0,1]]);
+	}
 
 	var current = [0,0];
 
