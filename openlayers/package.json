@@ -17,6 +17,7 @@
     "ol": "latest",
     "ol-ext": "^4.0.35",
     "ol-layerswitcher": "^4.1.0",
-    "olcs": "^2.20.0"
+    "olcs": "^2.20.0",
+    "straight-skeleton": "^2.0.1"
   }
 }

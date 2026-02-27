@@ -34,6 +34,7 @@ export default function geojson2svg(jsonData, template = null) {
 
 	//convert svg source to URI data scheme.
 	var url = "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(source);
+	//url = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(jsonData))
 
 	//set url value to a element's href attribute.
 	var dlAnchorElem = document.getElementById('downloadAnchorElem');

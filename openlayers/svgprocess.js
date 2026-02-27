@@ -8,7 +8,9 @@ import LayerGroup from 'ol/layer/Group';
 import geojson2svg from './geojsonprocess.js';
 import { styleLib } from './layerstyles-nofill.js';
 
-import { area, bezierSpline, bboxPolygon, booleanWithin, bbox, pointToPolygonDistance, explode, lineChunk, simplify, flatten, booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanIntersects, lineSliceAlong } from '@turf/turf';
+import {SkeletonBuilder} from 'straight-skeleton';
+
+import { area, bezierSpline, bboxPolygon, booleanWithin, bbox, pointToPolygonDistance, tin, multiPoint, explode, lineChunk, simplify, flatten, booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanIntersects, lineSliceAlong } from '@turf/turf';
 
 var features = {};
 var exportFeatures = {};
@@ -60,6 +62,7 @@ export function processSvg(doc, extent, layerGroup) {
 	createCliffFeatures(layerGroup, transform);
 	//createRiverFeatures(layerGroup, transform);
 	//createMountainFeatures(layerGroup, transform);
+	createWaterLabels(layerGroup, transform);
 
 
 	var ridgeLayer = null;
@@ -100,6 +103,7 @@ export function processSvg(doc, extent, layerGroup) {
 	});
 
 	geojson2svg(exportFeatures, svg);
+	//geojson2svg(features["Land"], svg);
 	//console.log(layerGroup.getLayers());
 	//layerGroup.getLayers().push(layerGroup.getLayers().remove(volcanoLayer));
 	//console.log(json);
@@ -548,6 +552,8 @@ function createDriftEdge(feat, light) {
 
 	return driftLines;
 }
+
+
 
 function createRiverFeatures(layerGroups, transform){
 	var processedFeatures = featureCollection([]);
@@ -1584,4 +1590,49 @@ function findVertAlong (line, fromId, point, normal) {
 
 function compareCoordinates(target, precision){
 	return (coord) => (Math.abs(coord[0] - target[0]) <= precision && Math.abs(coord[1] - target[1]) <= precision);
+}
+
+function createWaterLabels(layerGroups, transform){
+	var processedFeatures = featureCollection([]);
+	var layerName = "[Gen] Water Labels";
+	if (!features.AquaticNamedRegions) return;
+
+
+	
+		SkeletonBuilder.init().then(() => {
+			for (var region of features.AquaticNamedRegions.features) {
+				console.log(region.properties["inkscape:label"])
+				var skeleton = SkeletonBuilder.buildFromGeoJSONPolygon(region.geometry);
+				//var verts = skeleton.vertices;
+				var verts = skeleton.vertices.filter(function(item) {
+					return !(region.geometry.coordinates[0].includes(item.slice(0,2)));
+				})
+
+				var polys = tin(explode(multiPoint(verts)));
+
+				for (var poly of polys.features) {
+					processedFeatures.features.push(poly);
+				}
+				
+				var outputLayer = new VectorLayer({
+					title: layerName,
+					source: new VectorSource({
+						features: new GeoJSON().readFeatures(processedFeatures),
+					}),
+					style: styleLib[layerName]
+				});
+				exportFeatures[layerName] = processedFeatures;
+				layerGroups.getLayers().array_.push(outputLayer);
+				//console.log(skeleton);
+			}
+		})
+/*		var shadowRidge = offsetFeature(snow, -7);
+		shadowRidge = polygonSmooth(simplify(shadowRidge, { tolerance: 0.0001, highQuality: false })).features[0];
+		shadowRidge = createDriftEdge(shadowRidge, driftLight);
+
+
+		processedFeatures.features.push(shadowRidge);*/
+	//processedFeatures = polygonSmooth(processedFeatures);
+
+
 }
