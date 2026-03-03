@@ -10,7 +10,8 @@ import { styleLib } from './layerstyles-nofill.js';
 
 import {SkeletonBuilder} from 'straight-skeleton';
 
-import { area, bezierSpline, bboxPolygon, booleanWithin, bbox, pointToPolygonDistance, tin, multiPoint, explode, lineChunk, simplify, flatten, booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanIntersects, lineSliceAlong } from '@turf/turf';
+import { area, bezierSpline, concave, bboxPolygon, booleanWithin, bbox, pointToPolygonDistance, tin, multiPoint, explode, lineChunk, simplify, flatten, booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanIntersects, lineSliceAlong } from '@turf/turf';
+import { LineString } from 'ol/geom.js';
 
 var features = {};
 var exportFeatures = {};
@@ -1592,19 +1593,137 @@ function compareCoordinates(target, precision){
 	return (coord) => (Math.abs(coord[0] - target[0]) <= precision && Math.abs(coord[1] - target[1]) <= precision);
 }
 
+function pushToDict (dict, key, value){
+	if (key in dict) {
+		if (!dict[key].includes(value)) {
+			dict[key].push(value);
+			dict[key] = dict[key].sort((a, b) => b - a);
+		}
+	} else {
+		dict[key] = [value];
+	}
+}
+
 function createWaterLabels(layerGroups, transform){
 	var processedFeatures = featureCollection([]);
 	var layerName = "[Gen] Water Labels";
-	if (!features.AquaticNamedRegions) return;
+	//if (!features.AquaticNamedRegions) return;
+	if (!features.Lakes) return;
 
 
 	
 		SkeletonBuilder.init().then(() => {
-			for (var region of features.AquaticNamedRegions.features) {
-				console.log(region.properties["inkscape:label"])
+			for (var region of features.PoliticalBoundaries.features) {
+
+				console.log(region.properties["inkscape:label"]);
+				var convHull = concave(explode(region));
+				if (area(convHull) < area(region) * 1.5) {
+					region = convHull;
+				} else {
+					region = simplify(region, { tolerance: 0.1 });
+				}
+				
+				if (!booleanClockwise(region)) {
+					console.log("revert");
+					region.geometry.coordinates[0].reverse();
+				}
+				
+				processedFeatures.features.push(region);
+
 				var skeleton = SkeletonBuilder.buildFromGeoJSONPolygon(region.geometry);
-				//var verts = skeleton.vertices;
-				var verts = skeleton.vertices.filter(function(item) {
+				var verts = skeleton.vertices;
+				var graph = {};
+				var peakHeight = 0;
+				var peakId = 0;
+
+				//console.log(skeleton);
+
+				for (var poly of skeleton.polygons) {
+					var lastId = poly.at(-1);
+					var lastVert = verts[lastId]
+					for (var currId of poly) {
+						var currVert = verts[currId];
+						if (lastVert[2] > 0 && currVert[2] > 0) {
+							pushToDict(graph, lastId, currId);
+							pushToDict(graph, currId, lastId);
+						}
+						if (currVert[2] > peakHeight) {
+							peakHeight = currVert[2];
+							peakId = currId;
+						}
+						lastId = currId;
+						lastVert = currVert;
+					}
+				}
+
+
+				//console.log(graph);
+				var removedVerts = [peakId];
+				
+				var currId = peakId;
+				var currVert = verts[currId];
+				var currHeight = peakHeight;
+
+				var centerline = [currVert];
+				while (currHeight > 0) {
+					//console.log(currId);
+					var nextId = null;
+					var nextVert = null;
+					var nextHeight = -1;
+					var neighbors = graph[currId].filter((neighbor) => !removedVerts.includes(neighbor));
+					if (neighbors.length > 0) {
+						nextId = neighbors.at(0);
+						nextVert = verts[nextId];
+						nextHeight = verts[nextId][2];
+					}
+					if (nextVert) {
+						centerline.push(nextVert);
+					}
+					removedVerts.push(nextId);
+					currId = nextId;
+					currVert = nextVert;
+					currHeight = nextHeight;
+				}
+
+				var centerline2 = [];
+				currId = peakId;
+				currVert = verts[currId];
+				currHeight = peakHeight;
+				while (currHeight > 0) {
+					//console.log(currId);
+					var nextId = null;
+					var nextVert = null;
+					var nextHeight = -1;
+					var neighbors = graph[currId].filter((neighbor) => !removedVerts.includes(neighbor));
+					if (neighbors.length > 0) {
+						nextId = neighbors.at(0);
+						nextVert = verts[nextId];
+						nextHeight = verts[nextId][2];
+					}
+
+					if (nextVert) {
+						centerline2.push(nextVert);
+					}
+					removedVerts.push(nextId);
+					currId = nextId;
+					currVert = nextVert;
+					currHeight = nextHeight;
+				}
+
+				var fullcenterline = centerline2.reverse();
+				fullcenterline = fullcenterline.concat(centerline);
+				//console.log(fullcenterline);
+
+				var smoothGroup = polygonSmooth(lineToPolygon(lineString(fullcenterline)), {iterations: 1});
+				var smoothed = polygonToLine(smoothGroup.features[0]);
+				smoothed.geometry.coordinates = smoothed.geometry.coordinates.slice(0,-3);
+
+				processedFeatures.features.push(smoothed);
+				//processedFeatures.features.push(lineString(fullcenterline));
+
+				
+
+				/*var verts = skeleton.vertices.filter(function(item) {
 					return !(region.geometry.coordinates[0].includes(item.slice(0,2)));
 				})
 
@@ -1612,7 +1731,7 @@ function createWaterLabels(layerGroups, transform){
 
 				for (var poly of polys.features) {
 					processedFeatures.features.push(poly);
-				}
+				}*/
 				
 				var outputLayer = new VectorLayer({
 					title: layerName,
