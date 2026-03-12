@@ -330,7 +330,7 @@ const controlpoints = new VectorLayer({
 [ 1.043e+00  1.068e+00  2.618e+00 -2.193e+00]*/
 
 await parseSvg('_local/faerun-v016-07.svg', [-76.5, 10, -18, 49.1], SvgLayersFaerun);
-await parseSvg('_local/Toril-2e-base-v3.svg', [-180, -90, 180, 90], SvgLayers);
+//await parseSvg('_local/Toril-2e-base-v3.svg', [-180, -90, 180, 90], SvgLayers);
 
 function storeVis(event) {
   localStorage.setItem("visible_" + event.target.get("title"), layer.getVisible());
@@ -524,11 +524,11 @@ SvgLayersFaerun.getLayers().getArray()[2].setStyle(new Style({
   })
 }))
 
-SvgLayers.getLayers().getArray()[2].setStyle(new Style({
+/*SvgLayers.getLayers().getArray()[2].setStyle(new Style({
   stroke: new Stroke({
     color: 'blue'
   })
-}))
+}))*/
 const snapOrigin = new Snap({
   source: SvgLayersFaerun.getLayers().getArray()[2].getSource(),
   interaction: true

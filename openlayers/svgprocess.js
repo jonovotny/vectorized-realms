@@ -1604,7 +1604,7 @@ function pushToDict (dict, key, value){
 	}
 }
 
-function processNode(node, prevNode, verts, graph, nodeCells) {
+function processNode(node, prevNode, verts, graph) {
 	var edgeDistance = 0;
 	if (prevNode) {
 		edgeDistance = length(lineString([verts[prevNode], node]));
@@ -1613,19 +1613,17 @@ function processNode(node, prevNode, verts, graph, nodeCells) {
 	//get a list of neighbors and delete the edge to the previous node
 	var neighbors = graph[node].filter(value => value != prevNode);
 
+	//if there are no neighbors left, it's a leaf node. return new path with distance to prevNode
 	if (neighbors.length < 1) {
-		return [edgeDistance, nodeCells[node], [node]];
+		return [edgeDistance, [node]];
 	}
 
-	//clear current node edges to avoid potential loops
-	//graph[node] = [];
-
-	var paths = neighbors.map(nextNode => processNode(nextNode, node, verts, graph, nodeCells));
+	//if there are edges to follow, recursively visit the nodes
+	var paths = neighbors.map(nextNode => processNode(nextNode, node, verts, graph));
+	//keep longest path from the responses and append own node and distance
 	var longestPath = paths.reduce(keepLongestPath);
-
 	longestPath[0] = longestPath[0] + edgeDistance;
-	longestPath[1].concat(nodeCells[node]);
-	longestPath[2].push(node);
+	longestPath[1].push(node);
 
 	return longestPath;
 }
@@ -1642,37 +1640,32 @@ function createWaterLabels(layerGroups, transform){
 	var layerName = "[Gen] Water Labels";
 	//if (!features.AquaticNamedRegions) return;
 	if (!features.Lakes) return;
-	if (features.Lakes.features.length > 50) return;
+	//if (features.Lakes.features.length > 50) return;
 
 
-	for (var region of features.Lakes.features) {
-		//region = polygonSmooth(region, {iterations: 2}).features[0];
-		//var polys = voronoi(explode(smoothedRegion), {bbox: bbox(smoothedRegion)});
+	for (var region of features["Political Boundaries"].features/*features["Aquatic Named Regions"].features.concat(features.Lakes.features)*/) {
 		console.log(region.properties["inkscape:label"]);
+		var simplifiedRegion = simplify(region, {tolerance: 1});
+		var sliced = lineChunk(polygonToLine(simplifiedRegion), 50, {units: "kilometers"});
+		var polys = voronoi(explode(sliced), {bbox: bbox(region)});
 
-		var polys = voronoi(explode(region), {bbox: bbox(region)});
-		//var circum = polygonToLine(region);
 		var verts = {};
 		var graph = {};
-		var nodeCells = {};
 		if (polys.features.length > 0) {
 			var cells = polys.features.filter(val => !(val == undefined));
 			console.log(region);
-			console.log(cells);
 			for (var cell of cells) {
 				if (cell.geometry.coordinates[0].length < 2) continue;
+				processedFeatures.features.push(cell);
 				var lastVert = null;
 				for (var vert of cell.geometry.coordinates[0]) {
 					verts[vert] = vert;
 					var currVert = point(vert);
 					if (lastVert){
-						if (booleanPointInPolygon(lastVert, region)) {
-							if (booleanPointInPolygon(currVert, region)) {
-								//processedFeatures.features.push(lineString([lastVert.geometry.coordinates, currVert.geometry.coordinates]));
+						if (booleanPointInPolygon(lastVert, simplifiedRegion)) {
+							if (booleanPointInPolygon(currVert, simplifiedRegion)) {
 								pushToDict(graph, lastVert.geometry.coordinates, currVert.geometry.coordinates);
 								pushToDict(graph, currVert.geometry.coordinates, lastVert.geometry.coordinates);
-								pushToDict(nodeCells, currVert.geometry.coordinates, cell);
-								pushToDict(nodeCells, lastVert.geometry.coordinates, cell);
 							}
 						}
 					}
@@ -1681,11 +1674,16 @@ function createWaterLabels(layerGroups, transform){
 			}
 		}
 		var someNode = Object.keys(graph).at(0);
-		var path = processNode(verts[someNode], null, verts, graph, nodeCells);
-		var longestPath = processNode(verts[path[2].at(-1)], null, verts, graph, nodeCells);
-		processedFeatures.features.push(lineString(path[2]));
-		processedFeatures.features.push(lineString(longestPath[2]));
-		console.log(path);
+		var path = processNode(verts[someNode], null, verts, graph);
+		var longestPath = processNode(verts[path[1].at(0)], null, verts, graph);
+		var pathLine = simplify(lineString(longestPath[1]), {tolerance: 0.02});
+		if (pathLine.geometry.coordinates.length > 2) {
+			pathLine = polygonSmooth(lineToPolygon(pathLine), {iterations: 2}).features[0];
+			pathLine = lineString(pathLine.geometry.coordinates[0].slice(0,-7));
+		}
+		//processedFeatures.features.push(lineString(path[2]));
+		processedFeatures.features.push(pathLine);
+		//console.log(path);
 		//processedFeatures.features = processedFeatures.features.concat(cells);
 	}
 	

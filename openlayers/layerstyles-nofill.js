@@ -1,4 +1,4 @@
-import {Fill, Stroke, Style} from 'ol/style.js';
+import {Fill, Stroke, Style, Text} from 'ol/style.js';
 
 var styleLib = {};
 
@@ -169,6 +169,9 @@ styleLib["Mountains"] = new Style({
 styleLib["Lakes"] = new Style({ 
 	stroke: new Stroke({
 		color: "#bad9e8"
+	}),
+	fill: new Fill({
+		color: "#cde2f7"
 	})
 });
 
@@ -289,6 +292,24 @@ styleLib["[Gen] River Width"] = new Style({
 });
 
 styleLib["[Gen] River Detail"] = new Style({ 
+	stroke: new Stroke({
+		color: '#0000bb',
+		width: 1.0,
+		lineCap: 'round',
+	}),
+});
+
+styleLib["[Gen] Water Labels"] = new Style({ 
+	/*text: new Text({
+		font: '16px Alegreya SC',
+		text: 'Lake Default',
+		placement: 'line',
+		textAlign: 'center',
+		maxAngle: 360,
+		fill: new Fill({
+			color: '#395294'
+		})
+	}),*/
 	stroke: new Stroke({
 		color: '#0000bb',
 		width: 1.0,
