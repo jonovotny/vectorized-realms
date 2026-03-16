@@ -300,21 +300,22 @@ styleLib["[Gen] River Detail"] = new Style({
 });
 
 styleLib["[Gen] Water Labels"] = new Style({ 
-	/*text: new Text({
+	text: new Text({
 		font: '16px Alegreya SC',
-		text: 'Lake Default',
+		text: "",
 		placement: 'line',
 		textAlign: 'center',
 		maxAngle: 360,
 		fill: new Fill({
 			color: '#395294'
 		})
-	}),*/
-	stroke: new Stroke({
+	}),
+	
+	/*stroke: new Stroke({
 		color: '#0000bb',
 		width: 1.0,
 		lineCap: 'round',
-	}),
+	}),*/
 });
 
 // Geometry creation settings
@@ -337,6 +338,7 @@ var generationParams=
 	"river taper length":50,
 	"river taper segments": 10
 }
+
 
 export {styleLib};
 export {generationParams};

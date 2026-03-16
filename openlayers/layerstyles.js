@@ -1,4 +1,4 @@
-import {Fill, Stroke, Style} from 'ol/style.js';
+import {Text, Fill, Stroke, Style} from 'ol/style.js';
 
 var styleLib = {};
 
@@ -315,6 +315,63 @@ styleLib["[Gen] River Width"] = new Style({
 styleLib["[Gen] River Detail"] = new Style({ 
 	stroke: new Stroke({
 		color: '#0000bb',
+		width: 1.0,
+		lineCap: 'round',
+	}),
+});
+
+styleLib["[Gen] Water Labels"] = new Style({ 
+	text: new Text({
+		font: '16px Alegreya SC',
+		text: "",
+		placement: 'line',
+		textAlign: 'center',
+		maxAngle: 360,
+		fill: new Fill({
+			color: '#7f561b'//'#395294'
+		})
+	}),
+	zIndex: 50,
+	
+	/*stroke: new Stroke({
+		color: '#0000bb',
+		width: 1.0,
+		lineCap: 'round',
+	}),*/
+});
+
+styleLib["Aquatic Named Regions"] = new Style({ 
+});
+
+styleLib["Political Boundaries"] = new Style({ 
+	stroke: new Stroke({
+		color: '#a7a7a7',
+		lineDash: [8, 8],
+		width: 2,
+		lineCap: 'round',
+	}),
+});
+
+styleLib["Roads"] = new Style({ 
+	stroke: new Stroke({
+		color: '#000000',
+		width: 1.5,
+		lineCap: 'round',
+	}),
+});
+
+styleLib["Trails"] = new Style({
+	stroke: new Stroke({
+		color: '#000000',
+		lineDash: [5, 5],
+		width: 1.5,
+		lineCap: 'round',
+	}),
+});
+
+styleLib["POIs"] = new Style({
+	stroke: new Stroke({
+		color: '#000000',
 		width: 1.0,
 		lineCap: 'round',
 	}),

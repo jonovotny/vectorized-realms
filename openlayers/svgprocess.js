@@ -6,12 +6,13 @@ import { Fill, Stroke, Style } from 'ol/style.js';
 import LayerGroup from 'ol/layer/Group';
 
 import geojson2svg from './geojsonprocess.js';
-import { styleLib } from './layerstyles-nofill.js';
+//import { styleLib } from './layerstyles-nofill.js';
+import { styleLib } from './layerstyles.js';
 
-import {SkeletonBuilder} from 'straight-skeleton';
-
-import { area, bezierSpline, concave, bboxPolygon, booleanWithin, bbox, pointToPolygonDistance, tin, multiPoint, explode, lineChunk, simplify, flatten, booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanIntersects, lineSliceAlong, voronoi, intersect, booleanPointInPolygon } from '@turf/turf';
+import { lineIntersect, area, bezierSpline, concave, bboxPolygon, booleanWithin, bbox, pointToPolygonDistance, tin, multiPoint, explode, lineChunk, simplify, flatten, booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanIntersects, lineSliceAlong, voronoi, intersect, booleanPointInPolygon } from '@turf/turf';
 import { LineString } from 'ol/geom.js';
+
+import { createPOIs } from './pois.js';
 
 var features = {};
 var exportFeatures = {};
@@ -63,7 +64,8 @@ export function processSvg(doc, extent, layerGroup) {
 	createCliffFeatures(layerGroup, transform);
 	//createRiverFeatures(layerGroup, transform);
 	//createMountainFeatures(layerGroup, transform);
-	createWaterLabels(layerGroup, transform);
+	//createWaterLabels(layerGroup, transform);
+	createPOIs(layerGroup, transform, features);
 
 
 	var ridgeLayer = null;
@@ -1604,6 +1606,48 @@ function pushToDict (dict, key, value){
 	}
 }
 
+function followEdges(graph, verts, openPaths, closedPaths) {
+// A path is a defined as [[List of Nodes], pathLength].
+
+	/*if (openPaths.length > 1) {
+		console.log(openPaths);
+	}*/
+	
+	var currentPath = openPaths.pop();
+	var node = currentPath[0].at(-1);
+	var pathLength = currentPath[1];
+	var neighbors = graph[node].filter(value => !(currentPath[0].find(nodes => nodes[0] == value[0] & nodes[1] == value[1])));
+
+	// leaf node
+	if (neighbors.length == 0) {
+		closedPaths.push(currentPath);
+		return;
+	}
+
+	if (neighbors.length == 1) {
+		currentPath[0].push(neighbors[0])
+		currentPath[1] = pathLength + length(lineString([node, neighbors[0]]));
+		openPaths.push(currentPath);
+	} else {
+		// push new paths for every neighbor and update lengths
+		for (var nextNode of neighbors) {
+			var nextPath = structuredClone(currentPath[0]);
+			nextPath.push(nextNode);
+			openPaths.push([nextPath, pathLength + length(lineString([node, nextNode]))]);
+		}
+	}
+}
+
+function findLongestPath (node, graph, verts) {
+	var openPaths = [[[node], 0]];
+	var closedPaths = [];
+	while (openPaths.length > 0) {
+		followEdges(graph, verts, openPaths, closedPaths);
+	}
+	var longestPath = closedPaths.reduce((prev, curr) => (prev[1] > curr[1]) ? prev: curr)[0];
+	return longestPath;
+} 
+
 function processNode(node, prevNode, verts, graph) {
 	var edgeDistance = 0;
 	if (prevNode) {
@@ -1635,28 +1679,33 @@ function keepLongestPath (longestPath, currentPath) {
 	return longestPath;
 }
 
+function createLabel(feature, resolution) {
+	var labelStyle = styleLib["[Gen] Water Labels"].clone();
+	labelStyle.getText().setText(feature.get("label"));
+	return labelStyle;
+}
+
 function createWaterLabels(layerGroups, transform){
 	var processedFeatures = featureCollection([]);
 	var layerName = "[Gen] Water Labels";
 	//if (!features.AquaticNamedRegions) return;
 	if (!features.Lakes) return;
-	//if (features.Lakes.features.length > 50) return;
 
 
-	for (var region of features["Political Boundaries"].features/*features["Aquatic Named Regions"].features.concat(features.Lakes.features)*/) {
+	for (var region of features["Political Boundaries"].features/*features["Aquatic Named Regions"].features.concat(features.Lakes.features)*/) { /*features["Political Boundaries"].features*/
 		console.log(region.properties["inkscape:label"]);
-		var simplifiedRegion = simplify(region, {tolerance: 1});
-		var sliced = lineChunk(polygonToLine(simplifiedRegion), 50, {units: "kilometers"});
+		var simplifiedRegion = simplify(region, {tolerance: 0.05});
+		var sliced = lineChunk(polygonToLine(simplifiedRegion), 10, {units: "kilometers"});
 		var polys = voronoi(explode(sliced), {bbox: bbox(region)});
 
 		var verts = {};
 		var graph = {};
 		if (polys.features.length > 0) {
 			var cells = polys.features.filter(val => !(val == undefined));
-			console.log(region);
+			//console.log(region);
 			for (var cell of cells) {
 				if (cell.geometry.coordinates[0].length < 2) continue;
-				processedFeatures.features.push(cell);
+				//processedFeatures.features.push(cell);
 				var lastVert = null;
 				for (var vert of cell.geometry.coordinates[0]) {
 					verts[vert] = vert;
@@ -1666,6 +1715,15 @@ function createWaterLabels(layerGroups, transform){
 							if (booleanPointInPolygon(currVert, simplifiedRegion)) {
 								pushToDict(graph, lastVert.geometry.coordinates, currVert.geometry.coordinates);
 								pushToDict(graph, currVert.geometry.coordinates, lastVert.geometry.coordinates);
+								//processedFeatures.features.push(lineString([lastVert.geometry.coordinates, currVert.geometry.coordinates]));
+							}
+						} else {
+							if (booleanPointInPolygon(currVert, simplifiedRegion)) {
+								var borderVert = lineIntersect(lineString([lastVert.geometry.coordinates, currVert.geometry.coordinates]), simplifiedRegion).features[0];
+								verts[borderVert.geometry.coordinates] = borderVert.geometry.coordinates;
+								pushToDict(graph, borderVert.geometry.coordinates, currVert.geometry.coordinates);
+								pushToDict(graph, currVert.geometry.coordinates, borderVert.geometry.coordinates);
+								//processedFeatures.features.push(lineString([borderVert.geometry.coordinates, currVert.geometry.coordinates]));
 							}
 						}
 					}
@@ -1674,12 +1732,12 @@ function createWaterLabels(layerGroups, transform){
 			}
 		}
 		var someNode = Object.keys(graph).at(0);
-		var path = processNode(verts[someNode], null, verts, graph);
-		var longestPath = processNode(verts[path[1].at(0)], null, verts, graph);
-		var pathLine = simplify(lineString(longestPath[1]), {tolerance: 0.02});
+		var path = findLongestPath (verts[someNode], graph, verts);
+		var longestPath = findLongestPath (path.at(-1), graph, verts);
+		var pathLine = simplify(lineString(longestPath), {tolerance: 0.2});
 		if (pathLine.geometry.coordinates.length > 2) {
 			pathLine = polygonSmooth(lineToPolygon(pathLine), {iterations: 2}).features[0];
-			pathLine = lineString(pathLine.geometry.coordinates[0].slice(0,-7));
+			pathLine = lineString(pathLine.geometry.coordinates[0].slice(0,-7), region.properties);
 		}
 		//processedFeatures.features.push(lineString(path[2]));
 		processedFeatures.features.push(pathLine);
@@ -1693,7 +1751,7 @@ function createWaterLabels(layerGroups, transform){
 					source: new VectorSource({
 						features: new GeoJSON().readFeatures(processedFeatures),
 					}),
-					style: styleLib[layerName]
+					style: createLabel//styleLib[layerName]
 				});
 				exportFeatures[layerName] = processedFeatures;
 				layerGroups.getLayers().array_.push(outputLayer);

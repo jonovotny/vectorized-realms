@@ -518,11 +518,11 @@ torilmap.on('click', function(e){
 
 });
 
-SvgLayersFaerun.getLayers().getArray()[2].setStyle(new Style({
+/*SvgLayersFaerun.getLayers().getArray()[2].setStyle(new Style({
   stroke: new Stroke({
     color: 'red'
   })
-}))
+}))*/
 
 /*SvgLayers.getLayers().getArray()[2].setStyle(new Style({
   stroke: new Stroke({
