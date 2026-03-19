@@ -13,6 +13,7 @@ import { lineIntersect, area, bezierSpline, concave, bboxPolygon, booleanWithin,
 import { LineString } from 'ol/geom.js';
 
 import { createPOIs } from './featureProcessors/pois.js';
+import { createPoliticalBorders } from './featureProcessors/borders.js';
 
 var features = {};
 var exportFeatures = {};
@@ -66,6 +67,7 @@ export function processSvg(doc, extent, layerGroup) {
 	//createMountainFeatures(layerGroup, transform);
 	//createWaterLabels(layerGroup, transform);
 	createPOIs(layerGroup, transform, features);
+	createPoliticalBorders(layerGroup, transform, features);
 
 
 	var ridgeLayer = null;
@@ -463,7 +465,7 @@ function createBadlandsFeatures(layerGroups, transform){
 
 	for (var badland of features.Badlands.features) {
 		if (area(badland) > 100000000){
-			fs.features.push(offsetFeature(badland, -7))
+			fs.features.push(offsetFeature(badland, 7))
 		};
 	}
 

@@ -6,6 +6,7 @@ import { Icon, Fill, Stroke, Style } from 'ol/style.js';
 import LayerGroup from 'ol/layer/Group';
 
 import { styleLib } from '../layerstyles.js';
+import { getMarkerStyle } from './utils.js';
 
 import geojson2svg from '../geojsonprocess.js';
 //import { styleLib } from './layerstyles-nofill.js';
@@ -91,10 +92,6 @@ function createMarkerStyle (label, direction) {
 	return typeName;
 }
 
-function getMarkerStyle(feature, resolution) {
-	return styleLib[feature.get("styleName")];
-}
-
 function createPOIs(layerGroups, transform, features){
 	var processedFeatures = featureCollection([]);
 	var layerName = "[Gen] POI Markers";
@@ -103,7 +100,7 @@ function createPOIs(layerGroups, transform, features){
 
 
 	for (var poi of features.POIs.features) {
-		console.log(poi.properties["inkscape:label"]);
+		//console.log(poi.properties["inkscape:label"]);
 
 		var styleName = createMarkerStyle (poi.properties["inkscape:label"], null, styleLib);
 		poi.properties["styleName"] = styleName;

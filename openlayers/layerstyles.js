@@ -190,7 +190,8 @@ styleLib["Lakes"] = new Style({
 	}),
 	stroke: new Stroke({
 		color: "#bad9e8"
-	})
+	}),
+	zIndex: 20
 });
 
 styleLib["Rivers"] = new Style({ 
@@ -328,7 +329,7 @@ styleLib["[Gen] Water Labels"] = new Style({
 		textAlign: 'center',
 		maxAngle: 360,
 		fill: new Fill({
-			color: '#7f561b'//'#395294'
+			color: '#7f561b'//'#3952
 		})
 	}),
 	zIndex: 50,
@@ -352,12 +353,20 @@ styleLib["Political Boundaries"] = new Style({
 	}),
 });
 
+styleLib["[Gen] Political Background"] = new Style({ 
+	fill: new Fill({
+		color: "#00000022"
+	})
+});
+
+
 styleLib["Roads"] = new Style({ 
 	stroke: new Stroke({
 		color: '#000000',
 		width: 1.5,
 		lineCap: 'round',
 	}),
+	zIndex: 30
 });
 
 styleLib["Trails"] = new Style({
@@ -367,6 +376,7 @@ styleLib["Trails"] = new Style({
 		width: 1.5,
 		lineCap: 'round',
 	}),
+	zIndex: 30
 });
 
 styleLib["POIs"] = new Style({
@@ -375,6 +385,7 @@ styleLib["POIs"] = new Style({
 		width: 1.0,
 		lineCap: 'round',
 	}),
+	zIndex: 40
 });
 
 // Geometry creation settings
