@@ -353,10 +353,25 @@ styleLib["Political Boundaries"] = new Style({
 	}),
 });
 
+styleLib["[Gen] Political Outlines"] = new Style({ 
+	stroke: new Stroke({
+		color: '#ffffff',
+		lineDash: [8, 8],
+		width: 2,
+		lineCap: 'round',
+	}),
+	zIndex:25
+});
+
 styleLib["[Gen] Political Background"] = new Style({ 
 	fill: new Fill({
 		color: "#00000022"
-	})
+	}),
+		/*stroke: new Stroke({
+		color: '#0000bb',
+		width: 1.0,
+		lineCap: 'round',
+	}),*/
 });
 
 

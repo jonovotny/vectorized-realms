@@ -13,6 +13,7 @@ import OLCesium from 'olcs';
 import FeatureConverter from 'olcs';
 import Collection from 'ol/Collection.js';
 import LayerEditor from './LayerEditor.js';
+import ScaleLine from 'ol/control/ScaleLine.js';
 import './LayerEditor.css';
 import 'ol-ext/dist/ol-ext.css';
 import EditBar from 'ol-ext/control/EditBar'
@@ -373,9 +374,18 @@ const VectorMaps = new LayerGroup({
   layers: Object.values(veclayers)
 });
 
+const scaleControl = new ScaleLine({
+  units: 'metric',
+  bar: true,
+  steps: 4,
+  text: true,
+  minWidth: 140,
+});
+
+
 const torilmap = new Map({
   target: 'map',
-  controls: defaultControls().extend([new Map3DControl()]),
+  controls: defaultControls().extend([new Map3DControl(), scaleControl]),
   layers: [
     //TorilMaps,
     //FaerunMaps,
