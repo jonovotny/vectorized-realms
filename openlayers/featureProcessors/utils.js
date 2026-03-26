@@ -68,7 +68,7 @@ function offsetFeature(feat, dist) {
 	return offFeat;	
 }
 
-function getMarkerStyle(feature, resolution) {
+function getCachedStyle(feature, resolution) {
 	return styleLib[feature.get("styleName")];
 }
 
@@ -82,4 +82,4 @@ function pushToDict (dict, key, value){
 	}
 }
 
-export {offsetFeature, getMarkerStyle, pushToDict};
+export {offsetFeature, getCachedStyle, pushToDict};

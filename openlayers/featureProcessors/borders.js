@@ -7,7 +7,7 @@ import LayerGroup from 'ol/layer/Group';
 
 import { styleLib } from '../layerstyles.js';
 import { offsetFeature } from './utils.js';
-import { getMarkerStyle, pushToDict } from './utils.js';
+import { getCachedStyle, pushToDict } from './utils.js';
 
 import geojson2svg from '../geojsonprocess.js';
 //import { styleLib } from './layerstyles-nofill.js';
@@ -110,7 +110,7 @@ function createPoliticalBorders(layerGroups, transform, features){
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(regionBackgrounds),
 		}),
-		style: getMarkerStyle
+		style: getCachedStyle
 	});
 	//exportFeatures["[Gen] Political Background"] = regionBackgrounds;
 	layerGroups.getLayers().array_.push(outputLayer);

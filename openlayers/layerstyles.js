@@ -311,6 +311,7 @@ styleLib["[Gen] River Width"] = new Style({
 		width: 3.0,
 		lineCap: 'round',
 	}),
+	zIndex: 10,
 });
 
 styleLib["[Gen] River Detail"] = new Style({ 
@@ -319,6 +320,7 @@ styleLib["[Gen] River Detail"] = new Style({
 		width: 1.0,
 		lineCap: 'round',
 	}),
+	zIndex: 10,
 });
 
 styleLib["[Gen] Water Labels"] = new Style({ 
@@ -401,6 +403,20 @@ styleLib["POIs"] = new Style({
 		lineCap: 'round',
 	}),
 	zIndex: 40
+});
+
+styleLib["[Gen] POI Labels"] = new Style({
+	text: new Text({
+		font: '14px Alegreya SC',
+		text: "",
+		textAlign: 'right',
+		offsetY: -10,
+		offsetX: -5,
+		fill: new Fill({
+			color: '#000'
+		}),
+	}),
+	zIndex: 60
 });
 
 // Geometry creation settings
