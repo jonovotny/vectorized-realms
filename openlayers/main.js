@@ -21,6 +21,7 @@ import EditBar from 'ol-ext/control/EditBar'
 
 import {Control, defaults as defaultControls} from 'ol/control.js';
 //import Cesium from 'cesium';
+import {registerDynamicStyles, updateDynamicStyles} from './featureProcessors/utils.js';
 
 import parseSvg from './svgprocess.js';
 
@@ -31,6 +32,7 @@ import {Fill, Stroke, Style} from 'ol/style.js';
 
 
 import {OLCS_ION_TOKEN} from './_common.js';
+import { styleLib, dynamicAttributes } from './layerstyles.js';
 Cesium.Ion.defaultAccessToken = OLCS_ION_TOKEN;
 var attribution3D = null;
 
@@ -538,7 +540,7 @@ torilmap.on('click', function(e){
   stroke: new Stroke({
     color: 'blue'
   })
-}))*/
+}))
 const snapOrigin = new Snap({
   source: SvgLayersFaerun.getLayers().getArray()[2].getSource(),
   interaction: true
@@ -564,4 +566,17 @@ snapDestination.on('unsnap', function (event) {
 })
 
 
-torilmap.addInteraction(snapOrigin);
+torilmap.addInteraction(snapOrigin);*/
+
+
+/*{
+  "Roads.getStroke.setWidth": [[[4.29, 0.001], [4.3, 1], [6, 2]], ""],
+  "Trails.getStroke.setWidth": [[[4.99, 0.001], [5, 1], [7, 2]], ""],
+  "Marker City.getImage.setScale": [[[4.99, 0.001], [5, 1], [7, 2]], ""],
+  "Marker Port.getImage.setScale": [[[4.99, 0.001], [5, 1], [7, 2]], ""],
+  "Marker Capital.getImage.setScale": [[[3.99, 0.001], [4, 1], [7, 2]], ""],
+}*/
+
+torilmap.getView().on('change:resolution', (event) => {
+    updateDynamicStyles(event.target.getZoom(), styleLib, dynamicAttributes)
+});

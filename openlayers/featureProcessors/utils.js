@@ -82,4 +82,68 @@ function pushToDict (dict, key, value){
 	}
 }
 
-export {offsetFeature, getCachedStyle, pushToDict};
+function registerDynamicStyles (styleLib, dynamicAttributes){
+	/*for (const prop of Object.getOwnPropertyNames(dynamicAttributes)) {
+		delete dynamicAttributes[prop];
+	}*/
+	for (var [name, style] of Object.entries(styleLib)) {
+		if (style["dyn"] !== undefined) {
+			for (var [attrib, dynValue] of style["dyn"]){
+				dynamicAttributes[name + attrib] = dynValue;
+			}
+		}
+	}
+}
+
+function updateDynamicStyles(zoom, styleLib, dynamicAttributes) {
+	for (var [key, keypoints] of Object.entries(dynamicAttributes)) {
+		var attrib = key.split(".");
+		if (attrib.length < 2) continue;
+		var context = styleLib[attrib.shift()];
+		var setter = attrib.pop();
+		var suffix =  keypoints[1];
+
+		var value = keypoints[0].at(0)[1];
+		var fromValue = keypoints[0].at(0)[1];
+		var fromZoom = 0;
+
+		if (zoom > keypoints[0].at(-1)[0]) {
+			value = keypoints[0].at(-1)[1];
+		} else {
+			for(var keypoint of keypoints[0]) {
+				if (keypoint[0] < zoom) {
+					fromZoom = keypoint[0];
+					fromValue = keypoint[1];
+				} else {
+					if (typeof value === "number") {
+						var factor = (zoom - fromZoom)/(keypoint[0] - fromZoom);
+						value = fromValue + factor * (keypoint[1] - fromValue);
+					} else {
+						value = keypoint[1];
+					}
+					break;
+				}
+			}
+		}
+		
+		if (suffix) {
+			value = value + suffix;
+		}
+
+		for(var subattrib of attrib) {
+			if (typeof context[subattrib] === "function") {
+				context = context[subattrib]();
+			} else {
+				context = context[subattrib];
+			}
+		}
+
+		if (typeof context[setter] === "function") {
+			context[setter](value);
+		} else {
+			context[setter] = value;
+		}
+	}
+}
+
+export {offsetFeature, getCachedStyle, pushToDict, updateDynamicStyles, registerDynamicStyles};

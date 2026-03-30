@@ -419,6 +419,8 @@ styleLib["[Gen] POI Labels"] = new Style({
 	zIndex: 60
 });
 
+var dynamicAttributes = {};
+
 // Geometry creation settings
 var generationParams= 
 {
@@ -440,5 +442,4 @@ var generationParams=
 	"river taper segments": 10
 }
 
-export {styleLib};
-export {generationParams};
+export {styleLib, dynamicAttributes, generationParams};
