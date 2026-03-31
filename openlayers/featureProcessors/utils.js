@@ -82,13 +82,28 @@ function pushToDict (dict, key, value){
 	}
 }
 
+function expandBB(feat, precision) {
+	var bb = bbox(feat, {recompute: true});
+	bb = [bb[0] - precision, bb[1] - precision, bb[2] + precision, bb[3] + precision];
+	feat.bbox = bb;
+}
+
 function registerDynamicStyles (styleLib, dynamicAttributes){
 	/*for (const prop of Object.getOwnPropertyNames(dynamicAttributes)) {
 		delete dynamicAttributes[prop];
 	}*/
 	for (var [name, style] of Object.entries(styleLib)) {
+		if (Array.isArray(style)) {
+			for (var part in style) {
+				if (style[part]["dyn"] !== undefined) {
+					for (var [attrib, dynValue] of Object.entries(style[part]["dyn"])){
+						dynamicAttributes[name + "." + part + attrib] = dynValue;
+					}
+				}
+			}
+		} else 
 		if (style["dyn"] !== undefined) {
-			for (var [attrib, dynValue] of style["dyn"]){
+			for (var [attrib, dynValue] of Object.entries(style["dyn"])){
 				dynamicAttributes[name + attrib] = dynValue;
 			}
 		}
@@ -146,4 +161,4 @@ function updateDynamicStyles(zoom, styleLib, dynamicAttributes) {
 	}
 }
 
-export {offsetFeature, getCachedStyle, pushToDict, updateDynamicStyles, registerDynamicStyles};
+export {offsetFeature, getCachedStyle, pushToDict, updateDynamicStyles, registerDynamicStyles, expandBB};

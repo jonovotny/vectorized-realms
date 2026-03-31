@@ -200,7 +200,7 @@ const faerun2000 = new ImageLayer({
     url:'https://raw.githubusercontent.com/jonovotny/vectorized-realms/main/faerun-3e/faerun-3e.jpg',
     //url:'_local/faerun-3e.jpg',
     projection: 'EPSG:4326',
-    imageExtent: [-86.5, 10, -28, 49.1],
+    imageExtent: [-76.5, 10, -18, 49.1],
     attributions: '&copy; WotC 2000',
   }),
   title: 'Faerun WotC (3e)',
@@ -233,7 +233,7 @@ const faerunDetail = new ImageLayer({
   source: new Static({
     url:'https://raw.githubusercontent.com/jonovotny/vectorized-realms/main/faerun-3e/faerun-v016-40dpi.jpg',
     projection: 'EPSG:4326',
-    imageExtent: [-86.5, 10, -28, 49.1],
+    imageExtent: [-76.5, 10, -18, 49.1],
   }),
   visible: true,
   title: 'Vectorized Realms Detail (3e)'
@@ -298,7 +298,7 @@ const grat = new Graticule({
 const FaerunMaps = new LayerGroup({
   title: 'Faerun',
   visible: true,
-  layers: [faerun2000, faerunDetail],
+  layers: [faerun2000],
   //layers: [faerun2000warped, faerun2000, faerunRaw, faerunDetail, faerun2000dist],
   //layers:[faerun2000, grat]
 });
@@ -390,7 +390,7 @@ const torilmap = new Map({
   controls: defaultControls().extend([new Map3DControl(), scaleControl]),
   layers: [
     //TorilMaps,
-    //FaerunMaps,
+    FaerunMaps,
     VectorMaps,
     controlpoints
   ],

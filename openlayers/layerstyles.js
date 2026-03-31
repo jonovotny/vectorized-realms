@@ -407,14 +407,17 @@ styleLib["POIs"] = new Style({
 
 styleLib["[Gen] POI Labels"] = new Style({
 	text: new Text({
-		font: '14px Alegreya SC',
+		font: '16px Alegreya SC',
 		text: "",
-		textAlign: 'right',
+		textAlign: 'center',
 		offsetY: -10,
 		offsetX: -5,
 		fill: new Fill({
 			color: '#000'
 		}),
+		stroke: new Stroke({
+			color:'#fcf0e0', 
+			width: 0.5}),
 	}),
 	zIndex: 60
 });
