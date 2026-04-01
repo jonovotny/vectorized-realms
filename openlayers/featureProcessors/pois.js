@@ -126,6 +126,19 @@ function createLabelStyle(text, types, direction, resolution) {
 	labelText.setText(text);
 	labelText.setOffsetX(direction[0]);
 	labelText.setOffsetY(direction[1]);
+	if (math.abs(direction[1]) < 4) {
+		if (direction[0] > 0) {
+			labelText.setTextAlign("left");
+		} else {
+			labelText.setTextAlign("right");
+		}
+	};
+	if (math.abs(direction[1]) > 0) { 
+		labelText.setTextBaseline("bottom");
+	}
+	labelStyle.dyn=  {
+		'.getText.setFont': [[[5.99, 0.001], [6, 12], [7, 16]], "px Alegreya SC"]
+	};
 	styleLib[typeName] = labelStyle;
 	return typeName;
 }
@@ -138,9 +151,10 @@ function createPOIs(layerGroups, transform, features, exportFeatures){
 	var labelFC = featureCollection([]);
 	var labelLayerName = "[Gen] POI Labels";
 
-	var collisionPoints = combine(featureCollection(features.Roads.features.concat(features.Trails.features)));
+	var collisionPoints = featureCollection(features.Roads.features.concat(features.Trails.features));
 	for (var feat of collisionPoints.features) {
 		expandBB(feat, 0.2);
+		//labelFC.features.push(bboxPolygon(bbox(feat), {properties: {styleName: "default"}}));
 	}
 
 	for (var poi of features.POIs.features) {
@@ -163,25 +177,37 @@ function createPOIs(layerGroups, transform, features, exportFeatures){
 		markerFC.features.push(point(poi.geometry.coordinates[0], poi.properties));
 
 		var touchingLines = [];
-		var poiPoint = point(poi.geometry.coordinates[0]);
+		var poiPoint = poi.geometry.coordinates[0];
 		for (var line of collisionPoints.features) {
-			if (booleanWithin(bboxPolygon(bbox(line)))) {
+			var bb = bbox(line);
+			if (poiPoint[0] >= bb[0] && poiPoint[1] >= bb[1] && poiPoint[0] <= bb[2] && poiPoint[1] <= bb[3]) {
 				touchingLines.push(line);
 			}
 		}
-		touchingLines = combine(featureCollection([touchingLines]));
+		poiPoint = point(poi.geometry.coordinates[0]);
 		var nearestPoints = []
-		for (var linePoint of explode(touchingLines).features) {
-			if (distance(linePoint, poiPoint) < 20) {
-				nearestPoints.push(linePoint);
+		for (var line of touchingLines) {
+			var candidatePoint = null;
+			var targetDistance = 20;
+			for (var coords of line.geometry.coordinates) {
+				var linePoint = point(coords);
+				var dist = distance(linePoint, poiPoint);
+				if (dist < targetDistance && dist > 0.0001) {
+					candidatePoint = linePoint;
+					targetDistance  =  dist;
+				}
 			}
+			if (candidatePoint) {
+				nearestPoints.push(candidatePoint);
+				labelFC.features.push(lineString([candidatePoint.geometry.coordinates, poi.geometry.coordinates[0]], {styleName: "default"}));
+			};
 		}
-		nearestPoints = combine(featureCollection([nearestPoints]));
-		var direction = [0, -10];
-		if (nearestPoints != undefined) {
+		nearestPoints = featureCollection(nearestPoints);
+		var direction = [0, -5];
+		if (nearestPoints.features.length > 0) {
 			var meanNearest = centerMean(nearestPoints);
 			var normal = math.subtract(meanNearest.geometry.coordinates, poiPoint.geometry.coordinates);
-			var direction = math.multiply(math.divide(normal, math.norm(normal)),-10);
+			var direction = math.multiply(math.divide(normal, math.norm(normal)), -5);
 		}
 		
 
