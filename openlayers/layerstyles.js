@@ -199,7 +199,8 @@ styleLib["Rivers"] = new Style({
 		color: "#bad9e8",
 		width: 3.0,
 		lineCap: 'round',
-	})
+	}),
+	zIndex:8
 });
 
 styleLib["Ridges"] = new Style({ 
@@ -353,6 +354,7 @@ styleLib["Political Boundaries"] = new Style({
 		width: 2,
 		lineCap: 'round',
 	}),
+	zIndex:60
 });
 
 styleLib["[Gen] Political Outlines"] = new Style({ 
@@ -369,6 +371,7 @@ styleLib["[Gen] Political Background"] = new Style({
 	fill: new Fill({
 		color: "#00000022"
 	}),
+	zIndex:60
 		/*stroke: new Stroke({
 		color: '#0000bb',
 		width: 1.0,
@@ -423,7 +426,7 @@ styleLib["[Gen] POI Labels"] = new Style({
 		width: 1.0,
 		lineCap: 'round',
 	}),
-	zIndex: 60
+	zIndex: 100
 });
 
 var dynamicAttributes = {};

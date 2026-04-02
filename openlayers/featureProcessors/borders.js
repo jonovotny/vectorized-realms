@@ -85,13 +85,13 @@ function createPoliticalBorders(layerGroups, transform, features){
 			if (booleanIntersects(bboxPolygon(region.bbox), bboxPolygon(otherRegion.bbox))) {
 				var overlap = lineOverlap(region, otherRegion, {tolerance: 10});
 				if (overlap.features.length > 0) {
-					console.log(region.properties["inkscape:label"] + '->' + otherRegion.properties["inkscape:label"])
+					//console.log(region.properties["inkscape:label"] + '->' + otherRegion.properties["inkscape:label"])
 					//TODO
 					pushToDict(connectionGraph, label, otherRegion.properties["inkscape:label"]);
 					pushToDict(connectionGraph, otherRegion.properties["inkscape:label", label]);
 					processedEdges.push[region.properties["inkscape:label"] + '->' + otherRegion.properties["inkscape:label"]];
 					processedEdges.push[otherRegion.properties["inkscape:label"] + '->' + region.properties["inkscape:label"]];
-					console.log(overlap);
+					//console.log(overlap);
 
 					borderLines.features = borderLines.features.concat(overlap.features);
 
@@ -123,7 +123,7 @@ function createPoliticalBorders(layerGroups, transform, features){
 		style: styleLib['default']
 	});
 	//exportFeatures["[Gen] ConnectionGraph"] = graphEdges;
-	layerGroups.getLayers().array_.push(outputLayer2);
+	//layerGroups.getLayers().array_.push(outputLayer2);
 
 	var outputLayer3 = new VectorLayer({
 		title: "[Gen] Political Outlines",
@@ -133,7 +133,7 @@ function createPoliticalBorders(layerGroups, transform, features){
 		style: styleLib["[Gen] Political Outlines"]
 	});
 	//exportFeatures["[Gen] Political Outlines"] = borderLines;
-	layerGroups.getLayers().array_.push(outputLayer3);
+	//layerGroups.getLayers().array_.push(outputLayer3);
 }
 
 export {createPoliticalBorders};

@@ -13,7 +13,7 @@ import { getCachedStyle, registerDynamicStyles, expandBB } from './utils.js';
 const math = create(all, {});
 
 
-import {  lineIntersect, area, bezierSpline, concave, bboxPolygon, booleanWithin, bbox, pointToPolygonDistance, tin, multiPoint, explode, lineChunk, simplify, flatten, booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanIntersects, lineSliceAlong, voronoi, intersect, booleanPointInPolygon, angle, union, distance, centerMean } from '@turf/turf';
+import {  lineIntersect, area, bezierSpline, concave, bboxPolygon, booleanWithin, bbox, pointToPolygonDistance, tin, multiPoint, explode, lineChunk, simplify, flatten, booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanIntersects, lineSliceAlong, voronoi, intersect, booleanPointInPolygon, angle, union, distance, centerMean, convex } from '@turf/turf';
 
 var markerDetails = {};
 markerDetails['City'] = {
@@ -97,7 +97,8 @@ function createMarkerStyle (types, rotation) {
 				opacity: 1,
 				src: markerDetails[type]["src"],
 				scale: 1.5,
-				rotation: rotation
+				rotation: rotation,
+				rotateWithView: rotation ? true : false
 			}),
 		});
 		newStyle["dyn"] =  markerDetails[type]["dyn"];
@@ -120,22 +121,28 @@ function createLabelStyle(text, types, direction, resolution) {
 	console.log(text);
 	var typeName = "POI Label " + text;
 	if (styleLib[typeName]) return typeName;
+	var xOffset = 8;
+	var yOffset = 4;
 
 	var labelStyle = styleLib["[Gen] POI Labels"].clone();
 	var labelText = labelStyle.getText();
 	labelText.setText(text);
-	labelText.setOffsetX(direction[0]);
-	labelText.setOffsetY(direction[1]);
-	if (math.abs(direction[1]) < 4) {
+	labelText.setOffsetX(direction[0] * xOffset);
+	labelText.setOffsetY(-direction[1] * yOffset);
+	if (-direction[1] < 0) { 
+		labelText.setTextBaseline("bottom");
+	};
+	if (math.abs(direction[0]) > 0.8) {
+		labelText.setTextBaseline("middle");
+	}
+	if (math.abs(direction[1]) < 0.9) {
 		if (direction[0] > 0) {
 			labelText.setTextAlign("left");
 		} else {
 			labelText.setTextAlign("right");
 		}
 	};
-	if (math.abs(direction[1]) > 0) { 
-		labelText.setTextBaseline("bottom");
-	}
+
 	labelStyle.dyn=  {
 		'.getText.setFont': [[[5.99, 0.001], [6, 12], [7, 16]], "px Alegreya SC"]
 	};
@@ -184,31 +191,100 @@ function createPOIs(layerGroups, transform, features, exportFeatures){
 				touchingLines.push(line);
 			}
 		}
+
+		
+
 		poiPoint = point(poi.geometry.coordinates[0]);
 		var nearestPoints = []
 		for (var line of touchingLines) {
-			var candidatePoint = null;
-			var targetDistance = 20;
-			for (var coords of line.geometry.coordinates) {
-				var linePoint = point(coords);
+			var candidateId = -1;
+			var targetDistance = Number.POSITIVE_INFINITY;
+			for (var coordId = 0 ; coordId < line.geometry.coordinates.length; coordId++) {
+				var linePoint = point(line.geometry.coordinates[coordId]);
 				var dist = distance(linePoint, poiPoint);
-				if (dist < targetDistance && dist > 0.0001) {
-					candidatePoint = linePoint;
-					targetDistance  =  dist;
+				if (dist < targetDistance) {
+					candidateId = coordId;
+					targetDistance = dist;
 				}
 			}
-			if (candidatePoint) {
-				nearestPoints.push(candidatePoint);
-				labelFC.features.push(lineString([candidatePoint.geometry.coordinates, poi.geometry.coordinates[0]], {styleName: "default"}));
-			};
+			if (candidateId >= 0) {
+				if (targetDistance < 0.001) {
+					if (candidateId == 0) {
+						var normal = math.subtract(line.geometry.coordinates[1], poiPoint.geometry.coordinates);
+						normal = math.divide(normal, math.norm(normal));
+						nearestPoints.push(point(math.add(normal, poiPoint.geometry.coordinates)));
+						//labelFC.features.push(lineString([nearestPoints.at(-1).geometry.coordinates, poiPoint.geometry.coordinates], {styleName: "default"}));
+					} else if (candidateId == line.geometry.coordinates.length-1) {
+						var normal = math.subtract(line.geometry.coordinates.at(-2), poiPoint.geometry.coordinates);
+						normal = math.divide(normal, math.norm(normal));
+						nearestPoints.push(point(math.add(normal, poiPoint.geometry.coordinates)));
+						//labelFC.features.push(lineString([nearestPoints.at(-1).geometry.coordinates, poiPoint.geometry.coordinates], {styleName: "default"}));
+					} else {
+						var normal = math.subtract(line.geometry.coordinates[candidateId-1], poiPoint.geometry.coordinates);
+						normal = math.divide(normal, math.norm(normal));
+						nearestPoints.push(point(math.add(normal, poiPoint.geometry.coordinates)));
+						//labelFC.features.push(lineString([nearestPoints.at(-1).geometry.coordinates, poiPoint.geometry.coordinates], {styleName: "default"}));
+						
+						var normal2 = math.subtract(line.geometry.coordinates[candidateId+1], poiPoint.geometry.coordinates);
+						normal2 = math.divide(normal2, math.norm(normal2));
+						nearestPoints.push(point(math.add(normal2, poiPoint.geometry.coordinates)));
+						//labelFC.features.push(lineString([nearestPoints.at(-1).geometry.coordinates, poiPoint.geometry.coordinates], {styleName: "default"}));
+					}
+				} else {
+					if (targetDistance < 20){
+						var normal = math.subtract(line.geometry.coordinates[candidateId], poiPoint.geometry.coordinates);
+						normal = math.divide(normal, math.norm(normal));
+						nearestPoints.push(point(math.add(normal, poiPoint.geometry.coordinates)));
+						//labelFC.features.push(lineString([nearestPoints.at(-1).geometry.coordinates, poiPoint.geometry.coordinates], {styleName: "default"}));
+					}
+				}
+			}
 		}
+
+		for (var collPoi of features.POIs.features){
+			var otherPoi = point(collPoi.geometry.coordinates[0]);
+			var dist = distance(otherPoi, poiPoint);
+			if (dist < 50 && dist > 0.0001) {
+				var normal = math.subtract(otherPoi.geometry.coordinates, poiPoint.geometry.coordinates);
+				normal = math.divide(normal, math.norm(normal));
+				nearestPoints.push(point(math.add(normal, poiPoint.geometry.coordinates)));
+				//labelFC.features.push(lineString([nearestPoints.at(-1).geometry.coordinates, poiPoint.geometry.coordinates], {styleName: "default"}));
+			}
+		}
+
 		nearestPoints = featureCollection(nearestPoints);
-		var direction = [0, -5];
-		if (nearestPoints.features.length > 0) {
-			var meanNearest = centerMean(nearestPoints);
-			var normal = math.subtract(meanNearest.geometry.coordinates, poiPoint.geometry.coordinates);
-			var direction = math.multiply(math.divide(normal, math.norm(normal)), -5);
+		var hull = convex(nearestPoints);
+		if (hull) {
+			nearestPoints = explode(hull);
 		}
+
+		var direction = [0, 1];
+
+		if (nearestPoints.features.length > 0) {
+			var prevCoord = nearestPoints.features.at(-1).geometry.coordinates;
+			var poiCoord = poiPoint.geometry.coordinates;
+
+			if(nearestPoints.features.length == 1) {
+				direction = math.subtract(poiCoord, prevCoord);
+			} else {
+				var maxAngle = 0;
+				for (var currPoint of nearestPoints.features) {
+					var currCoord = currPoint.geometry.coordinates;
+					var currAngle = angle(prevCoord, poiCoord, currCoord);
+					if (currAngle > maxAngle) {
+						maxAngle = currAngle;
+						direction = math.add(math.subtract(prevCoord, poiCoord), math.subtract(currCoord, poiCoord));
+						if (currAngle > 180) {
+							direction = math.multiply(direction, -1);
+						}
+					}
+					prevCoord = currCoord;
+				}
+			}
+			direction = math.divide(direction, math.norm(direction));
+		}
+
+		//labelFC.features.push(lineString([[poi.geometry.coordinates[0][0]+direction[0], poi.geometry.coordinates[0][1]+direction[1]], poi.geometry.coordinates[0]], {styleName: "[Gen] Detail Flanklines"}));
 		
 
 
