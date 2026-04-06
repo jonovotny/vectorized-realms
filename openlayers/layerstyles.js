@@ -200,7 +200,7 @@ styleLib["Rivers"] = new Style({
 		width: 3.0,
 		lineCap: 'round',
 	}),
-	zIndex:8
+	zIndex: 8
 });
 
 styleLib["Ridges"] = new Style({ 
@@ -388,6 +388,7 @@ styleLib["Roads"] = new Style({
 	}),
 	zIndex: 30
 });
+styleLib["Roads"].dyn = {".getStroke.setWidth": [[[3, 0.25], [7, 1.5]], ""]};
 
 styleLib["Trails"] = new Style({
 	stroke: new Stroke({
@@ -398,6 +399,9 @@ styleLib["Trails"] = new Style({
 	}),
 	zIndex: 30
 });
+styleLib["Trails"].dyn = {".getStroke.setWidth": [[[4, 0], [7, 1.5]], ""]};
+styleLib["Trails"].minZoom = 4;
+
 
 styleLib["POIs"] = new Style({
 	stroke: new Stroke({

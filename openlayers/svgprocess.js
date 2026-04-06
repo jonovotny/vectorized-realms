@@ -91,7 +91,7 @@ export function processSvg(doc, extent, layerGroup) {
 		}
 
 		if (lay.values_.title == "Lakes") {
-			//lay.setZIndex(18);
+			lay.setZIndex(18);
 		}
 
 		if (lay.values_.title == "Volcanos") {

@@ -69,7 +69,18 @@ function offsetFeature(feat, dist) {
 }
 
 function getCachedStyle(feature, resolution) {
-	return styleLib[feature.get("styleName")];
+	var style = styleLib[feature.get("styleName")];
+	if (!style) {
+		style = styleLib["default"];
+	}
+	if (Object.hasOwn(style, 'visible') && style['visible'] == false) return undefined;
+	if (Array.isArray(style)) {
+		style = style.filter(subStyle => (Object.hasOwn(subStyle, 'visible') && subStyle['visible']));
+		if (style.length == 1){
+			style = style.pop();
+		}
+	}
+	return style;
 }
 
 function pushToDict (dict, key, value){
@@ -115,8 +126,18 @@ function updateDynamicStyles(zoom, styleLib, dynamicAttributes) {
 		var attrib = key.split(".");
 		if (attrib.length < 2) continue;
 		var context = styleLib[attrib.shift()];
+		if (Array.isArray(context)) {
+			context = context[attrib.shift()];
+		}
+
+		if ((Object.hasOwn(context, 'minZoom') && zoom < context['minZoom']) || (Object.hasOwn(context, 'maxZoom') && zoom > context['maxZoom'])) {
+			context.visible = false;
+			continue;
+		} else {
+			context.visible = true;
+		}
 		var setter = attrib.pop();
-		var suffix =  keypoints[1];
+		var suffix = keypoints[1];
 
 		var value = keypoints[0].at(0)[1];
 		var fromValue = keypoints[0].at(0)[1];

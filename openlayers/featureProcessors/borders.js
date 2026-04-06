@@ -12,7 +12,7 @@ import { getCachedStyle, pushToDict } from './utils.js';
 import geojson2svg from '../geojsonprocess.js';
 //import { styleLib } from './layerstyles-nofill.js';
 
-import {  booleanOverlap, lineIntersect, area, bezierSpline, concave, bboxPolygon, booleanWithin, bbox, pointToPolygonDistance, tin, multiPoint, explode, lineChunk, simplify, flatten, booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanIntersects, lineSliceAlong, voronoi, intersect, booleanPointInPolygon, difference, pointOnFeature, lineOverlap, union } from '@turf/turf';
+import {  booleanOverlap, lineIntersect, area, bezierSpline, concave, bboxPolygon, booleanWithin, bbox, pointToPolygonDistance, tin, multiPoint, explode, lineChunk, simplify, flatten, booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanIntersects, lineSliceAlong, voronoi, intersect, booleanPointInPolygon, difference, pointOnFeature, lineOverlap, union, destination } from '@turf/turf';
 import { LineString } from 'ol/geom.js';
 
 //https://colorbrewer2.org/#type=qualitative&scheme=Paired&n=10
@@ -104,6 +104,52 @@ function createPoliticalBorders(layerGroups, transform, features){
 			}
 		}
 	}
+/*
+	var origin = point([-76.5,10]);
+	var size = 120;
+	var longSize = 138.56;
+	var side = 69.28;
+	var dimX = [0, 50];
+	var dimY = [0, 26];
+	var toProcess = [];
+	var points = [];
+	var shortStep = true;
+	var yOrigin = origin;
+	var yOffset = 0;
+	for (var cellY = dimY[0]; cellY < dimY[1]; cellY ++) {
+		var pt = destination(origin, yOffset, 0, {units: 'miles'});
+		toProcess.push(pt);
+		if (shortStep) {
+			yOffset += side;
+			shortStep = false;
+		} else {
+			yOffset += longSize;
+			shortStep = true;
+		}
+	}*/
+
+	/*shortStep = true;
+	for (var cellX = dimX[0]; cellX <= dimX[1]; cellX ++) {
+		points = points.concat(toProcess);
+		var newProcess = [];
+		for (var sourcePt of toProcess){
+			var rowOrigin = null;
+			if (shortStep) {
+				rowOrigin = destination(sourcePt, side, 120, {units: 'miles'});
+				shortStep = false;
+			} else {
+				rowOrigin = destination(sourcePt, side, 60, {units: 'miles'});
+				shortStep = true;
+			}
+			newProcess.push(rowOrigin);
+		}
+		shortStep = !shortStep;
+		toProcess = newProcess;		
+	}
+
+	var mesh = tin(featureCollection(points));*/
+
+
 
 	var outputLayer = new VectorLayer({
 		title: "[Gen] Political Background",
@@ -114,14 +160,14 @@ function createPoliticalBorders(layerGroups, transform, features){
 	});
 	//exportFeatures["[Gen] Political Background"] = regionBackgrounds;
 	layerGroups.getLayers().array_.push(outputLayer);
-
+/*
 	var outputLayer2 = new VectorLayer({
 		title: "[Gen] ConnectionGraph",
 		source: new VectorSource({
-			features: new GeoJSON().readFeatures(graphEdges),
+			features: new GeoJSON().readFeatures(connectionGraph),
 		}),
 		style: styleLib['default']
-	});
+	});*/
 	//exportFeatures["[Gen] ConnectionGraph"] = graphEdges;
 	//layerGroups.getLayers().array_.push(outputLayer2);
 

@@ -21,64 +21,72 @@ markerDetails['City'] = {
        + '<circle style="fill:black;stroke:black;stroke-width:1.5" r="1.3" cx="5" cy="5"/>'
        + '</svg>',
 	dyn: {
-		".getImage.setScale": [[[5.99, 0.001], [6, 1], [7, 1.5]], ""]
+		".getImage.setScale": [[[6, 1], [7, 1.5]], ""]
 	},
+	minZoom: 6,
 	zIndex: 46};
 markerDetails['Port'] = {
 	src: 'data:image/svg+xml;utf8,<svg width="10" height="10" version="1.1" xmlns="http://www.w3.org/2000/svg">'
        + '<circle style="fill:white;fill-opacity:0.4;stroke:black;stroke-width:1.5" r="3.5" cx="5" cy="5"/>'
        + '</svg>',
 	dyn: {
-		".getImage.setScale": [[[5.99, 0.001], [6, 1], [7, 1.5]], ""]
+		".getImage.setScale": [[[6, 1], [7, 1.5]], ""]
 	},
+	minZoom: 6,
 	zIndex: 46};
 markerDetails['Ruin'] = {
 	src: 'data:image/svg+xml;utf8,<svg width="10" height="10" version="1.1" xmlns="http://www.w3.org/2000/svg">'
        + '<rect style="fill:black;stroke:black;stroke-width:1.5" width="6" height="6" x="2" y="2"/>'
        + '</svg>',
 	dyn: {
-		".getImage.setScale": [[[5.99, 0.001], [6, .75], [8, 1.5]], ""]
+		".getImage.setScale": [[[6, .75], [8, 1.5]], ""]
 	},
+	minZoom: 6,
 	zIndex: 46};
 markerDetails['Fortress'] = {
 	src: 'data:image/svg+xml;utf8,<svg width="10" height="10" version="1.1" xmlns="http://www.w3.org/2000/svg">'
        + '<rect style="fill:white;stroke:black;stroke-width:1.5" width="6" height="6" x="2" y="2"/>'
        + '</svg>',
 	dyn: {
-		".getImage.setScale": [[[5.99, 0.001], [6, .75], [8, 1.5]], ""]
+		".getImage.setScale": [[[6, .75], [8, 1.5]], ""]
 	},
+	minZoom: 6,
 	zIndex: 46};
 markerDetails['Capital'] = {
 	src: 'data:image/svg+xml;utf8,<svg width="10" height="10" version="1.1" xmlns="http://www.w3.org/2000/svg">'
        + '<path style="fill:black;stroke:black;stroke-width:1.5" d="M 5.80303 6.05219 L 5.01593 5.66099 L 4.24746 6.0876 L 4.37629 5.21815 L 3.73309 4.61911 L 4.5998 4.47296 L 4.97075 3.67613 L 5.37758 4.45526 L 6.25005 4.56182 L 5.63477 5.1895 Z" />'
        + '</svg>',
 	dyn: {
-		".getImage.setScale": [[[4.99, 0.001], [5, 1], [7, 1.5]], ""]
+		".getImage.setScale": [[[5, 1], [7, 1.5]], ""]
 	},
+	minZoom: 5,
 	zIndex: 46};
 markerDetails['Site'] = {
 	src: 'data:image/svg+xml;utf8,<svg width="10" height="10" version="1.1" xmlns="http://www.w3.org/2000/svg">'
        + '<path style="fill:none;stroke:black;stroke-width:1.5" d="M 2.7 2.7 L 7.3 7.3 M 2.7 7.3 L 7.3 2.7" />'
        + '</svg>',
 	dyn: {
-		".getImage.setScale": [[[7.99, 0.001], [8, .75], [10, 1.5]], ""]
+		".getImage.setScale": [[[7, .75], [9, 1.5]], ""]
 	},
+	minZoom: 7,
 	zIndex: 46};
 markerDetails['Temple'] = {
 	src: 'data:image/svg+xml;utf8,<svg width="10" height="10" version="1.1" xmlns="http://www.w3.org/2000/svg">'
        + '<polygon style="fill:black;stroke:black;stroke-width:1.5" points="5,3 6.73,6.46 3.17,6.46" />'
        + '</svg>',
 	dyn: {
-		".getImage.setScale": [[[5.99, 0.001], [6, .75], [8, 1.5]], ""]
+		".getImage.setScale": [[[6, .75], [8, 1.5]], ""]
 	},
+	minZoom: 6,
 	zIndex: 46};
 markerDetails['Bridge'] = {
 	src: 'data:image/svg+xml;utf8,<svg width="10" height="10" version="1.1" xmlns="http://www.w3.org/2000/svg">'
        + '<path style="fill:black;stroke:black;stroke-width:1.5" d="M 2.01892 1.48946 L 2.99774 2.46822 L 2.99774 7.53179 L 2.01892 8.51055 M 7.98173 8.51055 L 7.00291 7.53179 L 7.00291 2.46822 L 7.98173 1.48946" />'
        + '</svg>',
 	dyn: {
-		".getImage.setScale": [[[5.99, 0.001], [6, .75], [8, 1.5]], ""]
+		".getImage.setScale": [[[6, .75], [8, 1.5]], ""]
 	},
+	minZoom: 6,
 	zIndex: 46};
 
 function createMarkerStyle (types, rotation) {
@@ -101,8 +109,9 @@ function createMarkerStyle (types, rotation) {
 				rotateWithView: rotation ? true : false
 			}),
 		});
-		newStyle["dyn"] =  markerDetails[type]["dyn"];
-		newStyle["zIndex"] = markerDetails[type]["zIndex"];
+		newStyle.dyn =  markerDetails[type]["dyn"];
+		newStyle.minZoom = markerDetails[type]["minZoom"];
+		newStyle.maxZoom = markerDetails[type]["maxZoom"];
 		style.push(newStyle)
 	}
 
@@ -122,13 +131,13 @@ function createLabelStyle(text, types, direction, resolution) {
 	var typeName = "POI Label " + text;
 	if (styleLib[typeName]) return typeName;
 	var xOffset = 8;
-	var yOffset = 4;
+	var yOffset = 3;
 
 	var labelStyle = styleLib["[Gen] POI Labels"].clone();
 	var labelText = labelStyle.getText();
 	labelText.setText(text);
 	labelText.setOffsetX(direction[0] * xOffset);
-	labelText.setOffsetY(-direction[1] * yOffset);
+	labelText.setOffsetY((-direction[1] * yOffset));
 	if (-direction[1] < 0) { 
 		labelText.setTextBaseline("bottom");
 	};
@@ -143,9 +152,23 @@ function createLabelStyle(text, types, direction, resolution) {
 		}
 	};
 
-	labelStyle.dyn=  {
-		'.getText.setFont': [[[5.99, 0.001], [6, 12], [7, 16]], "px Alegreya SC"]
-	};
+	if (types.includes("Capital")) {
+		labelStyle.dyn =  {
+			'.getText.setFont': [[[5, 10], [7, 16]], "px Alegreya SC"]
+		};
+		labelStyle.minZoom = 5;
+	} else if (types.includes("Site")) {
+		labelStyle.dyn =  {
+			'.getText.setFont': [[[7, 10], [9, 16]], "px Alegreya SC"]
+		};
+		labelStyle.minZoom = 7;
+	} else {
+		labelStyle.dyn =  {
+			'.getText.setFont': [[[6, 12], [8, 16]], "px Alegreya SC"]
+		};
+		labelStyle.minZoom = 6;
+	}
+	
 	styleLib[typeName] = labelStyle;
 	return typeName;
 }
@@ -208,26 +231,17 @@ function createPOIs(layerGroups, transform, features, exportFeatures){
 				}
 			}
 			if (candidateId >= 0) {
-				if (targetDistance < 0.001) {
-					if (candidateId == 0) {
-						var normal = math.subtract(line.geometry.coordinates[1], poiPoint.geometry.coordinates);
-						normal = math.divide(normal, math.norm(normal));
-						nearestPoints.push(point(math.add(normal, poiPoint.geometry.coordinates)));
-						//labelFC.features.push(lineString([nearestPoints.at(-1).geometry.coordinates, poiPoint.geometry.coordinates], {styleName: "default"}));
-					} else if (candidateId == line.geometry.coordinates.length-1) {
-						var normal = math.subtract(line.geometry.coordinates.at(-2), poiPoint.geometry.coordinates);
-						normal = math.divide(normal, math.norm(normal));
-						nearestPoints.push(point(math.add(normal, poiPoint.geometry.coordinates)));
-						//labelFC.features.push(lineString([nearestPoints.at(-1).geometry.coordinates, poiPoint.geometry.coordinates], {styleName: "default"}));
-					} else {
+				if (targetDistance < 0.01) {
+					if (candidateId > 0) {
 						var normal = math.subtract(line.geometry.coordinates[candidateId-1], poiPoint.geometry.coordinates);
 						normal = math.divide(normal, math.norm(normal));
 						nearestPoints.push(point(math.add(normal, poiPoint.geometry.coordinates)));
 						//labelFC.features.push(lineString([nearestPoints.at(-1).geometry.coordinates, poiPoint.geometry.coordinates], {styleName: "default"}));
-						
-						var normal2 = math.subtract(line.geometry.coordinates[candidateId+1], poiPoint.geometry.coordinates);
-						normal2 = math.divide(normal2, math.norm(normal2));
-						nearestPoints.push(point(math.add(normal2, poiPoint.geometry.coordinates)));
+					}
+					if (candidateId < line.geometry.coordinates.length-1) {
+						var normal = math.subtract(line.geometry.coordinates[candidateId+1], poiPoint.geometry.coordinates);
+						normal = math.divide(normal, math.norm(normal));
+						nearestPoints.push(point(math.add(normal, poiPoint.geometry.coordinates)));
 						//labelFC.features.push(lineString([nearestPoints.at(-1).geometry.coordinates, poiPoint.geometry.coordinates], {styleName: "default"}));
 					}
 				} else {
@@ -244,7 +258,7 @@ function createPOIs(layerGroups, transform, features, exportFeatures){
 		for (var collPoi of features.POIs.features){
 			var otherPoi = point(collPoi.geometry.coordinates[0]);
 			var dist = distance(otherPoi, poiPoint);
-			if (dist < 50 && dist > 0.0001) {
+			if (dist < 100 && dist > 0.01) {
 				var normal = math.subtract(otherPoi.geometry.coordinates, poiPoint.geometry.coordinates);
 				normal = math.divide(normal, math.norm(normal));
 				nearestPoints.push(point(math.add(normal, poiPoint.geometry.coordinates)));
