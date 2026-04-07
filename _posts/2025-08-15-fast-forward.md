@@ -4,11 +4,11 @@ title: Terrain fast forward
 date: 2025-08-15
 published: false
 ---
-There are several terrain types left, but thez can be created from a combination of methods from previous posts. So let's go over them all in one post. I'll also include some improvements to previous styles.
+There are several terrain types left. Fortunately, they can be created from a combination of methods from previous posts. So let's go over them all in one post. I'll also include some improvements to previous styles.
 
 # Half a mountain
 
-Let's start with cliffs. At first glance, they are mountains with just one side, but after reviewing all their occurrences on the 3e map, it turns out they are even simpler than that. With mountains, we had to account for varying flank widths between ridges and outlines, but cliff faces appear to have a uniform width throughout the map. This means we only need to define the upper ridgeline of the cliff, and can generate the background and flank lines automatically. For the background, we create an offset line of the ridge at the desired distance. Turf.js can do this for us, but we will have to correct self-intersections of this offset line at tight corners by detecting and removing ["line kinks"](https://turfjs.org/docs/api/unkinkPolygon). Flank lines are placed perpendicular to the ridge at even steps along the line. At concave turns of the ridgeline, this might lead to self-intersections between flanks. But we can use the same strategies as in the mountain case to shorten affected lines. The result looks like this:
+Let's start with cliffs. At first glance, they are mountains with just one side, but after reviewing all their occurrences on the 3e map, it turns out they are even simpler than that. With mountains, we had to account for varying flank widths between ridges and outlines, but cliff faces appear to have a uniform width throughout the map. This means we only need to define the upper ridgeline of the cliff, and can generate the background and flank lines automatically. For the background, we create an offset line of the ridge at the desired distance and connect it with the ridge line to form a polygon. Turf.js can do this for us, but we will have to correct self-intersections of this offset line at tight corners by detecting and removing ["line kinks"](https://turfjs.org/docs/api/unkinkPolygon). Flank lines are placed perpendicular to the ridge at even steps along the line. At concave turns of the ridgeline, this might lead to self-intersections between flanks. But we can use the same strategies as in the mountain case to shorten affected lines. The result looks like this:
 
 We have to be able to handle open cliffs with a start and end, like the one along the Sword Coast, and closed ring cliffs like the Thay plateau. Closed cliffs are the easier case, since we don't have to handle the start and end in any special way. We can change the direction of the ridge polygon to change the side of the cliff to point inwards, e.g., to create the Great Rift feature.
 
@@ -28,7 +28,7 @@ Badlands add another feature to the pattern with their small circular hills. How
 
 I also applied the dot patterns to previous terrains, like plains, forests, and jungles. This addressed the issues that random dots caused with browser rendering.
 
-# ...and crossing the swamps.
+# ...and lining the swamps.
 
 The other visual features that had browser rendering issues were the broken outlines of swamps, marshes, and moors. Since we now have a somewhat robust way of generating line offsets, we can simply generate an offset line with a dash pattern matching the one on the 3e map. We can then also apply the method to the badlands outline.
 
@@ -56,4 +56,4 @@ What's left is to take care of edge cases, which is why we made sure the coast a
 And there we have it. All natural features of the 3e map are covered, and we just have to put things together like so:
 
 
-What's now missing are labels, structures (e.g., cities and roads), and other geographic data like political boundaries. But before tackling that, I want to experiment with applying these visual styles to the 2e map.
+What's now missing are labels, structures (e.g., cities and roads), and other geographic data like political boundaries.
