@@ -74,20 +74,20 @@ export function processSvg(doc, extent, layerGroup) {
 	var volcanoLayer = null;
 	layerGroup.getLayers().forEach(function (lay) {
 		if (lay.values_.title == "Mountain snow") {
-			lay.setZIndex(7);
+			//lay.setZIndex(7);
 		}
 
 		if (lay.values_.title == "[Gen] Detail Flanklines") {
-			lay.setZIndex(9);
+			//lay.setZIndex(9);
 		}
 
 		if (lay.values_.title == "Ridges") {
-			lay.setZIndex(10);
+			//lay.setZIndex(10);
 			lay.setMinZoom(7);
 		}
 
 		if (lay.values_.title == "Rivers") {
-			lay.setZIndex(15);
+			//lay.setZIndex(15);
 		}
 
 		if (lay.values_.title == "Lakes") {
@@ -95,7 +95,7 @@ export function processSvg(doc, extent, layerGroup) {
 		}
 
 		if (lay.values_.title == "Volcanos") {
-			lay.setZIndex(20);
+			//lay.setZIndex(20);
 		}
 
 		if (lay.values_.title == "Flanks") {

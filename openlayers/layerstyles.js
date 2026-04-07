@@ -5,19 +5,22 @@ var styleLib = {};
 styleLib["Deepsea"] = new Style({ 
 	fill: new Fill({
 		color: "#c2d6ed"
-	})
+	}),
+	zIndex: 10
 });
 
 styleLib["Water - continental shelf"] = new Style({ 
 	fill: new Fill({
 		color: "#cde2f7"
-	})
+	}),
+	zIndex: 20
 });
 
 styleLib["Continental shelf"] = new Style({ 
 	fill: new Fill({
 		color: "#cde2f7"
-	})
+	}),
+	zIndex: 20
 });
 
 styleLib["Land"] = new Style({ 
@@ -26,50 +29,58 @@ styleLib["Land"] = new Style({
 	}),
 	stroke: new Stroke({
 		color: "#bad9e8"
-	})
+	}),
+	zIndex: 30
 });
 
 styleLib["Grasslands"] = new Style({ 
 	fill: new Fill({
 		color: "#e9edd2"
-	})
+	}),
+	zIndex: 50
 });
 
 styleLib["Desert sandy"] = new Style({ 
 	fill: new Fill({
 		color: "#fceebf"
-	})
+	}),
+	zIndex: 70
 });
 
 styleLib["Desert rocky"] = new Style({ 
 	fill: new Fill({
 		color: "#faddb3"
-	})
+	}),
+	zIndex: 80
 });
 
 styleLib["Forests"] = [new Style({ 
 	fill: new Fill({
 		color: "#c8d09d"
-		})
+		}),
+	zIndex: 55
 	}),
 	new Style({ 
 		stroke: new Stroke({
 			color: "#8c867a",
 			width: 1
-		})
+		}),
+		zIndex: 155
 	})
 ];
 
 styleLib["Jungles"] = [new Style({ 
 	fill: new Fill({
 		color: "#bdd99e"
-		})
+		}),
+	zIndex: 60
 	}),
 	new Style({ 
 		stroke: new Stroke({
 			color: "#8c867a",
 			width: 1
-		})
+		}),
+	zIndex: 160
 	})
 ];
 
@@ -82,7 +93,8 @@ styleLib["Swamps"] = new Style({
 		width: 1,
 		cap: 'round',
 		lineDash: [15, 3, 25, 6, 18, 4, 27, 8, 30, 5, 21, 3]
-	})
+	}),
+	zIndex: 100
 });
 
 styleLib["[Gen] Swamps Detail"] = new Style({ 
@@ -92,7 +104,8 @@ styleLib["[Gen] Swamps Detail"] = new Style({
 		cap: 'round',
 		lineDash: [15, 3, 25, 6, 18, 4, 27, 8, 30, 5, 21, 3],
 		lineDashOffset: 12
-	})
+	}),
+	zIndex: 105
 });
 
 styleLib["Marshes"] = new Style({ 
@@ -104,7 +117,8 @@ styleLib["Marshes"] = new Style({
 		width: 1,
 		cap: 'round',
 		lineDash: [15, 3, 25, 6, 18, 4, 27, 8, 30, 5, 21, 3]
-	})
+	}),
+	zIndex: 110
 });
 
 styleLib["[Gen] Marshes Detail"] = new Style({ 
@@ -114,7 +128,8 @@ styleLib["[Gen] Marshes Detail"] = new Style({
 		cap: 'round',
 		lineDash: [15, 3, 25, 6, 18, 4, 27, 8, 30, 5, 21, 3],
 		lineDashOffset: 12
-	})
+	}),
+	zIndex: 115
 });
 
 styleLib["Moors"] = new Style({ 
@@ -127,7 +142,8 @@ styleLib["Moors"] = new Style({
 		cap: 'round',
 		lineDash: [15, 3, 25, 6, 18, 4, 27, 8, 30, 5, 21, 3],
 		lineDashOffset: 12
-	})
+	}),
+	zIndex: 120
 });
 
 styleLib["[Gen] Moors Detail"] = new Style({ 
@@ -136,7 +152,8 @@ styleLib["[Gen] Moors Detail"] = new Style({
 		width: 1,
 		cap: 'round',
 		lineDash: [15, 3, 25, 6, 18, 4, 27, 8, 30, 5, 21, 3]
-	})
+	}),
+	zIndex: 128
 });
 
 styleLib["Badlands"] = new Style({ 
@@ -148,7 +165,8 @@ styleLib["Badlands"] = new Style({
 		width: 1,
 		cap: 'round',
 		lineDash: [7, 3, 12, 6, 9, 4, 13, 8, 10, 5, 8, 3]
-	})
+	}),
+	zIndex: 90
 });
 
 styleLib["[Gen] Badlands Detail"] = new Style({ 
@@ -161,27 +179,33 @@ styleLib["[Gen] Badlands Detail"] = new Style({
 		cap: 'round',
 		lineDash: [7, 3, 12, 6, 3, 4, 5, 8, 10, 5, 8, 3],
 		lineDashOffset: 12
-	})
+	}),
+	zIndex: 95
 });
 
 styleLib["Glaciers"] = new Style({ 
 	fill: new Fill({
 		color: "#fcfcfc"
-	})
+	}),
+	zIndex: 140
 });
 
 styleLib["Hills above"] = new Style({ 
 	fill: new Fill({
 		color: "#d6c1a4"
-	})
+	}),
+	zIndex: 160
 });
 
-styleLib["Hills below"] = styleLib["Hills above"];
+styleLib["Hills below"] = styleLib["Hills above"].clone();
+styleLib["Hills below"].zIndex = 150;
+
 
 styleLib["Mountains"] = new Style({ 
 	fill: new Fill({
 		color: "#b2a49b"
-	})
+	}),
+	zIndex: 170
 });
 
 styleLib["Lakes"] = new Style({ 
@@ -191,7 +215,7 @@ styleLib["Lakes"] = new Style({
 	stroke: new Stroke({
 		color: "#bad9e8"
 	}),
-	zIndex: 20
+	zIndex: 200
 });
 
 styleLib["Rivers"] = new Style({ 
@@ -200,7 +224,7 @@ styleLib["Rivers"] = new Style({
 		width: 3.0,
 		lineCap: 'round',
 	}),
-	zIndex:8
+	zIndex:180
 });
 
 styleLib["Ridges"] = new Style({ 
@@ -209,37 +233,42 @@ styleLib["Ridges"] = new Style({
 		width: 3.0,
 		lineCap: 'round',
 	}),
-	zIndex: 10
+	zIndex: 178
 });
 
 styleLib["Flanks"] = new Style({ 
 	stroke: new Stroke({
 		color: "#483e37"
-	})
+	}),
+	zIndex: 176
 });
 
 styleLib["Cliffs"] = new Style({ 
 	stroke: new Stroke({
 		color: "#61534a"
-	})
+	}),
+	zIndex: 138
 });
 
 styleLib["Snow"] = new Style({ 
 	fill: new Fill({
 		color: "#fcfcfc"
-	})
+	}),
+	zIndex: 40
 });
 
 styleLib["[Gen] Snow Detail"] = new Style({ 
 	stroke: new Stroke({
 		color: "#9aa09e"
-	})
+	}),
+	zIndex: 45
 });
 
 styleLib["Mountain snow"] = new Style({ 
 	fill: new Fill({
 		color: "#fcfcfc88"
-	})
+	}),
+	zIndex: 174
 });
 
 
@@ -252,8 +281,7 @@ styleLib["Volcanos"] = new Style({
 		width: 3.0,
 		lineCap: 'round',
 	}),
-	zIndex: 20,
-
+	zIndex: 170
 });
 
 styleLib["[Gen] Cliffs Ridges"] = new Style({ 
@@ -262,6 +290,7 @@ styleLib["[Gen] Cliffs Ridges"] = new Style({
 		width: 3.0,
 		lineCap: 'round',
 	}),
+	zIndex: 138
 });
 
 styleLib["[Gen] Cliffs Flanks"] = new Style({ 
@@ -270,12 +299,14 @@ styleLib["[Gen] Cliffs Flanks"] = new Style({
 		width: 3.0,
 		lineCap: 'round',
 	}),
+	zIndex: 135
 });
 
 styleLib["[Gen] Cliffs Background"] = new Style({ 
 	fill: new Fill({
 		color: "#b2a49b"
-	})
+	}),
+	zIndex: 130
 });
 
 styleLib["[Gen] Initial Flanklines"] = new Style({ 
@@ -292,18 +323,21 @@ styleLib["[Gen] Detail Flanklines"] = new Style({
 		width: 3.0,
 		lineCap: 'round',
 	}),
+	zIndex: 176
 });
 
 styleLib["[Gen] Mountain Illuminated"] = new Style({ 
 	fill: new Fill({
 		color: "#c7b2a1"
-	})
+	}),
+	zIndex: 172
 });
 
 styleLib["default"] = new Style({ 
 	stroke: new Stroke({
 		color: "#ff0000"
-	})
+	}),
+	zIndex: 1000
 });
 
 styleLib["[Gen] River Width"] = new Style({ 
@@ -312,7 +346,7 @@ styleLib["[Gen] River Width"] = new Style({
 		width: 3.0,
 		lineCap: 'round',
 	}),
-	zIndex: 10,
+	zIndex: 180,
 });
 
 styleLib["[Gen] River Detail"] = new Style({ 
@@ -321,7 +355,7 @@ styleLib["[Gen] River Detail"] = new Style({
 		width: 1.0,
 		lineCap: 'round',
 	}),
-	zIndex: 10,
+	zIndex: 182,
 });
 
 styleLib["[Gen] Water Labels"] = new Style({ 
@@ -335,7 +369,7 @@ styleLib["[Gen] Water Labels"] = new Style({
 			color: '#7f561b'//'#3952
 		})
 	}),
-	zIndex: 50,
+	zIndex: 210,
 	
 	/*stroke: new Stroke({
 		color: '#0000bb',
@@ -354,7 +388,7 @@ styleLib["Political Boundaries"] = new Style({
 		width: 2,
 		lineCap: 'round',
 	}),
-	zIndex:60
+	zIndex: 224
 });
 
 styleLib["[Gen] Political Outlines"] = new Style({ 
@@ -364,14 +398,14 @@ styleLib["[Gen] Political Outlines"] = new Style({
 		width: 2,
 		lineCap: 'round',
 	}),
-	zIndex:25
+	zIndex: 225
 });
 
 styleLib["[Gen] Political Background"] = new Style({ 
 	fill: new Fill({
 		color: "#00000022"
 	}),
-	zIndex:60
+	zIndex: 220
 		/*stroke: new Stroke({
 		color: '#0000bb',
 		width: 1.0,
@@ -386,7 +420,7 @@ styleLib["Roads"] = new Style({
 		width: 1.5,
 		lineCap: 'round',
 	}),
-	zIndex: 30
+	zIndex: 235
 });
 
 styleLib["Trails"] = new Style({
@@ -396,7 +430,7 @@ styleLib["Trails"] = new Style({
 		width: 1.5,
 		lineCap: 'round',
 	}),
-	zIndex: 30
+	zIndex: 230
 });
 
 styleLib["POIs"] = new Style({
@@ -405,7 +439,7 @@ styleLib["POIs"] = new Style({
 		width: 1.0,
 		lineCap: 'round',
 	}),
-	zIndex: 40
+	zIndex: 240
 });
 
 styleLib["[Gen] POI Labels"] = new Style({
@@ -426,7 +460,7 @@ styleLib["[Gen] POI Labels"] = new Style({
 		width: 1.0,
 		lineCap: 'round',
 	}),
-	zIndex: 100
+	zIndex: 245
 });
 
 var dynamicAttributes = {};
