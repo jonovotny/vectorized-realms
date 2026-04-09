@@ -91,7 +91,7 @@ export function processSvg(doc, extent, layerGroup) {
 		}
 
 		if (lay.values_.title == "Lakes") {
-			lay.setZIndex(18);
+			//ay.setZIndex(18);
 		}
 
 		if (lay.values_.title == "Volcanos") {
@@ -103,6 +103,14 @@ export function processSvg(doc, extent, layerGroup) {
 		}
 
 		if (lay.values_.title == "Cliffs") {
+			lay.values_.visible = false;
+		}
+
+		if (lay.values_.title == "POIs") {
+			lay.values_.visible = false;
+		}
+
+		if (lay.values_.title == "Political Boundaries") {
 			lay.values_.visible = false;
 		}
 	});

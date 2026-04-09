@@ -24,7 +24,7 @@ markerDetails['City'] = {
 		".getImage.setScale": [[[6, 1], [7, 1.5]], ""]
 	},
 	minZoom: 6,
-	zIndex: 46};
+	zIndex: 240};
 markerDetails['Port'] = {
 	src: 'data:image/svg+xml;utf8,<svg width="10" height="10" version="1.1" xmlns="http://www.w3.org/2000/svg">'
        + '<circle style="fill:white;fill-opacity:0.4;stroke:black;stroke-width:1.5" r="3.5" cx="5" cy="5"/>'
@@ -33,7 +33,7 @@ markerDetails['Port'] = {
 		".getImage.setScale": [[[6, 1], [7, 1.5]], ""]
 	},
 	minZoom: 6,
-	zIndex: 46};
+	zIndex: 240};
 markerDetails['Ruin'] = {
 	src: 'data:image/svg+xml;utf8,<svg width="10" height="10" version="1.1" xmlns="http://www.w3.org/2000/svg">'
        + '<rect style="fill:black;stroke:black;stroke-width:1.5" width="6" height="6" x="2" y="2"/>'
@@ -42,7 +42,7 @@ markerDetails['Ruin'] = {
 		".getImage.setScale": [[[6, .75], [8, 1.5]], ""]
 	},
 	minZoom: 6,
-	zIndex: 46};
+	zIndex: 240};
 markerDetails['Fortress'] = {
 	src: 'data:image/svg+xml;utf8,<svg width="10" height="10" version="1.1" xmlns="http://www.w3.org/2000/svg">'
        + '<rect style="fill:white;stroke:black;stroke-width:1.5" width="6" height="6" x="2" y="2"/>'
@@ -51,7 +51,7 @@ markerDetails['Fortress'] = {
 		".getImage.setScale": [[[6, .75], [8, 1.5]], ""]
 	},
 	minZoom: 6,
-	zIndex: 46};
+	zIndex: 240};
 markerDetails['Capital'] = {
 	src: 'data:image/svg+xml;utf8,<svg width="10" height="10" version="1.1" xmlns="http://www.w3.org/2000/svg">'
        + '<path style="fill:black;stroke:black;stroke-width:1.5" d="M 5.80303 6.05219 L 5.01593 5.66099 L 4.24746 6.0876 L 4.37629 5.21815 L 3.73309 4.61911 L 4.5998 4.47296 L 4.97075 3.67613 L 5.37758 4.45526 L 6.25005 4.56182 L 5.63477 5.1895 Z" />'
@@ -60,7 +60,7 @@ markerDetails['Capital'] = {
 		".getImage.setScale": [[[5, 1], [7, 1.5]], ""]
 	},
 	minZoom: 5,
-	zIndex: 46};
+	zIndex: 240};
 markerDetails['Site'] = {
 	src: 'data:image/svg+xml;utf8,<svg width="10" height="10" version="1.1" xmlns="http://www.w3.org/2000/svg">'
        + '<path style="fill:none;stroke:black;stroke-width:1.5" d="M 2.7 2.7 L 7.3 7.3 M 2.7 7.3 L 7.3 2.7" />'
@@ -69,7 +69,7 @@ markerDetails['Site'] = {
 		".getImage.setScale": [[[7, .75], [9, 1.5]], ""]
 	},
 	minZoom: 7,
-	zIndex: 46};
+	zIndex: 240};
 markerDetails['Temple'] = {
 	src: 'data:image/svg+xml;utf8,<svg width="10" height="10" version="1.1" xmlns="http://www.w3.org/2000/svg">'
        + '<polygon style="fill:black;stroke:black;stroke-width:1.5" points="5,3 6.73,6.46 3.17,6.46" />'
@@ -78,7 +78,7 @@ markerDetails['Temple'] = {
 		".getImage.setScale": [[[6, .75], [8, 1.5]], ""]
 	},
 	minZoom: 6,
-	zIndex: 46};
+	zIndex: 240};
 markerDetails['Bridge'] = {
 	src: 'data:image/svg+xml;utf8,<svg width="10" height="10" version="1.1" xmlns="http://www.w3.org/2000/svg">'
        + '<path style="fill:black;stroke:black;stroke-width:1.5" d="M 2.01892 1.48946 L 2.99774 2.46822 L 2.99774 7.53179 L 2.01892 8.51055 M 7.98173 8.51055 L 7.00291 7.53179 L 7.00291 2.46822 L 7.98173 1.48946" />'
@@ -87,7 +87,7 @@ markerDetails['Bridge'] = {
 		".getImage.setScale": [[[6, .75], [8, 1.5]], ""]
 	},
 	minZoom: 6,
-	zIndex: 46};
+	zIndex: 240};
 
 function createMarkerStyle (types, rotation) {
 	var typeName = "Marker " + types;
@@ -157,6 +157,7 @@ function createLabelStyle(text, types, direction, resolution) {
 			'.getText.setFont': [[[5, 10], [7, 16]], "px Alegreya SC"]
 		};
 		labelStyle.minZoom = 5;
+		labelStyle.zIndex = 244; 
 	} else if (types.includes("Site")) {
 		labelStyle.dyn =  {
 			'.getText.setFont': [[[7, 10], [9, 16]], "px Alegreya SC"]

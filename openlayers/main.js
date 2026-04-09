@@ -336,12 +336,16 @@ await parseSvg('_local/faerun-v016-07.svg', [-76.5, 10, -18, 49.1], SvgLayersFae
 //await parseSvg('_local/Toril-2e-base-v3.svg', [-180, -90, 180, 90], SvgLayers);
 
 function storeVis(event) {
-  localStorage.setItem("visible_" + event.target.get("title"), layer.getVisible());
+  if (event.target instanceof LayerGroup) {
+    console.log('bla');
+  } else {
+    localStorage.setItem("visible_" + event.target.get("title"), layer.getVisible());
+  }
 }
 
 var veclayers = {};
 
-SvgLayers.getLayers().forEach(function(l) {
+/*SvgLayers.getLayers().forEach(function(l) {
   var title = l.get('title');
   if (!veclayers[title]) {
     veclayers[title] = new LayerGroup({
@@ -350,7 +354,7 @@ SvgLayers.getLayers().forEach(function(l) {
   }
   l.set('title', 'Toril');
   veclayers[title].getLayers().getArray().push(l);
-})
+})*/
 
 SvgLayersFaerun.getLayers().forEach(function(l) {
   var title = l.get('title');
