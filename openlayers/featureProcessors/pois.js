@@ -127,7 +127,7 @@ function createMarkerStyle (types, rotation) {
 }
 
 function createLabelStyle(text, types, direction, resolution) {
-	console.log(text);
+	//console.log(text);
 	var typeName = "POI Label " + text;
 	if (styleLib[typeName]) return typeName;
 	var xOffset = 8;
@@ -316,7 +316,8 @@ function createPOIs(layerGroups, transform, features, exportFeatures){
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(markerFC),
 		}),
-		style: getCachedStyle
+		style: getCachedStyle,
+		zIndex: styleLib["POIs"].getZIndex()
 	});
 	//exportFeatures[markerLayerName] = markerFC;
 	layerGroups.getLayers().array_.push(outputLayer);
@@ -327,6 +328,7 @@ function createPOIs(layerGroups, transform, features, exportFeatures){
 			features: new GeoJSON().readFeatures(labelFC),
 		}),
 		style: getCachedStyle,
+		zIndex: styleLib["[Gen] POI Labels"].getZIndex(),
 		declutter: true
 	});
 	//exportFeatures[markerLayerName] = markerFC;

@@ -197,8 +197,12 @@ styleLib["Hills above"] = new Style({
 	zIndex: 160
 });
 
-styleLib["Hills below"] = styleLib["Hills above"].clone();
-styleLib["Hills below"].zIndex = 150;
+styleLib["Hills below"] = styleLib["Hills below"] = new Style({ 
+	fill: new Fill({
+		color: "#d6c1a4"
+	})
+});
+styleLib["Hills below"].setZIndex(150);
 
 
 styleLib["Mountains"] = new Style({ 
@@ -378,7 +382,23 @@ styleLib["[Gen] Water Labels"] = new Style({
 	}),*/
 });
 
-styleLib["Aquatic Named Regions"] = new Style({ 
+styleLib["[Gen] Named Regions"] = new Style({ 
+	text: new Text({
+		font: '16px Alegreya SC',
+		text: "",
+		placement: 'line',
+		textAlign: 'center',
+		maxAngle: 360,
+		fill: new Fill({
+			color: '#7f561b'//'#3952
+		})
+	}),
+	stroke: new Stroke({
+		color: '#0000bb',
+		width: 1.0,
+		lineCap: 'round',
+	}),
+	zIndex: 210,
 });
 
 styleLib["Political Boundaries"] = new Style({ 

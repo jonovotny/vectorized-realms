@@ -156,7 +156,8 @@ function createPoliticalBorders(layerGroups, transform, features){
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(regionBackgrounds),
 		}),
-		style: getCachedStyle
+		style: getCachedStyle,
+		zIndex: styleLib["[Gen] Political Background"].getZIndex()
 	});
 	//exportFeatures["[Gen] Political Background"] = regionBackgrounds;
 	layerGroups.getLayers().array_.push(outputLayer);
@@ -176,7 +177,8 @@ function createPoliticalBorders(layerGroups, transform, features){
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(borderLines),
 		}),
-		style: styleLib["[Gen] Political Outlines"]
+		style: styleLib["[Gen] Political Outlines"],
+		zIndex: styleLib["[Gen] Political Outlines"].getZIndex()
 	});
 	//exportFeatures["[Gen] Political Outlines"] = borderLines;
 	//layerGroups.getLayers().array_.push(outputLayer3);

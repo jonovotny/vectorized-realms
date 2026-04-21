@@ -65,7 +65,7 @@ export function processSvg(doc, extent, layerGroup) {
 	createCliffFeatures(layerGroup, transform);
 	//createRiverFeatures(layerGroup, transform);
 	//createMountainFeatures(layerGroup, transform);
-	//createWaterLabels(layerGroup, transform);
+	createWaterLabels(layerGroup, transform);
 	createPOIs(layerGroup, transform, features);
 	createPoliticalBorders(layerGroup, transform, features);
 
@@ -162,14 +162,16 @@ function processGroup(grp, transform, parentLayer, current){
 	});
 
 	var layerStyle = styleLib["default"];
-	if (styleLib.hasOwnProperty(grp.getAttribute("inkscape:label"))) {
+	if (Object.hasOwn(styleLib, grp.getAttribute("inkscape:label"))) {
 		layerStyle = styleLib[grp.getAttribute("inkscape:label")];
 	}
+	console.log(grp.getAttribute("inkscape:label"));
 
 	var vectorLayer = new VectorLayer({
 		title: grp.getAttribute("inkscape:label"),
 		source: vectorSource,
-		style: layerStyle
+		style: layerStyle,
+		zIndex: Array.isArray(layerStyle) ? layerStyle.reduce((prev, curr) => {return prev.getZIndex() < curr.getZIndex() ? prev.getZIndex(): curr.getZIndex()}) : layerStyle.getZIndex()
 	});
 
 	features[grp.getAttribute("inkscape:label")] = comb_json;
@@ -424,7 +426,8 @@ function createSwampFeatures(layerGroups, transform){
 			features: new GeoJSON().readFeatures(fs),
 		}),
 		minZoom: 7,
-		style: styleLib["[Gen] Swamps Detail"]
+		style: styleLib["[Gen] Swamps Detail"],
+		zIndex: styleLib["[Gen] Swamps Detail"].getZIndex()
 	});
 	exportFeatures["[Gen] Swamps Detail"] = fs;
 	layerGroups.getLayers().array_.push(vectorLayerSwampInner);
@@ -443,7 +446,8 @@ function createMarshFeatures(layerGroups, transform){
 			features: new GeoJSON().readFeatures(fs),
 		}),
 		minZoom: 7,
-		style: styleLib["[Gen] Marshes Detail"]
+		style: styleLib["[Gen] Marshes Detail"],
+		zIndex: styleLib["[Gen] Marshes Detail"].getZIndex()
 	});
 	exportFeatures["[Gen] Marshes Detail"] = fs;
 	layerGroups.getLayers().array_.push(vectorLayerMarshInner);
@@ -462,7 +466,8 @@ function createMoorFeatures(layerGroups, transform){
 			features: new GeoJSON().readFeatures(fs),
 		}),
 		minZoom: 7,
-		style: styleLib["[Gen] Moors Detail"]
+		style: styleLib["[Gen] Moors Detail"],
+		zIndex: styleLib["[Gen] Moors Detail"].getZIndex()
 	});
 	exportFeatures["[Gen] Moors Detail"] = fs;
 	layerGroups.getLayers().array_.push(vectorLayerMoorInner);
@@ -483,7 +488,8 @@ function createBadlandsFeatures(layerGroups, transform){
 			features: new GeoJSON().readFeatures(fs),
 		}),
 		minZoom: 7,
-		style: styleLib["[Gen] Badlands Detail"]
+		style: styleLib["[Gen] Badlands Detail"],
+		zIndex: styleLib["[Gen] Badlands Detail"].getZIndex()
 	});
 	exportFeatures["[Gen] Badlands Detail"] = fs;
 	layerGroups.getLayers().array_.push(vectorLayerBadlandInner);
@@ -510,7 +516,8 @@ function createSnowFeatures(layerGroups, transform){
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(processedFeatures),
 		}),
-		style: styleLib[layerName]
+		style: styleLib[layerName],
+		zIndex: styleLib[layerName].getZIndex()
 	});
 	exportFeatures[layerName] = processedFeatures;
 	layerGroups.getLayers().array_.push(outputLayer);
@@ -758,7 +765,8 @@ function createRiverFeatures(layerGroups, transform){
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(processedFeatures),
 		}),
-		style: styleLib[layerName]
+		style: styleLib[layerName],
+		zIndex: styleLib[layerName].getZIndex()
 	});
 
 	/*var outputLayerDetail = new VectorLayer({
@@ -965,7 +973,8 @@ function createCliffFeatures(layerGroups, transform){
 			features: new GeoJSON().readFeatures(ridgesFc),
 		}),
 		minZoom: 7,
-		style: styleLib["[Gen] Cliffs Ridges"]
+		style: styleLib["[Gen] Cliffs Ridges"],
+		zIndex: styleLib["[Gen] Cliffs Ridges"].getZIndex()
 	});
 
 	var vectorLayerCliffsBackground = new VectorLayer({
@@ -973,7 +982,8 @@ function createCliffFeatures(layerGroups, transform){
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(backgroundFc),
 		}),
-		style: styleLib["[Gen] Cliffs Background"]
+		style: styleLib["[Gen] Cliffs Background"],
+		zIndex: styleLib["[Gen] Cliffs Background"].getZIndex()
 	});
 
 	var vectorLayerCliffsFlanks = new VectorLayer({
@@ -982,7 +992,8 @@ function createCliffFeatures(layerGroups, transform){
 			features: new GeoJSON().readFeatures(flanksFc),
 		}),
 		minZoom: 7,
-		style: styleLib["[Gen] Cliffs Flanks"]
+		style: styleLib["[Gen] Cliffs Flanks"],
+		zIndex: styleLib["[Gen] Cliffs Flanks"].getZIndex()
 	});
 
 	exportFeatures["[Gen] Cliffs Ridges"] = ridgesFc;
@@ -1418,7 +1429,8 @@ function createMountainFeatures(layerGroups, transform) {
 			features: new GeoJSON().readFeatures(flankElements),
 		}),
 		minZoom: 7,
-		style: styleLib["[Gen] Initial Flanklines"]
+		style: styleLib["[Gen] Initial Flanklines"],
+		zIndex: styleLib["[Gen] Initial Flanklines"].getZIndex()
 	});
 
 	var vectorShadingBoundaries = new VectorLayer({
@@ -1427,7 +1439,8 @@ function createMountainFeatures(layerGroups, transform) {
 			features: new GeoJSON().readFeatures(flankDetailFeats),
 		}),
 		minZoom: 7,
-		style: styleLib["[Gen] Detail Flanklines"]
+		style: styleLib["[Gen] Detail Flanklines"],
+		zIndex: styleLib["[Gen] Detail Flanklines"].getZIndex()
 	});
 
 	var vectorShadingBackground = new VectorLayer({
@@ -1435,7 +1448,8 @@ function createMountainFeatures(layerGroups, transform) {
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(backgroundElements),
 		}),
-		style: styleLib["[Gen] Mountain Illuminated"]
+		style: styleLib["[Gen] Mountain Illuminated"],
+		zIndex: styleLib["[Gen] Mountain Illuminated"].getZIndex()
 	});
 
 	exportFeatures["[Gen] Detail Flanklines"] = flankDetailFeats;
@@ -1690,21 +1704,21 @@ function keepLongestPath (longestPath, currentPath) {
 }
 
 function createLabel(feature, resolution) {
-	var labelStyle = styleLib["[Gen] Water Labels"].clone();
+	var labelStyle = styleLib["[Gen] Named Regions"].clone();
 	labelStyle.getText().setText(feature.get("label"));
 	return labelStyle;
 }
 
 function createWaterLabels(layerGroups, transform){
 	var processedFeatures = featureCollection([]);
-	var layerName = "[Gen] Water Labels";
+	var layerName = "[Gen] Named Regions";
 	//if (!features.AquaticNamedRegions) return;
 	if (!features.Lakes) return;
 
 
-	for (var region of features["Political Boundaries"].features/*features["Aquatic Named Regions"].features.concat(features.Lakes.features)*/) { /*features["Political Boundaries"].features*/
+	for (var region of features["Named Regions"].features/*features["Political Boundaries"].features/*features["Aquatic Named Regions"].features.concat(features.Lakes.features)*/) { /*features["Political Boundaries"].features*/
 		console.log(region.properties["inkscape:label"]);
-		var simplifiedRegion = simplify(region, {tolerance: 0.05});
+		var simplifiedRegion = region;//simplify(region, {tolerance: 0.02});
 		var sliced = lineChunk(polygonToLine(simplifiedRegion), 10, {units: "kilometers"});
 		var polys = voronoi(explode(sliced), {bbox: bbox(region)});
 
@@ -1744,11 +1758,11 @@ function createWaterLabels(layerGroups, transform){
 		var someNode = Object.keys(graph).at(0);
 		var path = findLongestPath (verts[someNode], graph, verts);
 		var longestPath = findLongestPath (path.at(-1), graph, verts);
-		var pathLine = simplify(lineString(longestPath), {tolerance: 0.2});
-		if (pathLine.geometry.coordinates.length > 2) {
+		var pathLine = simplify(lineString(longestPath), {tolerance: 0.01});
+		/*if (pathLine.geometry.coordinates.length > 2) {
 			pathLine = polygonSmooth(lineToPolygon(pathLine), {iterations: 2}).features[0];
 			pathLine = lineString(pathLine.geometry.coordinates[0].slice(0,-7), region.properties);
-		}
+		}*/
 		//processedFeatures.features.push(lineString(path[2]));
 		processedFeatures.features.push(pathLine);
 		//console.log(path);
@@ -1761,7 +1775,8 @@ function createWaterLabels(layerGroups, transform){
 					source: new VectorSource({
 						features: new GeoJSON().readFeatures(processedFeatures),
 					}),
-					style: createLabel//styleLib[layerName]
+					style: createLabel,//styleLib[layerName],
+					zIndex: 210
 				});
 				exportFeatures[layerName] = processedFeatures;
 				layerGroups.getLayers().array_.push(outputLayer);

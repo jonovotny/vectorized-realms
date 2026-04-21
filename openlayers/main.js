@@ -266,6 +266,7 @@ const SvgLayersFaerun = new LayerGroup({
   title: 'SVG Faerun',
   visible: true,
   fold: true,
+  extent: [-76.5, 10, -18, 49.1]
 });
 /*
 const vectorSource = new VectorSource({
@@ -355,7 +356,7 @@ var veclayers = {};
   l.set('title', 'Toril');
   veclayers[title].getLayers().getArray().push(l);
 })*/
-
+/*
 SvgLayersFaerun.getLayers().forEach(function(l) {
   var title = l.get('title');
   if (!veclayers[title]) {
@@ -365,7 +366,7 @@ SvgLayersFaerun.getLayers().forEach(function(l) {
   }
   l.set('title', 'Faerun');
   veclayers[title].getLayers().getArray().push(l);
-})
+})*/
 
 for (const [key, l] of Object.entries(veclayers)) {
   if(localStorage.getItem("visible_" + key) == "false") {
@@ -395,8 +396,9 @@ const torilmap = new Map({
   layers: [
     //TorilMaps,
     FaerunMaps,
-    VectorMaps,
-    controlpoints
+    SvgLayersFaerun
+    //VectorMaps,
+    //controlpoints
   ],
   view: new View({
     center: [-38, 13],
@@ -408,7 +410,7 @@ const torilmap = new Map({
 
 var ctrl = new LayerEditor({
   reordering: false,
-  layerGroup: VectorMaps,
+  layerGroup: SvgLayersFaerun,//VectorMaps,
   onSnapSource: sourceLog,
   onSnapTarget: function (l) {console.log(l.get('title'))}
 });
