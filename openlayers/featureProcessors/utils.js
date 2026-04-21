@@ -83,6 +83,14 @@ function getCachedStyle(feature, resolution) {
 	return style;
 }
 
+const canvas = document.createElement('canvas');
+const context = canvas.getContext('2d');
+
+function getTextWidth(text, font) {
+    context.font = font;
+    return context.measureText(text).width;
+}
+
 function pushToDict (dict, key, value){
 	if (key in dict) {
 		if (!dict[key].includes(value)) {
@@ -182,4 +190,4 @@ function updateDynamicStyles(zoom, styleLib, dynamicAttributes) {
 	}
 }
 
-export {offsetFeature, getCachedStyle, pushToDict, updateDynamicStyles, registerDynamicStyles, expandBB};
+export {offsetFeature, getCachedStyle, pushToDict, updateDynamicStyles, registerDynamicStyles, expandBB, getTextWidth};
