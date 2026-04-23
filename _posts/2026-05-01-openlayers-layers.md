@@ -1,12 +1,14 @@
 ---
 layout: post
-title: OpenLayers Layers
+title: 61-Layer Salad
 date: 2025-08-15
 published: false
 ---
 
-245 POI labels
-240 POI markers
+250 POI upper labels
+250 POI lower labels
+245 POI upper markers
+240 POI lower markers
 235 Roads
 230 Trails
 228 Political region label
