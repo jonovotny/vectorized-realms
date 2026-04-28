@@ -104,7 +104,7 @@ function pushToDict (dict, key, value){
 function expandBB(feat, precision) {
 	var bb = bbox(feat, {recompute: true});
 	bb = [bb[0] - precision, bb[1] - precision, bb[2] + precision, bb[3] + precision];
-	feat.bbox = bb;
+	feat.ebbox = bb;
 }
 
 function registerDynamicStyles (styleLib, dynamicAttributes){

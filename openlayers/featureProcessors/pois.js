@@ -33,7 +33,7 @@ markerDetails['Port'] = {
 		".getImage.setScale": [[[6, 1], [7, 1.5]], ""]
 	},
 	minZoom: 6,
-	zIndex: 240};
+	zIndex: 238};
 markerDetails['Ruin'] = {
 	src: 'data:image/svg+xml;utf8,<svg width="10" height="10" version="1.1" xmlns="http://www.w3.org/2000/svg">'
        + '<rect style="fill:black;stroke:black;stroke-width:1.5" width="6" height="6" x="2" y="2"/>'
@@ -86,44 +86,43 @@ markerDetails['Bridge'] = {
 	dyn: {
 		".getImage.setScale": [[[6, .75], [8, 1.5]], ""]
 	},
+	rotation: true,
 	minZoom: 6,
 	zIndex: 240};
 
-function createMarkerStyle (types, rotation) {
-	var typeName = "Marker " + types;
+function createMarkerStyle (type, rotation, markerFCs) {
+	var typeName = "Marker " + type;
+	var layerName = "Marker " + type;
+
+	// each rotated feature needs a separate style, but they all still share a layer
 	if (rotation != 0) {
 		typeName += " " + math.floor(rotation*180/math.pi);
 	}
 
-	if (styleLib[typeName]) return typeName;
-	
-	types = types.replace(", ", ",").split(",");
-	var style = [];
-	for (var type of types){
-		var newStyle = new Style({
-			image: new Icon({
-				opacity: 1,
-				src: markerDetails[type]["src"],
-				scale: 1.5,
-				rotation: rotation,
-				rotateWithView: rotation ? true : false
-			}),
-		});
-		newStyle.dyn =  markerDetails[type]["dyn"];
-		newStyle.minZoom = markerDetails[type]["minZoom"];
-		newStyle.maxZoom = markerDetails[type]["maxZoom"];
-		style.push(newStyle)
+	// if the type is in the style library, we're done otherwise it's created
+	if (styleLib[typeName]) return [typeName, layerName];
+		
+	var style = new Style({
+		image: new Icon({
+			src: markerDetails[type]["src"],
+			scale: 1.5,
+			rotation: rotation,
+			rotateWithView: rotation ? true : false
+		}),
+	});
+	style.dyn = markerDetails[type]["dyn"];
+	styleLib[typeName] = style;
+
+	// create a new FC for the layer if it doesn't exist and store info for creating the actual vector layer later
+	if (!markerFCs[layerName]) {
+		markerFCs[layerName] = new featureCollection([]);
+		markerFCs[layerName].properties = {title: type + " Markers"};
+		if (Object.hasOwn(markerDetails[type], "zIndex")) markerFCs[layerName].properties.zIndex = markerDetails[type]["zIndex"];
+		if (Object.hasOwn(markerDetails[type], "minZoom")) markerFCs[layerName].properties.minZoom = markerDetails[type]["minZoom"];
+		if (Object.hasOwn(markerDetails[type], "maxZoom")) markerFCs[layerName].properties.maxZoom = markerDetails[type]["maxZoom"];
 	}
 
-	if (types.length == 1) {
-		styleLib[typeName] = style[0];
-	}
-
-	if (types.length > 1) {
-		styleLib[typeName] = style;
-	}
-
-	return typeName;
+	return [typeName, layerName];
 }
 
 function createLabelStyle(text, types, direction, resolution) {
@@ -175,87 +174,98 @@ function createLabelStyle(text, types, direction, resolution) {
 }
 
 function createPOIs(layerGroups, transform, features, exportFeatures){
-	if (!features.POIs) return; // nothing to do here
+	// No points of interest, no problems
+	if (!features.POIs) return;
 
-	var markerFC = featureCollection([]);
-	var markerLayerName = "[Gen] POI Markers";
-	var labelFC = featureCollection([]);
-	var labelLayerName = "[Gen] POI Labels";
+	var labelFC = new featureCollection([]);
 
-	var collisionPoints = featureCollection(features.Roads.features.concat(features.Trails.features));
+	var markerFCs = {};
+	var markerLayergroup = new LayerGroup({title: "[Gen] POI Markers"});
+	var labelFCs = {};
+	var labelLayergroup = new LayerGroup({title: "[Gen] POI Labels"});
+
+	// Set up features we want to avoid during label placement
+	var collisionPoints = featureCollection([]);
+	if (features.Roads) {collisionPoints.features = collisionPoints.features.concat(features.Roads.features)};
+	if (features.Trails) {collisionPoints.features = collisionPoints.features.concat(features.Trails.features)};
 	for (var feat of collisionPoints.features) {
 		expandBB(feat, 0.2);
-		//labelFC.features.push(bboxPolygon(bbox(feat), {properties: {styleName: "default"}}));
+		//labelFC.features.push(bboxPolygon(feat.ebbox, {properties: {styleName: "default"}}));
 	}
 
 	for (var poi of features.POIs.features) {
 		var tokens = poi.properties["inkscape:label"].match(/(.*) \((.*)\)/);
 
-		var types = "Site";
+		//Default to unnamed "Site" POI
+		var types = ["Site"];
 		var text = "";
 		if (tokens) {
 			text = tokens[1];
 			types = tokens[2];
-		} 
-
-		var orientation = 0;
-		if (types.includes("Bridge")) {
-			var normal = math.subtract(poi.geometry.coordinates[1], poi.geometry.coordinates[0]);
-			orientation = angle([0,1], [0,0], normal) * math.pi / 180;
+			types = types.replace(", ", ",").split(",");
 		}
-		var styleName = createMarkerStyle (types, orientation, styleLib);
-		poi.properties["styleName"] = styleName;
-		markerFC.features.push(point(poi.geometry.coordinates[0], poi.properties));
 
-		var touchingLines = [];
-		var poiPoint = poi.geometry.coordinates[0];
-		for (var line of collisionPoints.features) {
-			var bb = bbox(line);
-			if (poiPoint[0] >= bb[0] && poiPoint[1] >= bb[1] && poiPoint[0] <= bb[2] && poiPoint[1] <= bb[3]) {
-				touchingLines.push(line);
+		// Create marker symbol styles and layers, then add features
+		for (var type of types) {
+			var orientation = 0;
+			if (markerDetails[type].rotation) {
+				var normal = math.subtract(poi.geometry.coordinates[1], poi.geometry.coordinates[0]);
+				orientation = angle([0,1], [0,0], normal) * math.pi / 180;
 			}
+			var [styleName, layerName] = createMarkerStyle (type, orientation, markerFCs);
+			var genPoi = point(poi.geometry.coordinates[0], structuredClone(poi.properties));
+			genPoi.properties.styleName = styleName;
+			markerFCs[layerName].features.push(genPoi);
 		}
 
-		
-
-		poiPoint = point(poi.geometry.coordinates[0]);
+		// For each poi determine directions to avoid for label placement as normal vectors
+		var poiPoint = point(poi.geometry.coordinates[0]);
 		var nearestPoints = []
-		for (var line of touchingLines) {
-			var candidateId = -1;
-			var targetDistance = Number.POSITIVE_INFINITY;
-			for (var coordId = 0 ; coordId < line.geometry.coordinates.length; coordId++) {
-				var linePoint = point(line.geometry.coordinates[coordId]);
-				var dist = distance(linePoint, poiPoint);
-				if (dist < targetDistance) {
-					candidateId = coordId;
-					targetDistance = dist;
+		for (var line of collisionPoints.features) {
+			var bb = line.ebbox;
+			// Skip lines whose bounding box does not include poi
+			if(poi.geometry.coordinates[0][0] >= bb[0] && poi.geometry.coordinates[0][1] >= bb[1] && poi.geometry.coordinates[0][0] <= bb[2] && poi.geometry.coordinates[0][1] <= bb[3]) {
+
+				// find the closest vertex of the line to the poi
+				var candidateId = -1;
+				var targetDistance = Number.POSITIVE_INFINITY;
+				for (var coordId = 0 ; coordId < line.geometry.coordinates.length; coordId++) {
+					var linePoint = point(line.geometry.coordinates[coordId]);
+					var dist = distance(linePoint, poiPoint);
+					if (dist < targetDistance) {
+						candidateId = coordId;
+						targetDistance = dist;
+					}
 				}
-			}
-			if (candidateId >= 0) {
-				if (targetDistance < 0.01) {
-					if (candidateId > 0) {
-						var normal = math.subtract(line.geometry.coordinates[candidateId-1], poiPoint.geometry.coordinates);
-						normal = math.divide(normal, math.norm(normal));
-						nearestPoints.push(point(math.add(normal, poiPoint.geometry.coordinates)));
-						//labelFC.features.push(lineString([nearestPoints.at(-1).geometry.coordinates, poiPoint.geometry.coordinates], {styleName: "default"}));
-					}
-					if (candidateId < line.geometry.coordinates.length-1) {
-						var normal = math.subtract(line.geometry.coordinates[candidateId+1], poiPoint.geometry.coordinates);
-						normal = math.divide(normal, math.norm(normal));
-						nearestPoints.push(point(math.add(normal, poiPoint.geometry.coordinates)));
-						//labelFC.features.push(lineString([nearestPoints.at(-1).geometry.coordinates, poiPoint.geometry.coordinates], {styleName: "default"}));
-					}
-				} else {
-					if (targetDistance < 20){
-						var normal = math.subtract(line.geometry.coordinates[candidateId], poiPoint.geometry.coordinates);
-						normal = math.divide(normal, math.norm(normal));
-						nearestPoints.push(point(math.add(normal, poiPoint.geometry.coordinates)));
-						//labelFC.features.push(lineString([nearestPoints.at(-1).geometry.coordinates, poiPoint.geometry.coordinates], {styleName: "default"}));
+				if (candidateId >= 0) {
+					// If the poi is directly on a line vertex, consider the previous and next vertices as bad directions for labels
+					if (targetDistance < 0.01) {
+						if (candidateId > 0) {
+							var normal = math.subtract(line.geometry.coordinates[candidateId-1], poiPoint.geometry.coordinates);
+							normal = math.divide(normal, math.norm(normal));
+							nearestPoints.push(point(math.add(normal, poiPoint.geometry.coordinates)));
+							//labelFC.features.push(lineString([nearestPoints.at(-1).geometry.coordinates, poiPoint.geometry.coordinates], {styleName: "default"}));
+						}
+						if (candidateId < line.geometry.coordinates.length-1) {
+							var normal = math.subtract(line.geometry.coordinates[candidateId+1], poiPoint.geometry.coordinates);
+							normal = math.divide(normal, math.norm(normal));
+							nearestPoints.push(point(math.add(normal, poiPoint.geometry.coordinates)));
+							//labelFC.features.push(lineString([nearestPoints.at(-1).geometry.coordinates, poiPoint.geometry.coordinates], {styleName: "default"}));
+						}
+					} else {
+						// if the poi is not directly on a line vertex we hit a nearby line and only consider a bad direction if it is very close
+						if (targetDistance < 20){
+							var normal = math.subtract(line.geometry.coordinates[candidateId], poiPoint.geometry.coordinates);
+							normal = math.divide(normal, math.norm(normal));
+							nearestPoints.push(point(math.add(normal, poiPoint.geometry.coordinates)));
+							//labelFC.features.push(lineString([nearestPoints.at(-1).geometry.coordinates, poiPoint.geometry.coordinates], {styleName: "default"}));
+						}
 					}
 				}
 			}
 		}
 
+		// Also add nearby other pois as bad label directions to avoid overlapping text
 		for (var collPoi of features.POIs.features){
 			var otherPoi = point(collPoi.geometry.coordinates[0]);
 			var dist = distance(otherPoi, poiPoint);
@@ -267,6 +277,7 @@ function createPOIs(layerGroups, transform, features, exportFeatures){
 			}
 		}
 
+		// Create a convex hull polygon to sort directions in clockwise order
 		nearestPoints = featureCollection(nearestPoints);
 		var hull = convex(nearestPoints);
 		if (hull) {
@@ -275,6 +286,7 @@ function createPOIs(layerGroups, transform, features, exportFeatures){
 
 		var direction = [0, 1];
 
+		// Go around the polygon and check which pair of normal vectors covers the widest angle. This direction is probably safe to place a label.
 		if (nearestPoints.features.length > 0) {
 			var prevCoord = nearestPoints.features.at(-1).geometry.coordinates;
 			var poiCoord = poiPoint.geometry.coordinates;
@@ -301,9 +313,7 @@ function createPOIs(layerGroups, transform, features, exportFeatures){
 
 		//labelFC.features.push(lineString([[poi.geometry.coordinates[0][0]+direction[0], poi.geometry.coordinates[0][1]+direction[1]], poi.geometry.coordinates[0]], {styleName: "[Gen] Detail Flanklines"}));
 		
-
-
-
+		// 
 		var labelStyle = createLabelStyle(text, types, direction, styleLib);
 		labelFC.features.push(point(poi.geometry.coordinates[0], {"styleName": labelStyle}));
 
@@ -311,19 +321,25 @@ function createPOIs(layerGroups, transform, features, exportFeatures){
 
 	registerDynamicStyles(styleLib, dynamicAttributes);
 	
-	var outputLayer = new VectorLayer({
-		title: markerLayerName,
-		source: new VectorSource({
-			features: new GeoJSON().readFeatures(markerFC),
-		}),
-		style: getCachedStyle,
-		zIndex: styleLib["POIs"].getZIndex()
-	});
-	//exportFeatures[markerLayerName] = markerFC;
-	layerGroups.getLayers().array_.push(outputLayer);
+	for(var fc of Object.values(markerFCs)) {
+		var outputLayer = new VectorLayer({
+			title: fc.properties.title,
+			source: new VectorSource({
+				features: new GeoJSON().readFeatures(fc),
+			}),
+			style: getCachedStyle,
+			zIndex: fc.properties.zIndex
+		});
+		if (fc.properties.minZoom) outputLayer.setMinZoom(fc.properties.minZoom);
+		if (fc.properties.maxZoom) outputLayer.setMaxZoom(fc.properties.maxZoom);
+		//exportFeatures[markerLayerName] = markerFC;
+		markerLayergroup.getLayers().array_.push(outputLayer);
+
+	}
+	layerGroups.getLayers().array_.push(markerLayergroup);
 
 	var outputLayer2 = new VectorLayer({
-		title: labelLayerName,
+		title: "[Gen] POI Labels",
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(labelFC),
 		}),
@@ -335,4 +351,4 @@ function createPOIs(layerGroups, transform, features, exportFeatures){
 	layerGroups.getLayers().array_.push(outputLayer2);
 }
 
-export {createPOIs};
+export {createPOIs};4
