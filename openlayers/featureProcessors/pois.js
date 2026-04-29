@@ -13,7 +13,7 @@ import { getCachedStyle, registerDynamicStyles, expandBB } from './utils.js';
 const math = create(all, {});
 
 
-import {  lineIntersect, area, bezierSpline, concave, bboxPolygon, booleanWithin, bbox, pointToPolygonDistance, tin, multiPoint, explode, lineChunk, simplify, flatten, booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanIntersects, lineSliceAlong, voronoi, intersect, booleanPointInPolygon, angle, union, distance, centerMean, convex } from '@turf/turf';
+import { explode, featureCollection, point, angle, distance, convex } from '@turf/turf';
 
 var markerDetails = {};
 markerDetails['City'] = {
@@ -125,10 +125,57 @@ function createMarkerStyle (type, rotation, markerFCs) {
 	return [typeName, layerName];
 }
 
-function createLabelStyle(text, types, direction, resolution) {
-	//console.log(text);
-	var typeName = "POI Label " + text;
-	if (styleLib[typeName]) return typeName;
+var labelDetails = {};
+labelDetails['default'] = {
+	'dyn': {
+			'.getText.setFont': [[[6, 12], [8, 16]], "px Alegreya SC"]
+		},
+	minZoom: 6,
+	zIndex: 246
+}
+labelDetails['Capital'] = {
+	'dyn': {
+			'.getText.setFont': [[[5, 10], [7, 16]], "px Alegreya SC"]
+		},
+	minZoom: 5,
+	zIndex: 250
+}
+labelDetails['Site'] = {
+	'dyn': {
+			'.getText.setFont':  [[[7, 10], [9, 16]], "px Alegreya SC"]
+		},
+	minZoom: 7,
+	zIndex: 245
+}
+labelDetails['Bridge'] = {
+	'dyn': {
+			'.getText.setFont':  [[[7, 10], [9, 16]], "px Alegreya SC"]
+		},
+	minZoom: 7,
+	zIndex: 245
+}
+
+function createLabelStyle(text, types, direction, labelFCs) {
+	var labelDetail = {
+		zIndex: 0
+	};
+	var typeName = "";
+
+	//Only process the type with the highest zIndex to avoid double labeling 
+	for (var type of types) {
+		var typeDetail = labelDetails[type];
+		if (!typeDetail) {
+			typeDetail = labelDetails['default'];
+		}
+		if (typeDetail.zIndex > labelDetail.zIndex) {
+			typeName = type;
+			labelDetail = typeDetail;
+		}
+	}
+
+	var layerName = "POI Label " + typeName;
+	typeName = "POI Label " + typeName + " " + text;
+	
 	var xOffset = 8;
 	var yOffset = 3;
 
@@ -151,26 +198,21 @@ function createLabelStyle(text, types, direction, resolution) {
 		}
 	};
 
-	if (types.includes("Capital")) {
-		labelStyle.dyn =  {
-			'.getText.setFont': [[[5, 10], [7, 16]], "px Alegreya SC"]
-		};
-		labelStyle.minZoom = 5;
-		labelStyle.zIndex = 244; 
-	} else if (types.includes("Site")) {
-		labelStyle.dyn =  {
-			'.getText.setFont': [[[7, 10], [9, 16]], "px Alegreya SC"]
-		};
-		labelStyle.minZoom = 7;
-	} else {
-		labelStyle.dyn =  {
-			'.getText.setFont': [[[6, 12], [8, 16]], "px Alegreya SC"]
-		};
-		labelStyle.minZoom = 6;
+
+	// create a new FC for the layer if it doesn't exist and store info for creating the actual vector layer later
+	if (!labelFCs[layerName]) {
+		labelFCs[layerName] = new featureCollection([]);
+		labelFCs[layerName].properties = {title: type + " labels"};
+		labelFCs[layerName].properties.styleName = typeName;
+		if (Object.hasOwn(labelDetail, "zIndex")) labelFCs[layerName].properties.zIndex = labelDetail["zIndex"];
+		if (Object.hasOwn(labelDetail, "minZoom")) labelFCs[layerName].properties.minZoom = labelDetail["minZoom"];
+		if (Object.hasOwn(labelDetail, "maxZoom")) labelFCs[layerName].properties.maxZoom = labelDetail["maxZoom"];
 	}
+
+	if (Object.hasOwn(labelDetail, "dyn")) labelStyle.dyn = labelDetail['dyn'];
 	
 	styleLib[typeName] = labelStyle;
-	return typeName;
+	return [typeName, layerName];
 }
 
 function createPOIs(layerGroups, transform, features, exportFeatures){
@@ -217,6 +259,11 @@ function createPOIs(layerGroups, transform, features, exportFeatures){
 			genPoi.properties.styleName = styleName;
 			markerFCs[layerName].features.push(genPoi);
 		}
+
+		// Generate POI Labels:
+
+		// Skip Unnamed locations
+		if (text.includes("Unnamed")) continue;
 
 		// For each poi determine directions to avoid for label placement as normal vectors
 		var poiPoint = point(poi.geometry.coordinates[0]);
@@ -313,9 +360,9 @@ function createPOIs(layerGroups, transform, features, exportFeatures){
 
 		//labelFC.features.push(lineString([[poi.geometry.coordinates[0][0]+direction[0], poi.geometry.coordinates[0][1]+direction[1]], poi.geometry.coordinates[0]], {styleName: "[Gen] Detail Flanklines"}));
 		
-		// 
-		var labelStyle = createLabelStyle(text, types, direction, styleLib);
-		labelFC.features.push(point(poi.geometry.coordinates[0], {"styleName": labelStyle}));
+		// Create a style for each label (required since the labeltext is a style attribute).
+		var [styleName, layerName] = createLabelStyle(text, types, direction, labelFCs);
+		labelFCs[layerName].features.push(point(poi.geometry.coordinates[0], {'styleName': styleName}));
 
 	}
 
@@ -338,17 +385,20 @@ function createPOIs(layerGroups, transform, features, exportFeatures){
 	}
 	layerGroups.getLayers().array_.push(markerLayergroup);
 
-	var outputLayer2 = new VectorLayer({
-		title: "[Gen] POI Labels",
-		source: new VectorSource({
-			features: new GeoJSON().readFeatures(labelFC),
-		}),
-		style: getCachedStyle,
-		zIndex: styleLib["[Gen] POI Labels"].getZIndex(),
-		declutter: true
-	});
+	for(var fc of Object.values(labelFCs)) {
+		var outputLayer = new VectorLayer({
+			title: fc.properties.title,
+			source: new VectorSource({
+				features: new GeoJSON().readFeatures(fc),
+			}),
+			style: getCachedStyle,
+			zIndex: fc.properties.zIndex,
+			declutter: true
+		});
+		labelLayergroup.getLayers().array_.push(outputLayer);
+	}
 	//exportFeatures[markerLayerName] = markerFC;
-	layerGroups.getLayers().array_.push(outputLayer2);
+	layerGroups.getLayers().array_.push(labelLayergroup);
 }
 
-export {createPOIs};4
+export {createPOIs};
