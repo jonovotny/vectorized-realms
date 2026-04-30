@@ -303,9 +303,9 @@ const FaerunMaps = new LayerGroup({
   //layers: [faerun2000warped, faerun2000, faerunRaw, faerunDetail, faerun2000dist],
   //layers:[faerun2000, grat]
 });
-
+/*
 var prevCP = new VectorSource({
-  url: '_local/controlpoint.json',
+  url: '_local/h3_level1.geojson', //'_local/controlpoint.json',
   format: new GeoJSON()
 });
 
@@ -313,15 +313,16 @@ const controlpoints = new VectorLayer({
   source: prevCP,//new VectorSource(),
   title: 'Control Points',
   style: {
-    'fill-color': 'rgba(255, 255, 255, 0.2)',
-    'stroke-color': '#ffcc3366',
+    'fill-color': 'rgba(0, 0, 0, 0)',
+    'stroke-color': '#000000a2',
     'stroke-width': 2,
     'circle-radius': 7,
     'circle-fill-color': '#ffcc33',
   },
+  zIndex:500,
   displayInLayerSwitcher: false
 });
-
+*/
 /*
 [[ 1.05086797,  0.15345622, -0.80539519], [-0.15345622,  1.05086797, -9.50121843], [ 0.,  0.,  1.]]
 
@@ -396,7 +397,7 @@ const torilmap = new Map({
   layers: [
     //TorilMaps,
     FaerunMaps,
-    SvgLayersFaerun
+    SvgLayersFaerun,
     //VectorMaps,
     //controlpoints
   ],

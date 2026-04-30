@@ -395,9 +395,11 @@ function createPOIs(layerGroups, transform, features, exportFeatures){
 			zIndex: fc.properties.zIndex,
 			declutter: true
 		});
+		if (fc.properties.minZoom) outputLayer.setMinZoom(fc.properties.minZoom);
+		if (fc.properties.maxZoom) outputLayer.setMaxZoom(fc.properties.maxZoom);
+		// exportFeatures[markerLayerName] = markerFC;
 		labelLayergroup.getLayers().array_.push(outputLayer);
 	}
-	//exportFeatures[markerLayerName] = markerFC;
 	layerGroups.getLayers().array_.push(labelLayergroup);
 }
 
