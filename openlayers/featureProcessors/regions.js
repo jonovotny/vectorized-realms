@@ -28,14 +28,15 @@ function createRegionLabelStyle(text, types, direction, resolution) {
 	return typeName;
 }
 
-function createRegionLabels(layerGroups, transform){
+function createRegionLabels(layerGroups, transform, features, exportFeatures){
 	var processedFeatures = featureCollection([]);
-	var layerName = "[Gen] Geographic Labels";
-	//if (!features.AquaticNamedRegions) return;
-	if (!features.Lakes) return;
+	var layerGroupName = "[Gen] Geographic Labels";
+
+	// This ia a catch all for labels that do not have underlying geographic features, or are subparts of other named features (e.g. bays, mountain passes)
+	if (!features["Named Regions"]) return;
 
 
-	for (var region of features["Named Regions"].features/*features["Political Boundaries"].features/*features["Aquatic Named Regions"].features.concat(features.Lakes.features)*/) { /*features["Political Boundaries"].features*/
+	for (var region of features["Named Regions"].features) {
 		console.log(region.properties["inkscape:label"]);
 		var simplifiedRegion = simplify(region, {tolerance: 0.02});
 		var sliced = lineChunk(polygonToLine(simplifiedRegion), 10, {units: "kilometers"});
