@@ -488,7 +488,8 @@ styleLib["[Gen] Region Labels"] = new Style({
 		font: '16px Alegreya SC',
 		text: "",
 		textAlign: 'center',
-		textBaseline: 'top',
+		textBaseline: 'center',
+		placement: 'line',
 		fill: new Fill({
 			color: '#000'
 		}),
@@ -496,7 +497,7 @@ styleLib["[Gen] Region Labels"] = new Style({
 			color:'#fcf0e0', 
 			width: 0.5}),
 	}),
-	zIndex: 245
+	zIndex: 210
 });
 
 var dynamicAttributes = {};
