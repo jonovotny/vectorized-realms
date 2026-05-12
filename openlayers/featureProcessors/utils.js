@@ -190,4 +190,77 @@ function updateDynamicStyles(zoom, styleLib, dynamicAttributes) {
 	}
 }
 
-export {offsetFeature, getCachedStyle, pushToDict, updateDynamicStyles, registerDynamicStyles, expandBB, getTextWidth};
+function followEdges(graph, verts, openPaths, closedPaths) {
+// A path is a defined as [[List of Nodes], pathLength].
+
+	/*if (openPaths.length > 1) {
+		console.log(openPaths);
+	}*/
+	
+	var currentPath = openPaths.pop();
+	var node = currentPath[0].at(-1);
+	var pathLength = currentPath[1];
+	var neighbors = graph[node].filter(value => !(currentPath[0].find(nodes => nodes[0] == value[0] & nodes[1] == value[1])));
+
+	// leaf node
+	if (neighbors.length == 0) {
+		closedPaths.push(currentPath);
+		return;
+	}
+
+	if (neighbors.length == 1) {
+		currentPath[0].push(neighbors[0])
+		currentPath[1] = pathLength + length(lineString([node, neighbors[0]]));
+		openPaths.push(currentPath);
+	} else {
+		// push new paths for every neighbor and update lengths
+		for (var nextNode of neighbors) {
+			var nextPath = structuredClone(currentPath[0]);
+			nextPath.push(nextNode);
+			openPaths.push([nextPath, pathLength + length(lineString([node, nextNode]))]);
+		}
+	}
+}
+
+function findLongestPath (node, graph, verts) {
+	var openPaths = [[[node], 0]];
+	var closedPaths = [];
+	while (openPaths.length > 0) {
+		followEdges(graph, verts, openPaths, closedPaths);
+	}
+	var longestPath = closedPaths.reduce((prev, curr) => (prev[1] > curr[1]) ? prev: curr)[0];
+	return longestPath;
+} 
+
+function processNode(node, prevNode, verts, graph) {
+	var edgeDistance = 0;
+	if (prevNode) {
+		edgeDistance = length(lineString([verts[prevNode], node]));
+	}
+
+	//get a list of neighbors and delete the edge to the previous node
+	var neighbors = graph[node].filter(value => value != prevNode);
+
+	//if there are no neighbors left, it's a leaf node. return new path with distance to prevNode
+	if (neighbors.length < 1) {
+		return [edgeDistance, [node]];
+	}
+
+	//if there are edges to follow, recursively visit the nodes
+	var paths = neighbors.map(nextNode => processNode(nextNode, node, verts, graph));
+	//keep longest path from the responses and append own node and distance
+	var longestPath = paths.reduce(keepLongestPath);
+	longestPath[0] = longestPath[0] + edgeDistance;
+	longestPath[1].push(node);
+
+	return longestPath;
+}
+
+function keepLongestPath (longestPath, currentPath) {
+	if(currentPath[0] > longestPath[0]) {
+		return currentPath;
+	}
+	return longestPath;
+}
+
+export {findLongestPath, offsetFeature, getCachedStyle, pushToDict, updateDynamicStyles, registerDynamicStyles, expandBB, getTextWidth};

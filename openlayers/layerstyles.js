@@ -483,6 +483,22 @@ styleLib["[Gen] POI Labels"] = new Style({
 	zIndex: 245
 });
 
+styleLib["[Gen] Region Labels"] = new Style({
+	text: new Text({
+		font: '16px Alegreya SC',
+		text: "",
+		textAlign: 'center',
+		textBaseline: 'top',
+		fill: new Fill({
+			color: '#000'
+		}),
+		stroke: new Stroke({
+			color:'#fcf0e0', 
+			width: 0.5}),
+	}),
+	zIndex: 245
+});
+
 var dynamicAttributes = {};
 
 // Geometry creation settings

@@ -472,7 +472,7 @@ document.addEventListener("keypress", function(event) {
     dlAnchorElem.click();
   }
 });
-
+/*
 const DrawControlPoint = {
   init: function () {
     torilmap.addInteraction(this.LineString);
@@ -519,7 +519,7 @@ DrawControlPoint.LineString.on('drawend', function (event) {
   DrawControlPoint.drawing = false;
   torilmap.removeInteraction(snapDestination);
   torilmap.addInteraction(snapOrigin);
-});
+});*/
 
 var lastSnap = null;
 

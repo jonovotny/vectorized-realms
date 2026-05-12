@@ -13,6 +13,7 @@ import { lineIntersect, area, bezierSpline, concave, bboxPolygon, booleanWithin,
 import { LineString } from 'ol/geom.js';
 
 import { createPOIs } from './featureProcessors/pois.js';
+import { createRegionLabels } from './featureProcessors/regions.js';
 import { createPoliticalBorders } from './featureProcessors/borders.js';
 
 var features = {};
@@ -65,8 +66,9 @@ export function processSvg(doc, extent, layerGroup) {
 	createCliffFeatures(layerGroup, transform);
 	//createRiverFeatures(layerGroup, transform);
 	//createMountainFeatures(layerGroup, transform);
-	createWaterLabels(layerGroup, transform);
+	//createWaterLabels(layerGroup, transform);
 	createPOIs(layerGroup, transform, features);
+	createRegionLabels(layerGroup, transform, features);
 	createPoliticalBorders(layerGroup, transform, features);
 
 

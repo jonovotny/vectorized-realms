@@ -7,13 +7,15 @@ import LayerGroup from 'ol/layer/Group';
 
 import { styleLib } from '../layerstyles.js';
 import { offsetFeature } from './utils.js';
-import { getCachedStyle, pushToDict } from './utils.js';
+import { getCachedStyle, pushToDict, findLongestPath} from './utils.js';
 
 import geojson2svg from '../geojsonprocess.js';
 //import { styleLib } from './layerstyles-nofill.js';
 
-import {  booleanOverlap, lineIntersect, area, bezierSpline, concave, bboxPolygon, booleanWithin, bbox, pointToPolygonDistance, tin, multiPoint, explode, lineChunk, simplify, flatten, booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanIntersects, lineSliceAlong, voronoi, intersect, booleanPointInPolygon, difference, pointOnFeature, lineOverlap, union, destination } from '@turf/turf';
+import {  booleanOverlap, lineIntersect, area, bezierSpline, concave, bboxPolygon, booleanWithin, bbox, pointToPolygonDistance, tin, multiPoint, explode, lineChunk, simplify, flatten, booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanIntersects, lineSliceAlong, voronoi, intersect, booleanPointInPolygon, difference, pointOnFeature, lineOverlap, union, destination, segmentReduce } from '@turf/turf';
 import { LineString } from 'ol/geom.js';
+
+
 
 function createRegionLabelStyle(text, types, direction, resolution) {
 	console.log(text);
@@ -29,17 +31,44 @@ function createRegionLabelStyle(text, types, direction, resolution) {
 }
 
 function createRegionLabels(layerGroups, transform, features, exportFeatures){
-	var processedFeatures = featureCollection([]);
-	var layerGroupName = "[Gen] Geographic Labels";
-
-	// This ia a catch all for labels that do not have underlying geographic features, or are subparts of other named features (e.g. bays, mountain passes)
+	// This ia a catch all for labels that do not have underlying geographic features, or are subparts of other named features (e.g. bays, mountain passes, rivers that are drawn as wide bodies of water)
 	if (!features["Named Regions"]) return;
+	var processedFeatures = new featureCollection([]);
+
+	var labelFCs = {};
+	var labelLayergroup = new LayerGroup({title: "[Gen] Geography Labels"});
 
 
 	for (var region of features["Named Regions"].features) {
+
+		var tokens = region.properties["inkscape:label"].match(/(.*) \((.*)\)/);
+
+		//Default to unnamed "Site" POI
+		var types = ["POI"];
+		var text = "";
+		if (tokens) {
+			text = tokens[1];
+			types = tokens[2];
+			types = types.replace(", ", ",").split(",");
+		}
+
 		console.log(region.properties["inkscape:label"]);
-		var simplifiedRegion = simplify(region, {tolerance: 0.02});
-		var sliced = lineChunk(polygonToLine(simplifiedRegion), 10, {units: "kilometers"});
+		var minSegLen = segmentReduce(region, function (
+    previousValue,
+    currentSegment
+  ) {
+    //=previousValue
+    //=currentLine
+    //=featureIndex
+    //=multiFeatureIndex
+    //=geometryIndex
+	var len = length(currentSegment)
+	return len < previousValue ? len : previousValue;
+  }, Number.MAX_VALUE);
+  console.log(minSegLen)
+
+		//var simplifiedRegion = simplify(region, {tolerance: 0.02});
+		var sliced = lineChunk(polygonToLine(region), minSegLen/3, {units: "kilometers"});
 		var extend = bbox(region);
 		extend[0] = extend[0] - 0.005;
 		extend[1] = extend[1] - 0.005;
@@ -60,15 +89,15 @@ function createRegionLabels(layerGroups, transform, features, exportFeatures){
 					verts[vert] = vert;
 					var currVert = point(vert);
 					if (lastVert){
-						if (booleanPointInPolygon(lastVert, simplifiedRegion)) {
-							if (booleanPointInPolygon(currVert, simplifiedRegion)) {
+						if (booleanPointInPolygon(lastVert, region)) {
+							if (booleanPointInPolygon(currVert, region)) {
 								pushToDict(graph, lastVert.geometry.coordinates, currVert.geometry.coordinates);
 								pushToDict(graph, currVert.geometry.coordinates, lastVert.geometry.coordinates);
 								processedFeatures.features.push(lineString([lastVert.geometry.coordinates, currVert.geometry.coordinates]));
 							}
 						} else {
-							if (booleanPointInPolygon(currVert, simplifiedRegion)) {
-								var borderVert = lineIntersect(lineString([lastVert.geometry.coordinates, currVert.geometry.coordinates]), simplifiedRegion).features[0];
+							if (booleanPointInPolygon(currVert, region)) {
+								var borderVert = lineIntersect(lineString([lastVert.geometry.coordinates, currVert.geometry.coordinates]), region).features[0];
 								var shorten = lineString([borderVert.geometry.coordinates, currVert.geometry.coordinates]);
 								var tolerance = 0.005;
 								if (length(shorten) > tolerance) {
@@ -101,13 +130,14 @@ function createRegionLabels(layerGroups, transform, features, exportFeatures){
 	
 				
 				var outputLayer = new VectorLayer({
-					title: layerName,
+					title: "[Gen] Geography Labels",
 					source: new VectorSource({
 						features: new GeoJSON().readFeatures(processedFeatures),
 					}),
-					style: createLabel//styleLib[layerName]
+					style: styleLib["default"],
+					zIndex: 210
 				});
-				exportFeatures[layerName] = processedFeatures;
+				//exportFeatures[layerName] = processedFeatures;
 				layerGroups.getLayers().array_.push(outputLayer);
 				//console.log(skeleton);
 		//	}
@@ -118,9 +148,9 @@ function createRegionLabels(layerGroups, transform, features, exportFeatures){
 
 
 		processedFeatures.features.push(shadowRidge);*/
-	//processedFeatures = polygonSmooth(processedFeatures);
+	//processedFeatures = polygonSmooth(processedFeatures);*/
 
-
+	
 }
 
-export {createRiverFeatures};
+export {createRegionLabels};
