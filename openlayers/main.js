@@ -383,7 +383,7 @@ const VectorMaps = new LayerGroup({
 });
 
 const scaleControl = new ScaleLine({
-  units: 'metric',
+  units: 'imperial',
   bar: true,
   steps: 4,
   text: true,

@@ -115,6 +115,10 @@ export function processSvg(doc, extent, layerGroup) {
 		if (lay.values_.title == "Political Boundaries") {
 			lay.values_.visible = false;
 		}
+
+		if (lay.values_.title == "Named Regions") {
+			lay.values_.visible = false;
+		}
 	});
 
 	geojson2svg(exportFeatures, svg);

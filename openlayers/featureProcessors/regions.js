@@ -5,9 +5,9 @@ import { Vector as VectorLayer } from 'ol/layer.js';
 import { Icon, Fill, Stroke, Style } from 'ol/style.js';
 import LayerGroup from 'ol/layer/Group';
 
-import { styleLib, dynamicAttributes } from '../layerstyles.js';
+import { styleLib, dynamicAttributes, generationParams } from '../layerstyles.js';
 import { offsetFeature } from './utils.js';
-import { getCachedStyle, pushToDict, findLongestPath, registerDynamicStyles} from './utils.js';
+import { getCachedStyle, pushToDict, expandBB, findLongestPath, registerDynamicStyles, generateGraph} from './utils.js';
 
 import geojson2svg from '../geojsonprocess.js';
 //import { styleLib } from './layerstyles-nofill.js';
@@ -22,7 +22,7 @@ labelDetails['default'] = {
 			'.getText.setFont': [[[6, 12], [8, 16]], "px Alegreya SC"]
 		},
 	minZoom: 6,
-	zIndex: 210
+	zIndex: 260
 }
 labelDetails['Desert rocky'] = {
 	'textColor': '#b99150',
@@ -30,7 +30,7 @@ labelDetails['Desert rocky'] = {
 			'.getText.setFont': [[[5, 10], [7, 16]], "px Alegreya SC"]
 		},
 	minZoom: 5,
-	zIndex: 210
+	zIndex: 260
 }
 labelDetails['Desert sandy'] = {
 	'textColor': '#be7f2b',
@@ -38,7 +38,7 @@ labelDetails['Desert sandy'] = {
 			'.getText.setFont':  [[[7, 10], [9, 16]], "px Alegreya SC"]
 		},
 	minZoom: 7,
-	zIndex: 210
+	zIndex: 260
 }
 labelDetails['Bay'] = {
 	'textColor': '#2f4887',
@@ -46,7 +46,7 @@ labelDetails['Bay'] = {
 			'.getText.setFont':  [[[5, 10], [8, 24]], "px Alegreya SC"]
 		},
 	minZoom: 5,
-	zIndex: 210
+	zIndex: 260
 }
 labelDetails['Channel'] = {
 	'textColor': '#2f4887',
@@ -54,7 +54,7 @@ labelDetails['Channel'] = {
 			'.getText.setFont':  [[[5, 10], [8, 20]], "px Alegreya SC"]
 		},
 	minZoom: 5,
-	zIndex: 210
+	zIndex: 260
 }
 labelDetails['Ocean'] = {
 	'textColor': '#2f4887',
@@ -62,7 +62,7 @@ labelDetails['Ocean'] = {
 			'.getText.setFont':  [[[4, 10], [7, 30]], "px Alegreya SC"]
 		},
 	minZoom: 4,
-	zIndex: 210
+	zIndex: 260
 }
 labelDetails['River'] = {
 	'textColor': '#2f4887',
@@ -70,7 +70,7 @@ labelDetails['River'] = {
 			'.getText.setFont':  [[[5, 10], [8, 20]], "px Alegreya SC"]
 		},
 	minZoom: 5,
-	zIndex: 210
+	zIndex: 260
 }
 labelDetails['Lake'] = {
 	'textColor': '#2f4887',
@@ -78,23 +78,23 @@ labelDetails['Lake'] = {
 			'.getText.setFont':  [[[5, 10], [8, 20]], "px Alegreya SC"]
 		},
 	minZoom: 5,
-	zIndex: 210
+	zIndex: 260
 }
-labelDetails['Grassland'] = {
+labelDetails['Grasslands'] = {
 	'textColor': '#8e9b40',
 	'dyn': {
 			'.getText.setFont':  [[[5, 10], [8, 20]], "px Alegreya SC"]
 		},
 	minZoom: 5,
-	zIndex: 210
+	zIndex: 260
 }
 labelDetails['Political'] = {
 	'textColor': '#bf1c21',
 	'dyn': {
-			'.getText.setFont':  [[[5, 10], [8, 20]], "px Alegreya SC"]
+			'.getText.setFont':  [[[6, 10], [9, 20]], "px Alegreya SC"]
 		},
-	minZoom: 5,
-	zIndex: 210
+	minZoom: 6,
+	zIndex: 260
 }
 labelDetails['Pass'] = {
 	'textColor': '#671a18',
@@ -102,7 +102,7 @@ labelDetails['Pass'] = {
 			'.getText.setFont':  [[[6, 10], [9, 20]], "px Alegreya SC"]
 		},
 	minZoom: 6,
-	zIndex: 210
+	zIndex: 260
 }
 labelDetails['POI'] = {
 	'textColor': '#000',
@@ -110,7 +110,7 @@ labelDetails['POI'] = {
 			'.getText.setFont':  [[[7, 10], [9, 16]], "px Alegreya SC"]
 		},
 	minZoom: 5,
-	zIndex: 210
+	zIndex: 260
 }
 
 
@@ -160,12 +160,13 @@ function createRegionLabels(layerGroups, transform, features, exportFeatures){
 	var labelFCs = {};
 	var labelLayergroup = new LayerGroup({title: "[Gen] Geography Labels"});
 
+	var precision = generationParams["precision"];
 
 	for (var region of features["Named Regions"].features) {
 
 		var tokens = region.properties["inkscape:label"].match(/(.*) \((.*)\)/);
 
-		//Default to unnamed "Site" POI
+		//Default to unnamed "POI"
 		var types = ["POI"];
 		var text = "";
 		if (tokens) {
@@ -174,19 +175,24 @@ function createRegionLabels(layerGroups, transform, features, exportFeatures){
 			types = types.replace(", ", ",").split(",");
 		}
 
-		console.log(region.properties["inkscape:label"]);
-
+		//console.log(region.properties["inkscape:label"]);
 		
+		// find the length of the shortest polygon side segment
 		var minSegLen = segmentReduce(region, function (
 			previousValue,
 			currentSegment){
 				var len = length(currentSegment)
 				return len < previousValue ? len : previousValue;
 			}, Number.MAX_VALUE);
-		console.log(minSegLen)
+
+		// We want at least two additional points along each segment, so the slice step size is the shortest segment divided by 3
 		var sliceStep = minSegLen/3;
+
+		// Preparing the set of boundary points for Voronoy cells
 		var boundaryPoints = new featureCollection([]);
 
+		// We remove the polygon corner vertices by cutting away one slice step from each side of a line segment. This should guarantee that Voronoy cell edges pass through the location of the corner.
+		// The remaining segments get cut into even pieces with a length close to the sliceStep.
 		segmentEach(region, function (currentSegment){
 			var len = length(currentSegment);
 			var seg = lineSliceAlong(currentSegment, sliceStep, len - sliceStep);
@@ -194,63 +200,29 @@ function createRegionLabels(layerGroups, transform, features, exportFeatures){
 			boundaryPoints.features = boundaryPoints.features.concat(explode(lineChunk(seg, chunkLength)).features);
 		});
 		
+		// remove duplicates created by lineChunk method
 		boundaryPoints = cleanCoords(combine(boundaryPoints).features[0]);
 
-		//var simplifiedRegion = simplify(region, {tolerance: 0.02});
-		//var sliced = lineChunk(polygonToLine(region), minSegLen/3, {units: "kilometers"});
-		var extend = bbox(region);
-		extend[0] = extend[0] - 0.005;
-		extend[1] = extend[1] - 0.005;
-		extend[2] = extend[2] + 0.005;
-		extend[3] = extend[3] + 0.005;
-		var polys = voronoi(explode(boundaryPoints)/*explode(sliced)*/, {bbox: extend});
+		// Calculate a slightly expanded bounding box to accomodate for precision errors amd generate Voronoy cells
+		expandBB(region, precision);
+		var polys = voronoi(explode(boundaryPoints), {bbox: region.ebbox});
 
-		var verts = {};
-		var graph = {};
-		if (polys.features.length > 0) {
-			var cells = polys.features.filter(val => !(val == undefined));
-			//console.log(region);
-			for (var cell of cells) {
-				if (cell.geometry.coordinates[0].length < 2) continue;
-				//processedFeatures.features.push(cell);
-				var lastVert = null;
-				for (var vert of cell.geometry.coordinates[0]) {
-					verts[vert] = vert;
-					var currVert = point(vert);
-					if (lastVert){
-						if (booleanPointInPolygon(lastVert, region)) {
-							if (booleanPointInPolygon(currVert, region)) {
-								pushToDict(graph, lastVert.geometry.coordinates, currVert.geometry.coordinates);
-								pushToDict(graph, currVert.geometry.coordinates, lastVert.geometry.coordinates);
-								//processedFeatures.features.push(lineString([lastVert.geometry.coordinates, currVert.geometry.coordinates]));
-							}
-						} else {
-							if (booleanPointInPolygon(currVert, region)) {
-								var borderVert = lineIntersect(lineString([lastVert.geometry.coordinates, currVert.geometry.coordinates]), region).features[0];
-								var shorten = lineString([borderVert.geometry.coordinates, currVert.geometry.coordinates]);
-								var tolerance = 0.005;
-								if (length(shorten) > tolerance) {
-									borderVert = along(shorten, tolerance);
-									verts[borderVert.geometry.coordinates] = borderVert.geometry.coordinates;
-									pushToDict(graph, borderVert.geometry.coordinates, currVert.geometry.coordinates);
-									pushToDict(graph, currVert.geometry.coordinates, borderVert.geometry.coordinates);
-									//processedFeatures.features.push(lineString([borderVert.geometry.coordinates, currVert.geometry.coordinates]));
-								}
-							}
-						}
-					}
-					lastVert = currVert;
-				}
-			}
-		}
+		// convert Voronoy cells into a graph
+		var [graph, verts] = generateGraph(region, polys, precision);
+
+		// find longest path from an arbitrary node
 		var someNode = Object.keys(graph).at(0);
 		var path = findLongestPath (verts[someNode], graph, verts);
-		var longestPath = findLongestPath (path.at(-1), graph, verts);
-		var pathLine = lineString(longestPath); //simplify(lineString(longestPath), {tolerance: 0.2});
 
+		// finding the longest path from that endpoint should get us the longest path in the entire graphoverall
+		var longestPath = findLongestPath (path.at(-1), graph, verts);
+		var pathLine = lineString(longestPath);
+
+		// create region style and find correct layer
 		var [styleName, layerName] = createRegionLabelStyle(text, types, labelFCs);
 		region.properties.styleName = styleName;
 
+		// Smooth the text line to avoid sharp corners
 		if (pathLine.geometry.coordinates.length > 2) {
 			pathLine = polygonSmooth(lineToPolygon(pathLine), {iterations: 2}).features[0];
 			pathLine = lineString(pathLine.geometry.coordinates[0].slice(0,-7), region.properties);
@@ -268,8 +240,7 @@ function createRegionLabels(layerGroups, transform, features, exportFeatures){
 				features: new GeoJSON().readFeatures(fc),
 			}),
 			style: getCachedStyle,
-			zIndex: fc.properties.zIndex,
-			declutter: true
+			zIndex: fc.properties.zIndex
 		});
 		if (fc.properties.minZoom) outputLayer.setMinZoom(fc.properties.minZoom);
 		if (fc.properties.maxZoom) outputLayer.setMaxZoom(fc.properties.maxZoom);
@@ -277,30 +248,6 @@ function createRegionLabels(layerGroups, transform, features, exportFeatures){
 		labelLayergroup.getLayers().array_.push(outputLayer);
 	}
 	layerGroups.getLayers().array_.push(labelLayergroup);
-
-		/*		
-				var outputLayer = new VectorLayer({
-					title: "[Gen] Geography Labels",
-					source: new VectorSource({
-						features: new GeoJSON().readFeatures(processedFeatures),
-					}),
-					style: styleLib["default"],
-					zIndex: 210
-				});
-				//exportFeatures[layerName] = processedFeatures;
-				layerGroups.getLayers().array_.push(outputLayer);
-				//console.log(skeleton);
-		//	}
-		//})
-/*		var shadowRidge = offsetFeature(snow, -7);
-		shadowRidge = polygonSmooth(simplify(shadowRidge, { tolerance: 0.0001, highQuality: false })).features[0];
-		shadowRidge = createDriftEdge(shadowRidge, driftLight);
-
-
-		processedFeatures.features.push(shadowRidge);*/
-	//processedFeatures = polygonSmooth(processedFeatures);*/
-
-	
 }
 
 export {createRegionLabels};

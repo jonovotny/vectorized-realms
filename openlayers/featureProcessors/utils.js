@@ -190,6 +190,43 @@ function updateDynamicStyles(zoom, styleLib, dynamicAttributes) {
 	}
 }
 
+function generateGraph(region, polys, tolerance) {
+	var verts = {};
+	var graph = {};
+	if (polys.features.length > 0) {
+		var cells = polys.features.filter(val => !(val == undefined));
+		for (var cell of cells) {
+			if (cell.geometry.coordinates[0].length < 2) continue;
+			var lastVert = null;
+			for (var vert of cell.geometry.coordinates[0]) {
+				verts[vert] = vert;
+				var currVert = point(vert);
+				if (lastVert){
+					if (booleanPointInPolygon(lastVert, region)) {
+						if (booleanPointInPolygon(currVert, region)) {
+							pushToDict(graph, lastVert.geometry.coordinates, currVert.geometry.coordinates);
+							pushToDict(graph, currVert.geometry.coordinates, lastVert.geometry.coordinates);
+						}
+					} else {
+						if (booleanPointInPolygon(currVert, region)) {
+							var borderVert = lineIntersect(lineString([lastVert.geometry.coordinates, currVert.geometry.coordinates]), region).features[0];
+							var shorten = lineString([borderVert.geometry.coordinates, currVert.geometry.coordinates]);
+							if (length(shorten) > tolerance) {
+								borderVert = along(shorten, tolerance);
+								verts[borderVert.geometry.coordinates] = borderVert.geometry.coordinates;
+								pushToDict(graph, borderVert.geometry.coordinates, currVert.geometry.coordinates);
+								pushToDict(graph, currVert.geometry.coordinates, borderVert.geometry.coordinates);
+							}
+						}
+					}
+				}
+				lastVert = currVert;
+			}
+		}
+	}
+	return [graph, verts];
+};
+
 function followEdges(graph, verts, openPaths, closedPaths) {
 // A path is a defined as [[List of Nodes], pathLength].
 
@@ -263,4 +300,4 @@ function keepLongestPath (longestPath, currentPath) {
 	return longestPath;
 }
 
-export {findLongestPath, offsetFeature, getCachedStyle, pushToDict, updateDynamicStyles, registerDynamicStyles, expandBB, getTextWidth};
+export {findLongestPath, offsetFeature, getCachedStyle, pushToDict, updateDynamicStyles, registerDynamicStyles, expandBB, getTextWidth, generateGraph};

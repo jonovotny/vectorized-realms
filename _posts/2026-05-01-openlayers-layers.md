@@ -5,35 +5,36 @@ date: 2025-08-15
 published: false
 ---
 
-250 POI upper labels
-250 POI lower labels
-245 POI upper markers
-240 POI lower markers
-235 Roads
-230 Trails
-228 Political region label
-225 Political region outline
-220 Political region background
-210 Named region labels
+295 POI upper labels
+290 POI lower labels
+285 POI upper markers
+280 POI lower markers
+275 Roads
+270 Trails
+268 Political region label
+265 Political region outline
+260 Named region labels
+250 Political region background
 
-208 Lake outline
-205 Lake detail
-200 Lake background
-195 Shore outline
-190 Shore detail
-180 River
 
-175 Volcano details
-175 Volcano outline
-170 Volcano background
+248 Lake outline
+245 Lake detail
+240 Lake background
+235 Shore outline
+230 Shore detail
+220 River
 
-160 Jungle detail
-155 Forest detail
+215 Volcano details
+215 Volcano outline
+210 Volcano background
 
-146 Glacier tint
-144 Rocky desert tint
-142 Forest tint
-140 Jungle tint
+200 Jungle detail
+195 Forest detail
+
+186 Glacier tint
+184 Rocky desert tint
+182 Forest tint
+180 Jungle tint
 
 178 Mountain ridge
 176 Mountain flanklines

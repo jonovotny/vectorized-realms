@@ -28,7 +28,8 @@ styleLib["Land"] = new Style({
 		color: "#fcf0e0"
 	}),
 	stroke: new Stroke({
-		color: "#bad9e8"
+		color: "#bad9e8",
+		width: 2.0,
 	}),
 	zIndex: 30
 });
@@ -219,7 +220,7 @@ styleLib["Lakes"] = new Style({
 	stroke: new Stroke({
 		color: "#bad9e8"
 	}),
-	zIndex: 200
+	zIndex: 240
 });
 
 styleLib["Rivers"] = new Style({ 
@@ -228,7 +229,7 @@ styleLib["Rivers"] = new Style({
 		width: 3.0,
 		lineCap: 'round',
 	}),
-	zIndex:180
+	zIndex:220
 });
 
 styleLib["Ridges"] = new Style({ 
@@ -285,7 +286,7 @@ styleLib["Volcanos"] = new Style({
 		width: 3.0,
 		lineCap: 'round',
 	}),
-	zIndex: 170
+	zIndex: 210
 });
 
 styleLib["[Gen] Cliffs Ridges"] = new Style({ 
@@ -350,7 +351,7 @@ styleLib["[Gen] River Width"] = new Style({
 		width: 3.0,
 		lineCap: 'round',
 	}),
-	zIndex: 180,
+	zIndex: 220,
 });
 
 styleLib["[Gen] River Detail"] = new Style({ 
@@ -359,7 +360,7 @@ styleLib["[Gen] River Detail"] = new Style({
 		width: 1.0,
 		lineCap: 'round',
 	}),
-	zIndex: 182,
+	zIndex: 222,
 });
 
 styleLib["[Gen] Water Labels"] = new Style({ 
@@ -398,7 +399,7 @@ styleLib["[Gen] Named Regions"] = new Style({
 		width: 1.0,
 		lineCap: 'round',
 	}),
-	zIndex: 210,
+	zIndex: 260,
 });
 
 styleLib["Political Boundaries"] = new Style({ 
@@ -408,7 +409,7 @@ styleLib["Political Boundaries"] = new Style({
 		width: 2,
 		lineCap: 'round',
 	}),
-	zIndex: 224
+	zIndex: 265
 });
 
 styleLib["[Gen] Political Outlines"] = new Style({ 
@@ -418,14 +419,14 @@ styleLib["[Gen] Political Outlines"] = new Style({
 		width: 2,
 		lineCap: 'round',
 	}),
-	zIndex: 225
+	zIndex: 265
 });
 
 styleLib["[Gen] Political Background"] = new Style({ 
 	fill: new Fill({
 		color: "#00000022"
 	}),
-	zIndex: 220
+	zIndex: 250
 		/*stroke: new Stroke({
 		color: '#0000bb',
 		width: 1.0,
@@ -459,7 +460,7 @@ styleLib["POIs"] = new Style({
 		width: 1.0,
 		lineCap: 'round',
 	}),
-	zIndex: 240
+	zIndex: 280
 });
 
 styleLib["[Gen] POI Labels"] = new Style({
@@ -480,7 +481,7 @@ styleLib["[Gen] POI Labels"] = new Style({
 		width: 1.0,
 		lineCap: 'round',
 	}),
-	zIndex: 245
+	zIndex: 290
 });
 
 styleLib["[Gen] Region Labels"] = new Style({
@@ -488,7 +489,7 @@ styleLib["[Gen] Region Labels"] = new Style({
 		font: '16px Alegreya SC',
 		text: "",
 		textAlign: 'center',
-		textBaseline: 'center',
+		textBaseline: 'middle',
 		placement: 'line',
 		fill: new Fill({
 			color: '#000'
@@ -497,7 +498,7 @@ styleLib["[Gen] Region Labels"] = new Style({
 			color:'#fcf0e0', 
 			width: 0.5}),
 	}),
-	zIndex: 210
+	zIndex: 260
 });
 
 var dynamicAttributes = {};
@@ -505,6 +506,7 @@ var dynamicAttributes = {};
 // Geometry creation settings
 var generationParams= 
 {
+	"precision": 0.005,
 	"moor offset": 7,
 	"swamp offset": 7,
 	"marsh offset": 7,
