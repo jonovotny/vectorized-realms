@@ -503,6 +503,8 @@ styleLib["[Gen] Region Labels"] = new Style({
 
 var dynamicAttributes = {};
 
+var geographicLabels = {};
+
 // Geometry creation settings
 var generationParams= 
 {
@@ -525,4 +527,4 @@ var generationParams=
 	"river taper segments": 10
 }
 
-export {styleLib, dynamicAttributes, generationParams};
+export {styleLib, dynamicAttributes, generationParams, geographicLabels};

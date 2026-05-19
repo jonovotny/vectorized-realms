@@ -5,7 +5,7 @@ import { Vector as VectorLayer } from 'ol/layer.js';
 import { Icon, Fill, Stroke, Style } from 'ol/style.js';
 import LayerGroup from 'ol/layer/Group';
 
-import { styleLib, dynamicAttributes, generationParams } from '../layerstyles.js';
+import { styleLib, dynamicAttributes, generationParams, geographicLabels } from '../layerstyles.js';
 import { offsetFeature } from './utils.js';
 import { getCachedStyle, pushToDict, expandBB, findLongestPath, registerDynamicStyles, generateGraph} from './utils.js';
 
@@ -155,9 +155,8 @@ function createRegionLabelStyle(text, types, labelFCs) {
 function createRegionLabels(layerGroups, transform, features, exportFeatures){
 	// This ia a catch all for labels that do not have underlying geographic features, or are subparts of other named features (e.g. bays, mountain passes, rivers that are drawn as wide bodies of water)
 	if (!features["Named Regions"]) return;
-	var processedFeatures = new featureCollection([]);
 
-	var labelFCs = {};
+	var labelFCs = geographicLabels;
 	var labelLayergroup = new LayerGroup({title: "[Gen] Geography Labels"});
 
 	var precision = generationParams["precision"];
