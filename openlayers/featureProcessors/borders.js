@@ -15,28 +15,31 @@ import geojson2svg from '../geojsonprocess.js';
 import {  booleanOverlap, lineIntersect, area, bezierSpline, concave, bboxPolygon, booleanWithin, bbox, pointToPolygonDistance, tin, multiPoint, explode, lineChunk, simplify, flatten, booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanIntersects, lineSliceAlong, voronoi, intersect, booleanPointInPolygon, difference, pointOnFeature, lineOverlap, union, destination } from '@turf/turf';
 import { LineString } from 'ol/geom.js';
 
-//https://colorbrewer2.org/#type=qualitative&scheme=Paired&n=10
+//https://colorbrewer2.org/#type=qualitative&scheme=Paired&n=12
+//removed red and light purple
 var politicalColors = [
-"#a6cee333",
-"#1f78b433",
-"#b2df8a33",
-"#33a02c33",
-"#fb9a9933",
-"#ffff9933",
-"#fdbf6f33",
-"#ff7f0033",
-"#cab2d633",
-"#6a3d9a33"
+"#a6cee3",
+"#1f78b4",
+"#b2df8a",
+"#33a02c",
+"#fb9a99",
+"#fdbf6f",
+"#ff7f00",
+"#6a3d9a",
+"#ffff99",
+"#b15928",
 ]
+
+var occupiedColor = "#e31a1c";
+var unclaimedColor = "#333";
 
 var colorCounter = {};
 
-
-
 function createBackgroundStyles () {
-	for (var color of politicalColors) {
+	var allColors = [occupiedColor, unclaimedColor].concat(politicalColors);
+	for (var color of allColors) {
 		var style = styleLib["[Gen] Political Background"].clone();
-		style.getFill().setColor(color);
+		style.getFill().setColor(color + "33");
 		colorCounter[color] = 0;
 		styleLib["[Gen] Political Regions " + color] = style;
 	}
@@ -50,9 +53,8 @@ function createPoliticalBorders(layerGroups, transform, features){
 	var processedEdges = [];
 	var borderLib = {};
 
-	
-
-	createBackgroundStyles ();
+	// Colors are fixed
+	createBackgroundStyles();
 
 	if (!features["Political Boundaries"]) return;
 
@@ -60,10 +62,7 @@ function createPoliticalBorders(layerGroups, transform, features){
 
 	for (var region of features["Political Boundaries"].features) {
 		var label = region.properties["inkscape:label"];
-		console.log(label);
-
-		if (label.startsWith("Ocean")) continue;
-
+		//console.log(label);
 
 		var backGroundStyle = "[Gen] Political Regions " + politicalColors[colorIndex];
 		region.properties["styleName"] = backGroundStyle;
