@@ -47,20 +47,43 @@ function createBackgroundStyles () {
 
 function createPoliticalBorders(layerGroups, transform, features){
 	var borderLines = featureCollection([]);
-	var regionBackgrounds = featureCollection([]);
+	var borderFades = featureCollection([]);
+	var borderFills = featureCollection([]);
+	var borderLabels = featureCollection([]);
 	var graphEdges = featureCollection([]);
-	var connectionGraph = {};
+
+	var borderLayergroup = new LayerGroup({title: "[Gen] Political Borders"});
+	var precision = generationParams["precision"];
+
+	
 	var processedEdges = [];
 	var borderLib = {};
 
-	// Colors are fixed
-	createBackgroundStyles();
+	var boundaryFeatures = features["Political Boundaries"];
+	if (boundaryFeatures) {
+		boundaryFeatures = boundaryFeatures.features;
+	} else return;
 
-	if (!features["Political Boundaries"]) return;
+
+	// Colors are fixed so we just can generate all fill styles
+	createBackgroundStyles();
 
 	var colorIndex = 0;
 
-	for (var region of features["Political Boundaries"].features) {
+	// calculate expanded bounding boxes to check overlap
+	featureEach(features["Political Boundaries"].features, (currentFeature => expandBB(currentFeature, precision)));
+
+	// generate connection graph between regions
+	var connectionGraph = {};
+	for (var region of boundaryFeatures) {
+		for (var otherRegion of boundaryFeatures) {
+			if (region != otherRegion) {
+				
+			} 
+		}
+	}
+
+	for (var region of boundaryFeatures) {
 		var label = region.properties["inkscape:label"];
 		//console.log(label);
 
@@ -103,51 +126,6 @@ function createPoliticalBorders(layerGroups, transform, features){
 			}
 		}
 	}
-/*
-	var origin = point([-76.5,10]);
-	var size = 120;
-	var longSize = 138.56;
-	var side = 69.28;
-	var dimX = [0, 50];
-	var dimY = [0, 26];
-	var toProcess = [];
-	var points = [];
-	var shortStep = true;
-	var yOrigin = origin;
-	var yOffset = 0;
-	for (var cellY = dimY[0]; cellY < dimY[1]; cellY ++) {
-		var pt = destination(origin, yOffset, 0, {units: 'miles'});
-		toProcess.push(pt);
-		if (shortStep) {
-			yOffset += side;
-			shortStep = false;
-		} else {
-			yOffset += longSize;
-			shortStep = true;
-		}
-	}*/
-
-	/*shortStep = true;
-	for (var cellX = dimX[0]; cellX <= dimX[1]; cellX ++) {
-		points = points.concat(toProcess);
-		var newProcess = [];
-		for (var sourcePt of toProcess){
-			var rowOrigin = null;
-			if (shortStep) {
-				rowOrigin = destination(sourcePt, side, 120, {units: 'miles'});
-				shortStep = false;
-			} else {
-				rowOrigin = destination(sourcePt, side, 60, {units: 'miles'});
-				shortStep = true;
-			}
-			newProcess.push(rowOrigin);
-		}
-		shortStep = !shortStep;
-		toProcess = newProcess;		
-	}
-
-	var mesh = tin(featureCollection(points));*/
-
 
 
 	var outputLayer = new VectorLayer({

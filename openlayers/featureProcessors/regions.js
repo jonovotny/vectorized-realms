@@ -173,8 +173,6 @@ function createRegionLabels(layerGroups, transform, features, exportFeatures){
 			types = tokens[2];
 			types = types.replace(", ", ",").split(",");
 		}
-
-		//console.log(region.properties["inkscape:label"]);
 		
 		// find the length of the shortest polygon side segment
 		var minSegLen = segmentReduce(region, function (
