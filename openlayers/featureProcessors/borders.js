@@ -5,14 +5,14 @@ import { Vector as VectorLayer } from 'ol/layer.js';
 import { Icon, Fill, Stroke, Style } from 'ol/style.js';
 import LayerGroup from 'ol/layer/Group';
 
-import { styleLib } from '../layerstyles.js';
-import { offsetFeature } from './utils.js';
+import { styleLib, generationParams } from '../layerstyles.js';
+import { offsetFeature, expandBB } from './utils.js';
 import { getCachedStyle, pushToDict } from './utils.js';
 
 import geojson2svg from '../geojsonprocess.js';
 //import { styleLib } from './layerstyles-nofill.js';
 
-import {  booleanOverlap, lineIntersect, area, bezierSpline, concave, bboxPolygon, booleanWithin, bbox, pointToPolygonDistance, tin, multiPoint, explode, lineChunk, simplify, flatten, booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanIntersects, lineSliceAlong, voronoi, intersect, booleanPointInPolygon, difference, pointOnFeature, lineOverlap, union, destination } from '@turf/turf';
+import {  featureEach, booleanOverlap, lineIntersect, area, bezierSpline, concave, bboxPolygon, booleanWithin, bbox, pointToPolygonDistance, tin, multiPoint, explode, lineChunk, simplify, flatten, booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanIntersects, lineSliceAlong, voronoi, intersect, booleanPointInPolygon, difference, pointOnFeature, lineOverlap, union, destination, circle } from '@turf/turf';
 import { LineString } from 'ol/geom.js';
 
 //https://colorbrewer2.org/#type=qualitative&scheme=Paired&n=12
@@ -61,6 +61,9 @@ function createPoliticalBorders(layerGroups, transform, features){
 
 	var boundaryFeatures = features["Political Boundaries"];
 	if (boundaryFeatures) {
+		featureEach(boundaryFeatures, function (currentFeature) {
+			expandBB(currentFeature, precision)
+		});
 		boundaryFeatures = boundaryFeatures.features;
 	} else return;
 
@@ -71,18 +74,32 @@ function createPoliticalBorders(layerGroups, transform, features){
 	var colorIndex = 0;
 
 	// calculate expanded bounding boxes to check overlap
-	featureEach(features["Political Boundaries"].features, (currentFeature => expandBB(currentFeature, precision)));
+
 
 	// generate connection graph between regions
 	var connectionGraph = {};
+	var arcs = featureCollection([]);
 	for (var region of boundaryFeatures) {
+		var label = region.properties["inkscape:label"];
+		console.log(label);
+		//arcs.features.push(lineString([region.geometry.coordinates[0].at(-1), region.geometry.coordinates[0][0], region.geometry.coordinates[0][1]]));
+		//arcs.features.push(region);
+		arcs.features.push(circle(region.geometry.coordinates[0][0], 5, { steps: 10, units: "kilometers"}));
 		for (var otherRegion of boundaryFeatures) {
-			if (region != otherRegion) {
-				
-			} 
+			var otherLabel = otherRegion.properties["inkscape:label"];
+			//console.log("  " + otherLabel);
+			if (region != otherRegion && !(label in connectionGraph && otherLabel in connectionGraph[region]) && booleanIntersects(region, bboxPolygon(otherRegion.ebbox))) {
+				var overlap = lineOverlap(region, otherRegion, {tolerance: precision*10});
+				if (overlap.features.length > 0) {
+					console.log("  " + otherLabel);
+					pushToDict(connectionGraph, region, otherRegion);
+					pushToDict(connectionGraph, otherRegion, region);
+					arcs.features = arcs.features.concat(overlap.features);
+				}
+			}
 		}
 	}
-
+/*
 	for (var region of boundaryFeatures) {
 		var label = region.properties["inkscape:label"];
 		//console.log(label);
@@ -137,17 +154,18 @@ function createPoliticalBorders(layerGroups, transform, features){
 		zIndex: styleLib["[Gen] Political Background"].getZIndex()
 	});
 	//exportFeatures["[Gen] Political Background"] = regionBackgrounds;
-	layerGroups.getLayers().array_.push(outputLayer);
-/*
+	layerGroups.getLayers().array_.push(outputLayer);*/
+
 	var outputLayer2 = new VectorLayer({
 		title: "[Gen] ConnectionGraph",
 		source: new VectorSource({
-			features: new GeoJSON().readFeatures(connectionGraph),
+			features: new GeoJSON().readFeatures(arcs),
 		}),
-		style: styleLib['default']
-	});*/
+		style: styleLib['default'],
+		zIndex: 2000
+	});
 	//exportFeatures["[Gen] ConnectionGraph"] = graphEdges;
-	//layerGroups.getLayers().array_.push(outputLayer2);
+	layerGroups.getLayers().array_.push(outputLayer2);
 
 	var outputLayer3 = new VectorLayer({
 		title: "[Gen] Political Outlines",
