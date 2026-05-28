@@ -7,17 +7,17 @@
     "serve": "vite preview"
   },
   "devDependencies": {
-    "vite": "^6.2.0"
+    "vite": "^8.0.14"
   },
   "dependencies": {
-    "@fortawesome/fontawesome-free": "^7.1.0",
-    "@turf/turf": "^7.2.0",
-    "cesium": "^1.117.0",
-    "mathjs": "^13.0.0",
+    "@fortawesome/fontawesome-free": "^7.2.0",
+    "@turf/turf": "^7.3.5",
+    "cesium": "^1.141.0",
+    "mathjs": "^15.2.0",
     "ol": "latest",
-    "ol-ext": "^4.0.35",
-    "ol-layerswitcher": "^4.1.0",
-    "olcs": "^2.20.0",
-    "straight-skeleton": "^2.0.1"
+    "ol-ext": "^4.0.38",
+    "ol-layerswitcher": "^4.1.2",
+    "olcs": "^2.23.0",
+    "straight-skeleton": "^3.0.0"
   }
 }

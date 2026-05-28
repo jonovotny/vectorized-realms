@@ -88,12 +88,12 @@ function createPoliticalBorders(layerGroups, transform, features){
 		for (var otherRegion of boundaryFeatures) {
 			var otherLabel = otherRegion.properties["inkscape:label"];
 			//console.log("  " + otherLabel);
-			if (region != otherRegion && !(label in connectionGraph && otherLabel in connectionGraph[region]) && booleanIntersects(region, bboxPolygon(otherRegion.ebbox))) {
-				var overlap = lineOverlap(region, otherRegion, {tolerance: precision*10});
+			if (region != otherRegion && !(label in connectionGraph && connectionGraph[label].includes(otherRegion)) && booleanIntersects(region, bboxPolygon(otherRegion.ebbox))) {
+				var overlap = lineOverlap(region, otherRegion, {tolerance: precision});
 				if (overlap.features.length > 0) {
 					console.log("  " + otherLabel);
-					pushToDict(connectionGraph, region, otherRegion);
-					pushToDict(connectionGraph, otherRegion, region);
+					pushToDict(connectionGraph, label, otherRegion);
+					pushToDict(connectionGraph, otherLabel, region);
 					arcs.features = arcs.features.concat(overlap.features);
 				}
 			}
