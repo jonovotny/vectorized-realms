@@ -78,13 +78,15 @@ function createPoliticalBorders(layerGroups, transform, features){
 
 	// generate connection graph between regions
 	var connectionGraph = {};
+	var borderArcs = {};
 	var arcs = featureCollection([]);
 	for (var region of boundaryFeatures) {
 		var label = region.properties["inkscape:label"];
 		console.log(label);
+
 		//arcs.features.push(lineString([region.geometry.coordinates[0].at(-1), region.geometry.coordinates[0][0], region.geometry.coordinates[0][1]]));
 		//arcs.features.push(region);
-		arcs.features.push(circle(region.geometry.coordinates[0][0], 5, { steps: 10, units: "kilometers"}));
+		//arcs.features.push(circle(region.geometry.coordinates[0][0], 5, { steps: 10, units: "kilometers"}));
 		for (var otherRegion of boundaryFeatures) {
 			var otherLabel = otherRegion.properties["inkscape:label"];
 			//console.log("  " + otherLabel);
@@ -99,6 +101,7 @@ function createPoliticalBorders(layerGroups, transform, features){
 			}
 		}
 	}
+
 /*
 	for (var region of boundaryFeatures) {
 		var label = region.properties["inkscape:label"];

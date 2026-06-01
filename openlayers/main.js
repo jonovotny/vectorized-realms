@@ -520,7 +520,7 @@ DrawControlPoint.LineString.on('drawend', function (event) {
   torilmap.removeInteraction(snapDestination);
   torilmap.addInteraction(snapOrigin);
 });*/
-
+/*
 var lastSnap = null;
 
 torilmap.on('click', function(e){
@@ -535,7 +535,7 @@ torilmap.on('click', function(e){
     
   }
 
-});
+});*/
 
 /*SvgLayersFaerun.getLayers().getArray()[2].setStyle(new Style({
   stroke: new Stroke({
