@@ -12,7 +12,7 @@ import { getCachedStyle, pushToDict } from './utils.js';
 import geojson2svg from '../geojsonprocess.js';
 //import { styleLib } from './layerstyles-nofill.js';
 
-import {  featureEach, booleanOverlap, lineIntersect, area, bezierSpline, concave, bboxPolygon, booleanWithin, bbox, pointToPolygonDistance, tin, multiPoint, explode, lineChunk, simplify, flatten, booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanIntersects, lineSliceAlong, voronoi, intersect, booleanPointInPolygon, difference, pointOnFeature, lineOverlap, union, destination, circle } from '@turf/turf';
+import { distance, getCoords, featureEach, booleanOverlap, lineIntersect, area, bezierSpline, concave, bboxPolygon, booleanWithin, bbox, pointToPolygonDistance, tin, multiPoint, explode, lineChunk, simplify, flatten, booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanIntersects, lineSliceAlong, voronoi, intersect, booleanPointInPolygon, difference, pointOnFeature, lineOverlap, union, destination, circle } from '@turf/turf';
 import { LineString } from 'ol/geom.js';
 
 //https://colorbrewer2.org/#type=qualitative&scheme=Paired&n=12
@@ -78,28 +78,42 @@ function createPoliticalBorders(layerGroups, transform, features){
 
 	// generate connection graph between regions
 	var connectionGraph = {};
-	var borderArcs = {};
-	var arcs = featureCollection([]);
+	var regionArcs = {};
+	var borderArcs = featureCollection([]);
+	var seaArcs = featureCollection([]);
 	for (var region of boundaryFeatures) {
 		var label = region.properties["inkscape:label"];
-		console.log(label);
+		//console.log(label);
 
-		//arcs.features.push(lineString([region.geometry.coordinates[0].at(-1), region.geometry.coordinates[0][0], region.geometry.coordinates[0][1]]));
-		//arcs.features.push(region);
-		//arcs.features.push(circle(region.geometry.coordinates[0][0], 5, { steps: 10, units: "kilometers"}));
+		// first collect overlapping border line segments for the region
 		for (var otherRegion of boundaryFeatures) {
 			var otherLabel = otherRegion.properties["inkscape:label"];
 			//console.log("  " + otherLabel);
 			if (region != otherRegion && !(label in connectionGraph && connectionGraph[label].includes(otherRegion)) && booleanIntersects(region, bboxPolygon(otherRegion.ebbox))) {
 				var overlap = lineOverlap(region, otherRegion, {tolerance: precision});
 				if (overlap.features.length > 0) {
-					console.log("  " + otherLabel);
+					//console.log("  " + otherLabel);
 					pushToDict(connectionGraph, label, otherRegion);
 					pushToDict(connectionGraph, otherLabel, region);
-					arcs.features = arcs.features.concat(overlap.features);
+					for (var arc of overlap.features) {
+						pushToDict(regionArcs, label, arc);
+						pushToDict(regionArcs, otherLabel, arc);
+						borderArcs.features.push(arc);
+					}
 				}
 			}
 		}
+		// sort region arcs in counter-clockwise order
+		if (regionArcs[label]) {
+			var startVert = getCoords(regionArcs[label][0])[0];
+			var startId = getCoords(region)[0].findIndex((vertCoords) => distance(vertCoords, startVert) <= precision);
+			console.log(startId);
+		} else {
+			// region has no neighbors to consider
+			console.log(label)
+		}
+
+
 	}
 
 /*
@@ -162,7 +176,7 @@ function createPoliticalBorders(layerGroups, transform, features){
 	var outputLayer2 = new VectorLayer({
 		title: "[Gen] ConnectionGraph",
 		source: new VectorSource({
-			features: new GeoJSON().readFeatures(arcs),
+			features: new GeoJSON().readFeatures(borderArcs),
 		}),
 		style: styleLib['default'],
 		zIndex: 2000
