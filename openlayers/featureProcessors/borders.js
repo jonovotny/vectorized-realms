@@ -7,7 +7,7 @@ import LayerGroup from 'ol/layer/Group';
 
 import { styleLib, generationParams } from '../layerstyles.js';
 import { offsetFeature, expandBB } from './utils.js';
-import { getCachedStyle, pushToDict } from './utils.js';
+import { findPolyVertIdx, getCachedStyle, pushToDict, polygonOrderRotate} from './utils.js';
 
 import geojson2svg from '../geojsonprocess.js';
 //import { styleLib } from './layerstyles-nofill.js';
@@ -28,20 +28,53 @@ var politicalColors = [
 "#6a3d9a",
 "#ffff99",
 "#b15928",
+"#e31a1c",
+"#333"
 ]
 
-var occupiedColor = "#e31a1c";
-var unclaimedColor = "#333";
-
-var colorCounter = {};
+var colorCounter = [0,0,0,0,0,0,0,0,0,0];
 
 function createBackgroundStyles () {
-	var allColors = [occupiedColor, unclaimedColor].concat(politicalColors);
+	var allColors = politicalColors;
 	for (var color of allColors) {
 		var style = styleLib["[Gen] Political Background"].clone();
 		style.getFill().setColor(color + "33");
 		colorCounter[color] = 0;
 		styleLib["[Gen] Political Regions " + color] = style;
+	}
+}
+
+function setRegionColor(region, connectionGraph) {
+	var colIdx = -1;
+	if (Number.isInteger(connectionGraph)) {
+		colIdx = connectionGraph;
+	} else {
+		var bannedColors = [];
+		for (var neighbor of connectionGraph[region.properties["inkscape:label"]]) {
+			if (neighbor.properties['colorIdx']) {
+				bannedColors.push(neighbor.properties['colorIdx']);
+			}
+		}
+		var useCount = Number.POSITIVE_INFINITY;
+		for (var idx in colorCounter) {
+			if (!bannedColors.includes(idx) && colorCounter[idx] < useCount){
+				useCount = colorCounter[idx];
+				colIdx = idx;
+			}
+		}
+		// if there is no valid color, use the least used one.
+		if (colIdx = -1) {
+			for (var idx in colorCounter) {
+				if (colorCounter[idx] < useCount){
+					colIdx = idx;
+				}
+			}
+		}
+	}
+	region.properties['colorIdx'] = colIdx;
+	region.properties['styleName'] = "[Gen] Political Regions " + politicalColors[colIdx];
+	if (colIdx < 10) {
+		colorCounter[colIdx]++;
 	}
 }
 
@@ -73,6 +106,8 @@ function createPoliticalBorders(layerGroups, transform, features){
 
 	var colorIndex = 0;
 
+	
+
 	// calculate expanded bounding boxes to check overlap
 
 
@@ -81,11 +116,19 @@ function createPoliticalBorders(layerGroups, transform, features){
 	var regionArcs = {};
 	var borderArcs = featureCollection([]);
 	var seaArcs = featureCollection([]);
+	var labelRegionDict = {};
+	var arcCounter = 0;
 	for (var region of boundaryFeatures) {
 		var label = region.properties["inkscape:label"];
+		labelRegionDict[label] = region;
+		
 		//console.log(label);
+		//preset colors
+		if (label == "Cormyr") setRegionColor(region, 7);
+		if (label.includes("Unclaimed")) setRegionColor(region, 10);
+		if (label.includes("Occupied") || label.includes("Disputed")) setRegionColor(region, 11);
 
-		// first collect overlapping border line segments for the region
+		// first collect overlapping border line segments for the region and store ngihbors and vertex indices
 		for (var otherRegion of boundaryFeatures) {
 			var otherLabel = otherRegion.properties["inkscape:label"];
 			//console.log("  " + otherLabel);
@@ -96,6 +139,12 @@ function createPoliticalBorders(layerGroups, transform, features){
 					pushToDict(connectionGraph, label, otherRegion);
 					pushToDict(connectionGraph, otherLabel, region);
 					for (var arc of overlap.features) {
+						arc.properties["label"] = `Border arc ${arcCounter} [${label}, ${otherLabel}]`;
+						// border segments store first index for this region and last index for the neighboring region to account for the handedness of the linestring
+						arc.properties["regions"] = {};
+						arc.properties["regions"][label] = findPolyVertIdx(region, getCoords(arc)[0],precision)
+						arc.properties["regions"][otherLabel] = findPolyVertIdx(otherRegion, getCoords(arc).at(-1), precision);
+						//console.log(arc.properties);
 						pushToDict(regionArcs, label, arc);
 						pushToDict(regionArcs, otherLabel, arc);
 						borderArcs.features.push(arc);
@@ -103,17 +152,30 @@ function createPoliticalBorders(layerGroups, transform, features){
 				}
 			}
 		}
-		// sort region arcs in counter-clockwise order
+		// sort region arcs in order around region
 		if (regionArcs[label]) {
-			var startVert = getCoords(regionArcs[label][0])[0];
-			var startId = getCoords(region)[0].findIndex((vertCoords) => distance(vertCoords, startVert) <= precision);
-			console.log(startId);
+			regionArcs[label].sort((a,b) => {
+				var polyIdx = a.properties["regions"][label][0] - b.properties["regions"][label][0];
+				if (polyIdx == 0) {
+					return a.properties["regions"][label][1] - b.properties["regions"][label][1];
+				} else {
+					return polyIdx;
+				}
+			});
 		} else {
 			// region has no neighbors to consider
-			console.log(label)
+			//console.log(label)
+			connectionGraph[label] = [];
 		}
+	}
 
+	var colorIndex = 0;
+	
 
+	// with all meta information generated we start coloring regions, starting with the region that has the most neighbors
+	var connectionList = Object.entries(connectionGraph).sort((a,b) => b.length - a.length);
+	for (var node of connectionList) {
+		setRegionColor(node, connectionGraph);
 	}
 
 /*

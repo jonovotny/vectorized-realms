@@ -10,7 +10,7 @@ import { styleLib } from '../layerstyles.js';
 import geojson2svg from '../geojsonprocess.js';
 //import { styleLib } from './layerstyles-nofill.js';
 
-import {  lineIntersect, area, bezierSpline, concave, bboxPolygon, booleanWithin, bbox, pointToPolygonDistance, tin, multiPoint, explode, lineChunk, simplify, flatten, booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanIntersects, lineSliceAlong, voronoi, intersect, booleanPointInPolygon } from '@turf/turf';
+import { distance, getCoords, lineIntersect, area, bezierSpline, concave, bboxPolygon, booleanWithin, bbox, pointToPolygonDistance, tin, multiPoint, explode, lineChunk, simplify, flatten, booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanIntersects, lineSliceAlong, voronoi, intersect, booleanPointInPolygon } from '@turf/turf';
 import { LineString } from 'ol/geom.js';
 
 function offsetFeature(feat, dist) {
@@ -99,6 +99,26 @@ function pushToDict (dict, key, value){
 	} else {
 		dict[key] = [value];
 	}
+}
+
+function polygonOrderRotate(arr, count) {
+  arr.pop();
+  const len = arr.length
+  arr.push(...arr.splice(0, (-count % len + len) % len))
+  arr.push(arr[0])
+  return arr
+}
+
+function findPolyVertIdx (feat, point, precision) {
+	var polyIdx = 0;
+	var vertIdx = null;
+	var featCoords  = getCoords(feat);
+	for (polyIdx = 0; polyIdx < featCoords.length; polyIdx++) {
+		var vertCoords = featCoords[polyIdx];
+		vertIdx = vertCoords.findIndex((vert) => distance(vert, point) < precision);
+		if (vertIdx) break;
+	}
+	return [polyIdx, vertIdx];
 }
 
 function expandBB(feat, precision) {
@@ -300,4 +320,4 @@ function keepLongestPath (longestPath, currentPath) {
 	return longestPath;
 }
 
-export {findLongestPath, offsetFeature, getCachedStyle, pushToDict, updateDynamicStyles, registerDynamicStyles, expandBB, getTextWidth, generateGraph};
+export {findLongestPath, offsetFeature, getCachedStyle, pushToDict, updateDynamicStyles, registerDynamicStyles, expandBB, getTextWidth, generateGraph, polygonOrderRotate, findPolyVertIdx };
