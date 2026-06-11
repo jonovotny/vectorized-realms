@@ -39,12 +39,12 @@ function createBackgroundStyles () {
 	for (var color of allColors) {
 		var style = styleLib["[Gen] Political Background"].clone();
 		style.getFill().setColor(color + "33");
-		colorCounter[color] = 0;
 		styleLib["[Gen] Political Regions " + color] = style;
 	}
 }
 
 function setRegionColor(region, connectionGraph) {
+	if (region.properties['colorIdx']) return;
 	var colIdx = -1;
 	if (Number.isInteger(connectionGraph)) {
 		colIdx = connectionGraph;
@@ -63,7 +63,7 @@ function setRegionColor(region, connectionGraph) {
 			}
 		}
 		// if there is no valid color, use the least used one.
-		if (colIdx = -1) {
+		if (colIdx == -1) {
 			for (var idx in colorCounter) {
 				if (colorCounter[idx] < useCount){
 					colIdx = idx;
@@ -76,6 +76,8 @@ function setRegionColor(region, connectionGraph) {
 	if (colIdx < 10) {
 		colorCounter[colIdx]++;
 	}
+	console.log(colIdx);
+	console.log(region);
 }
 
 function createPoliticalBorders(layerGroups, transform, features){
@@ -173,9 +175,9 @@ function createPoliticalBorders(layerGroups, transform, features){
 	
 
 	// with all meta information generated we start coloring regions, starting with the region that has the most neighbors
-	var connectionList = Object.entries(connectionGraph).sort((a,b) => b.length - a.length);
+	var connectionList = Object.entries(connectionGraph).sort((a,b) => b[1].length - a[1].length);
 	for (var node of connectionList) {
-		setRegionColor(node, connectionGraph);
+		setRegionColor(labelRegionDict[node[0]], connectionGraph);
 	}
 
 /*
@@ -223,17 +225,17 @@ function createPoliticalBorders(layerGroups, transform, features){
 		}
 	}
 
-
+*/
 	var outputLayer = new VectorLayer({
 		title: "[Gen] Political Background",
 		source: new VectorSource({
-			features: new GeoJSON().readFeatures(regionBackgrounds),
+			features: new GeoJSON().readFeatures(features["Political Boundaries"]),
 		}),
 		style: getCachedStyle,
 		zIndex: styleLib["[Gen] Political Background"].getZIndex()
 	});
 	//exportFeatures["[Gen] Political Background"] = regionBackgrounds;
-	layerGroups.getLayers().array_.push(outputLayer);*/
+	layerGroups.getLayers().array_.push(outputLayer);
 
 	var outputLayer2 = new VectorLayer({
 		title: "[Gen] ConnectionGraph",
