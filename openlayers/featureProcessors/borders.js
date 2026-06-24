@@ -5,15 +5,87 @@ import { Vector as VectorLayer } from 'ol/layer.js';
 import { Icon, Fill, Stroke, Style } from 'ol/style.js';
 import LayerGroup from 'ol/layer/Group';
 
-import { styleLib, generationParams } from '../layerstyles.js';
+import { styleLib, generationParams, geographicLabels, dynamicAttributes } from '../layerstyles.js';
 import { offsetFeature, expandBB } from './utils.js';
-import { findPolyVertIdx, getCachedStyle, pushToDict, polygonOrderRotate} from './utils.js';
+import { findPolyVertIdx, getCachedStyle, pushToDict, polygonOrderRotate, findPolygonCenterline, registerDynamicStyles} from './utils.js';
 
 import geojson2svg from '../geojsonprocess.js';
 //import { styleLib } from './layerstyles-nofill.js';
 
 import { distance, getCoords, featureEach, booleanOverlap, lineIntersect, area, bezierSpline, concave, bboxPolygon, booleanWithin, bbox, pointToPolygonDistance, tin, multiPoint, explode, lineChunk, simplify, flatten, booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanIntersects, lineSliceAlong, voronoi, intersect, booleanPointInPolygon, difference, pointOnFeature, lineOverlap, union, destination, circle } from '@turf/turf';
 import { LineString } from 'ol/geom.js';
+
+var labelDetails = {};
+labelDetails['default'] = {
+	'textColor': '#000000',
+	'dyn': {
+			'.getText.setFont': [[[4, 10], [7, 30]], "px Alegreya SC"]
+		},
+	minZoom: 4,
+	zIndex: 265
+}
+labelDetails['Country'] = {
+	'textColor': '#84571a',
+	'dyn': {
+			'.getText.setFont': [[[4, 10], [7, 40]], "px Alegreya SC"]
+		},
+	minZoom: 4,
+	zIndex: 265
+}
+labelDetails['Islands'] = {
+	'textColor': '#2f4887',
+	'dyn': {
+			'.getText.setFont': [[[4, 10], [7, 30]], "px Alegreya SC"]
+		},
+	minZoom: 4,
+	zIndex: 265
+}
+labelDetails['Federation'] = {
+	'textColor': '#bf1c21',
+	'dyn': {
+			'.getText.setFont':  [[[4, 10], [7, 30]], "px Alegreya SC"]
+		},
+	minZoom: 4,
+	zIndex: 265
+}
+
+function createRegionLabelStyle(text, types, labelFCs) {
+	var labelDetail = {
+		zIndex: 0
+	};
+
+	var typeDetail = labelDetails[types];
+	if (!typeDetail) {
+		labelDetail = labelDetails['default'];
+	} else {
+		labelDetail = typeDetail;
+	}
+
+	var layerName = "Boundary Label " + types;
+	var typeName = "Boundary Label " + types + " " + text;
+	
+
+	var labelStyle = styleLib["[Gen] Region Labels"].clone();
+	var labelText = labelStyle.getText();
+	labelText.setText(text);
+
+	// create a new FC for the layer if it doesn't exist and store info for creating the actual vector layer later
+	if (!labelFCs[layerName]) {
+		labelFCs[layerName] = new featureCollection([]);
+		labelFCs[layerName].properties = {title: types + " labels"};
+		labelFCs[layerName].properties.styleName = types;
+		if (Object.hasOwn(labelDetail, "zIndex")) labelFCs[layerName].properties.zIndex = labelDetail["zIndex"];
+		if (Object.hasOwn(labelDetail, "minZoom")) labelFCs[layerName].properties.minZoom = labelDetail["minZoom"];
+		if (Object.hasOwn(labelDetail, "maxZoom")) labelFCs[layerName].properties.maxZoom = labelDetail["maxZoom"];
+	}
+
+	if (Object.hasOwn(labelDetail, "textColor")) labelStyle.getText().getFill().setColor(labelDetail['textColor']);
+	if (Object.hasOwn(labelDetail, "dyn")) labelStyle.dyn = labelDetail['dyn'];
+	
+	styleLib[typeName] = labelStyle;
+	return [typeName, layerName];
+}
+
 
 //https://colorbrewer2.org/#type=qualitative&scheme=Paired&n=12
 //removed red and light purple
@@ -29,7 +101,7 @@ var politicalColors = [
 "#ffff99",
 "#b15928",
 "#e31a1c",
-"#333"
+"#333333"
 ]
 
 var colorCounter = [0,0,0,0,0,0,0,0,0,0];
@@ -38,8 +110,11 @@ function createBackgroundStyles () {
 	var allColors = politicalColors;
 	for (var color of allColors) {
 		var style = styleLib["[Gen] Political Background"].clone();
-		style.getFill().setColor(color + "33");
-		styleLib["[Gen] Political Regions " + color] = style;
+		style.getFill().setColor(color + "50");
+		styleLib["[Gen] Political Region " + color] = style;
+		var style = styleLib["[Gen] Political Fade"].clone();
+		style.getFill().setColor(color + (Math.floor(128/generationParams["political fade levels"].length)).toString(16));
+		styleLib["[Gen] Political Fade " + color] = style;
 	}
 }
 
@@ -64,6 +139,7 @@ function setRegionColor(region, connectionGraph) {
 		}
 		// if there is no valid color, use the least used one.
 		if (colIdx == -1) {
+			console.log("Out of Colors - " + region.properties["inkscape:label"])
 			for (var idx in colorCounter) {
 				if (colorCounter[idx] < useCount){
 					colIdx = idx;
@@ -72,12 +148,12 @@ function setRegionColor(region, connectionGraph) {
 		}
 	}
 	region.properties['colorIdx'] = colIdx;
-	region.properties['styleName'] = "[Gen] Political Regions " + politicalColors[colIdx];
+	region.properties['styleName'] = "[Gen] Political Region " + politicalColors[colIdx];
 	if (colIdx < 10) {
 		colorCounter[colIdx]++;
 	}
-	console.log(colIdx);
-	console.log(region);
+	//console.log(colIdx);
+	//console.log(region);
 }
 
 function createPoliticalBorders(layerGroups, transform, features){
@@ -127,8 +203,8 @@ function createPoliticalBorders(layerGroups, transform, features){
 		//console.log(label);
 		//preset colors
 		if (label == "Cormyr") setRegionColor(region, 7);
-		if (label.includes("Unclaimed")) setRegionColor(region, 10);
-		if (label.includes("Occupied") || label.includes("Disputed")) setRegionColor(region, 11);
+		if (label.includes("Unclaimed")) setRegionColor(region, 11);
+		if (label.includes("Occupied") || label.includes("Disputed")) setRegionColor(region, 10);
 
 		// first collect overlapping border line segments for the region and store ngihbors and vertex indices
 		for (var otherRegion of boundaryFeatures) {
@@ -169,6 +245,35 @@ function createPoliticalBorders(layerGroups, transform, features){
 			//console.log(label)
 			connectionGraph[label] = [];
 		}
+		
+		console.log(label)
+		var labelFCs = geographicLabels;
+
+		if (!(label.includes("Unlabeled") || label.includes("Unclaimed"))) {
+			var tokens = region.properties["inkscape:label"].match(/(.*) \[(.*)\]/);
+
+			//Default to unnamed "POI"
+			var pathLine = findPolygonCenterline(region, precision);
+			var types = ["Country"];
+			var text = label;
+			if (tokens) {
+				text = tokens[1];
+				types = tokens[2];
+				types = types.replace(", ", ",").split(",");
+			}
+			var [styleName, layerName] = createRegionLabelStyle(text, types, labelFCs);
+			
+			
+			// Smooth the text line to avoid sharp corners
+			/*if (pathLine.geometry.coordinates.length > 2) {
+				pathLine = polygonSmooth(lineToPolygon(pathLine), {iterations: 2}).features[0];
+				pathLine = lineString(pathLine.geometry.coordinates[0].slice(0,-7), region.properties);
+			}*/
+			pathLine.properties.styleName = styleName;
+			
+			labelFCs[layerName].features.push(pathLine);
+		}
+		
 	}
 
 	var colorIndex = 0;
@@ -177,57 +282,23 @@ function createPoliticalBorders(layerGroups, transform, features){
 	// with all meta information generated we start coloring regions, starting with the region that has the most neighbors
 	var connectionList = Object.entries(connectionGraph).sort((a,b) => b[1].length - a[1].length);
 	for (var node of connectionList) {
-		setRegionColor(labelRegionDict[node[0]], connectionGraph);
-	}
-
-/*
-	for (var region of boundaryFeatures) {
-		var label = region.properties["inkscape:label"];
-		//console.log(label);
-
-		var backGroundStyle = "[Gen] Political Regions " + politicalColors[colorIndex];
-		region.properties["styleName"] = backGroundStyle;
-
-		regionBackgrounds.features.push(region);
-		for (var i of [4,8,12]) {
+		var region = labelRegionDict[node[0]];
+		setRegionColor(region, connectionGraph);
+		
+		//Create fade polygons
+		for (var i of generationParams["political fade levels"]) {
 			var hole = offsetFeature(region, -i);
 			var fadeRegion = difference(featureCollection([region, hole]));
-			if (fadeRegion) regionBackgrounds.features.push(fadeRegion);
-		}
-
-		colorIndex = colorIndex + 1;
-		if (colorIndex == politicalColors.length) colorIndex = 0;
-
-		for (var otherRegion of features["Political Boundaries"].features) {
-			if (region == otherRegion || processedEdges.includes(region.properties["inkscape:label"] + '->' + otherRegion.properties["inkscape:label"])) continue;
-			var otherLabel = otherRegion.properties["inkscape:label"];
-
-			if (booleanIntersects(bboxPolygon(region.bbox), bboxPolygon(otherRegion.bbox))) {
-				var overlap = lineOverlap(region, otherRegion, {tolerance: 10});
-				if (overlap.features.length > 0) {
-					//console.log(region.properties["inkscape:label"] + '->' + otherRegion.properties["inkscape:label"])
-					//TODO
-					pushToDict(connectionGraph, label, otherRegion.properties["inkscape:label"]);
-					pushToDict(connectionGraph, otherRegion.properties["inkscape:label", label]);
-					processedEdges.push[region.properties["inkscape:label"] + '->' + otherRegion.properties["inkscape:label"]];
-					processedEdges.push[otherRegion.properties["inkscape:label"] + '->' + region.properties["inkscape:label"]];
-					//console.log(overlap);
-
-					borderLines.features = borderLines.features.concat(overlap.features);
-
-					if (!otherLabel.startsWith("Ocean")) {
-						var pt1 = pointOnFeature(region);
-						var pt2 = pointOnFeature(otherRegion);
-						graphEdges.features.push(lineString([pt1.geometry.coordinates, pt2.geometry.coordinates]))
-					}
-				}
+			if (fadeRegion) {
+				fadeRegion.properties['styleName'] = "[Gen] Political Fade " + politicalColors[region.properties["colorIdx"]];
+				borderFades.features.push(fadeRegion);
 			}
 		}
 	}
 
-*/
-	var outputLayer = new VectorLayer({
-		title: "[Gen] Political Background",
+
+	var backgroundLayer = new VectorLayer({
+		title: "[Gen] Political Backgrounds",
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(features["Political Boundaries"]),
 		}),
@@ -235,29 +306,52 @@ function createPoliticalBorders(layerGroups, transform, features){
 		zIndex: styleLib["[Gen] Political Background"].getZIndex()
 	});
 	//exportFeatures["[Gen] Political Background"] = regionBackgrounds;
-	layerGroups.getLayers().array_.push(outputLayer);
+	borderLayergroup.getLayers().array_.push(backgroundLayer);
 
-	var outputLayer2 = new VectorLayer({
-		title: "[Gen] ConnectionGraph",
+	var borderLayer = new VectorLayer({
+		title: "[Gen] Political Borders",
 		source: new VectorSource({
 			features: new GeoJSON().readFeatures(borderArcs),
 		}),
-		style: styleLib['default'],
-		zIndex: 2000
+		style: styleLib["Political Borders"],
+		zIndex: styleLib["Political Borders"].getZIndex()
 	});
 	//exportFeatures["[Gen] ConnectionGraph"] = graphEdges;
-	layerGroups.getLayers().array_.push(outputLayer2);
+	borderLayergroup.getLayers().array_.push(borderLayer);
 
-	var outputLayer3 = new VectorLayer({
-		title: "[Gen] Political Outlines",
+	var fadeLayer = new VectorLayer({
+		title: "[Gen] Political Fades",
 		source: new VectorSource({
-			features: new GeoJSON().readFeatures(borderLines),
+			features: new GeoJSON().readFeatures(borderFades),
 		}),
-		style: styleLib["[Gen] Political Outlines"],
-		zIndex: styleLib["[Gen] Political Outlines"].getZIndex()
+		style: getCachedStyle,
+		zIndex: styleLib["[Gen] Political Fade"].getZIndex()
 	});
+
+	borderLayergroup.getLayers().array_.push(fadeLayer);
 	//exportFeatures["[Gen] Political Outlines"] = borderLines;
 	//layerGroups.getLayers().array_.push(outputLayer3);
+
+	registerDynamicStyles(styleLib, dynamicAttributes);
+	
+	for(var id of Object.keys(labelDetails).slice(1)) {
+		var fc = labelFCs["Boundary Label " + id];
+		var outputLayer = new VectorLayer({
+			title: fc.properties.title,
+			source: new VectorSource({
+				features: new GeoJSON().readFeatures(fc),
+			}),
+			style: getCachedStyle,
+			zIndex: fc.properties.zIndex
+		});
+		if (fc.properties.minZoom) outputLayer.setMinZoom(fc.properties.minZoom);
+		if (fc.properties.maxZoom) outputLayer.setMaxZoom(fc.properties.maxZoom);
+		// exportFeatures[markerLayerName] = markerFC;
+		
+		borderLayergroup.getLayers().array_.push(outputLayer);
+	}
+
+	layerGroups.getLayers().array_.push(borderLayergroup);
 }
 
 export {createPoliticalBorders};

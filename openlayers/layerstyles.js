@@ -402,11 +402,11 @@ styleLib["[Gen] Named Regions"] = new Style({
 	zIndex: 260,
 });
 
-styleLib["Political Boundaries"] = new Style({ 
+styleLib["Political Borders"] = new Style({ 
 	stroke: new Stroke({
-		color: '#a7a7a7',
+		color: '#ffffff',
 		lineDash: [8, 8],
-		width: 2,
+		width: 2.5,
 		lineCap: 'round',
 	}),
 	zIndex: 265
@@ -427,6 +427,18 @@ styleLib["[Gen] Political Background"] = new Style({
 		color: "#00000022"
 	}),
 	zIndex: 250
+		/*stroke: new Stroke({
+		color: '#0000bb',
+		width: 1.0,
+		lineCap: 'round',
+	}),*/
+});
+
+styleLib["[Gen] Political Fade"] = new Style({ 
+	fill: new Fill({
+		color: "#00000022"
+	}),
+	zIndex: 251
 		/*stroke: new Stroke({
 		color: '#0000bb',
 		width: 1.0,
@@ -498,7 +510,7 @@ styleLib["[Gen] Region Labels"] = new Style({
 			color:'#fcf0e0', 
 			width: 0.5}),
 	}),
-	zIndex: 260
+	zIndex: 268
 });
 
 var dynamicAttributes = {};
@@ -524,7 +536,8 @@ var generationParams=
 	"river max width": 3,
 	"river min width": 1,
 	"river taper length":50,
-	"river taper segments": 10
+	"river taper segments": 10,
+	"political fade levels": [4,8,12]
 }
 
 export {styleLib, dynamicAttributes, generationParams, geographicLabels};

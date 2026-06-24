@@ -10,7 +10,7 @@ import { styleLib } from '../layerstyles.js';
 import geojson2svg from '../geojsonprocess.js';
 //import { styleLib } from './layerstyles-nofill.js';
 
-import { distance, getCoords, lineIntersect, area, bezierSpline, concave, bboxPolygon, booleanWithin, bbox, pointToPolygonDistance, tin, multiPoint, explode, lineChunk, simplify, flatten, booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanIntersects, lineSliceAlong, voronoi, intersect, booleanPointInPolygon } from '@turf/turf';
+import { segmentReduce, segmentEach, distance, getCoords, lineIntersect, area, bezierSpline, concave, bboxPolygon, booleanWithin, bbox, pointToPolygonDistance, tin, multiPoint, explode, lineChunk, simplify, flatten, booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanIntersects, lineSliceAlong, voronoi, intersect, booleanPointInPolygon } from '@turf/turf';
 import { LineString } from 'ol/geom.js';
 
 function offsetFeature(feat, dist) {
@@ -313,6 +313,50 @@ function processNode(node, prevNode, verts, graph) {
 	return longestPath;
 }
 
+function findPolygonCenterline(region, precision) {
+	// find the length of the shortest polygon side segment
+		var minSegLen = segmentReduce(region, function (
+			previousValue,
+			currentSegment){
+				var len = length(currentSegment)
+				return len < previousValue ? len : previousValue;
+			}, Number.MAX_VALUE);
+
+		// We want at least two additional points along each segment, so the slice step size is the shortest segment divided by 3
+		var sliceStep = minSegLen/3;
+		//console.log(sliceStep);
+
+		// Preparing the set of boundary points for Voronoy cells
+		var boundaryPoints = new featureCollection([]);
+
+		// We remove the polygon corner vertices by cutting away one slice step from each side of a line segment. This should guarantee that Voronoy cell edges pass through the location of the corner.
+		// The remaining segments get cut into even pieces with a length close to the sliceStep.
+		segmentEach(region, function (currentSegment){
+			var len = length(currentSegment);
+			var seg = lineSliceAlong(currentSegment, sliceStep, len - sliceStep);
+			var chunkLength = length(seg)/Math.ceil(length(seg)/sliceStep);
+			boundaryPoints.features = boundaryPoints.features.concat(explode(lineChunk(seg, chunkLength)).features);
+		});
+		
+		// remove duplicates created by lineChunk method
+		boundaryPoints = cleanCoords(combine(boundaryPoints).features[0]);
+
+		// Calculate a slightly expanded bounding box to accomodate for precision errors amd generate Voronoy cells
+		expandBB(region, precision);
+		var polys = voronoi(explode(boundaryPoints), {bbox: region.ebbox});
+
+		// convert Voronoy cells into a graph
+		var [graph, verts] = generateGraph(region, polys, precision);
+
+		// find longest path from an arbitrary node
+		var someNode = Object.keys(graph).at(0);
+		var path = findLongestPath (verts[someNode], graph, verts);
+
+		// finding the longest path from that endpoint should get us the longest path in the entire graphoverall
+		var longestPath = findLongestPath (path.at(-1), graph, verts);
+		return lineString(longestPath);
+}
+
 function keepLongestPath (longestPath, currentPath) {
 	if(currentPath[0] > longestPath[0]) {
 		return currentPath;
@@ -320,4 +364,4 @@ function keepLongestPath (longestPath, currentPath) {
 	return longestPath;
 }
 
-export {findLongestPath, offsetFeature, getCachedStyle, pushToDict, updateDynamicStyles, registerDynamicStyles, expandBB, getTextWidth, generateGraph, polygonOrderRotate, findPolyVertIdx };
+export {findLongestPath, offsetFeature, getCachedStyle, pushToDict, updateDynamicStyles, registerDynamicStyles, expandBB, getTextWidth, generateGraph, polygonOrderRotate, findPolyVertIdx, findPolygonCenterline };
