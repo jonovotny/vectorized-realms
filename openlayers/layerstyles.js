@@ -510,6 +510,9 @@ styleLib["[Gen] Region Labels"] = new Style({
 			color:'#fcf0e0', 
 			width: 0.5}),
 	}),
+		/*stroke: new Stroke({
+			color:'#ff0000', 
+			width: 1}),*/
 	zIndex: 268
 });
 

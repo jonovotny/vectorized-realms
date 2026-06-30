@@ -254,6 +254,30 @@ function createPoliticalBorders(layerGroups, transform, features){
 
 			//Default to unnamed "POI"
 			var pathLine = findPolygonCenterline(region, precision);
+			var maxStepLength = 80;
+			var stepLength = 25;
+			var minSteps = 10;
+			var pathLength = length(pathLine);
+			var steps = pathLength/maxStepLength;
+			if (steps < minSteps) {
+				stepLength = pathLength/minSteps;
+				steps = minSteps;
+			} else {
+				steps = Math.floor(steps);
+				stepLength = pathLength/steps;
+			}
+			
+			var samples = []
+			for (var step = 0; step <= steps; step++) {
+				samples.push(along(pathLine, step * stepLength).geometry.coordinates);
+			}
+
+			samples.push(samples[0]);
+			console.log(samples.length);
+			var poly = polygon([samples], {});
+			poly = polygonSmooth(poly);
+			pathLine = lineString(poly.features[0].geometry.coordinates[0].slice(0,-3));
+
 			var types = ["Country"];
 			var text = label;
 			if (tokens) {
