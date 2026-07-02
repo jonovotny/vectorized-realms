@@ -3,11 +3,12 @@ import GeoJSON from 'ol/format/GeoJSON.js';
 import { Vector as VectorSource } from 'ol/source.js';
 import { Vector as VectorLayer } from 'ol/layer.js';
 import { Icon, Fill, Stroke, Style } from 'ol/style.js';
+import {asArray} from 'ol/color';
 import LayerGroup from 'ol/layer/Group';
 
 import { styleLib, generationParams, geographicLabels, dynamicAttributes } from '../layerstyles.js';
 import { offsetFeature, expandBB } from './utils.js';
-import { findPolyVertIdx, getCachedStyle, pushToDict, polygonOrderRotate, findPolygonCenterline, registerDynamicStyles} from './utils.js';
+import { setColorAlpha, findPolyVertIdx, getCachedStyle, pushToDict, polygonOrderRotate, findPolygonCenterline, registerDynamicStyles} from './utils.js';
 
 import geojson2svg from '../geojsonprocess.js';
 //import { styleLib } from './layerstyles-nofill.js';
@@ -19,7 +20,7 @@ var labelDetails = {};
 labelDetails['default'] = {
 	'textColor': '#000000',
 	'dyn': {
-			'.getText.setFont': [[[4, 10], [7, 30]], "px Alegreya SC"]
+			'.getText.setFont': [[[4, 10], [7, 30]], "", "px Alegreya SC"]
 		},
 	minZoom: 4,
 	zIndex: 265
@@ -27,7 +28,7 @@ labelDetails['default'] = {
 labelDetails['Country'] = {
 	'textColor': '#84571a',
 	'dyn': {
-			'.getText.setFont': [[[4, 10], [7, 40]], "px Alegreya SC"]
+			'.getText.setFont': [[[4, 10], [7, 40]], "", "px Alegreya SC"]
 		},
 	minZoom: 4,
 	zIndex: 265
@@ -35,7 +36,7 @@ labelDetails['Country'] = {
 labelDetails['Islands'] = {
 	'textColor': '#2f4887',
 	'dyn': {
-			'.getText.setFont': [[[4, 10], [7, 30]], "px Alegreya SC"]
+			'.getText.setFont': [[[4, 10], [7, 30]], "", "px Alegreya SC"]
 		},
 	minZoom: 4,
 	zIndex: 265
@@ -43,7 +44,7 @@ labelDetails['Islands'] = {
 labelDetails['Federation'] = {
 	'textColor': '#bf1c21',
 	'dyn': {
-			'.getText.setFont':  [[[4, 10], [7, 30]], "px Alegreya SC"]
+			'.getText.setFont':  [[[4, 10], [7, 30]], "", "px Alegreya SC"]
 		},
 	minZoom: 4,
 	zIndex: 265
@@ -69,6 +70,9 @@ function createRegionLabelStyle(text, types, labelFCs) {
 	var labelText = labelStyle.getText();
 	labelText.setText(text);
 
+	labelStyle.getText().getFill().setAlpha = setColorAlpha;
+	labelStyle.getText().getStroke().setAlpha = setColorAlpha;
+
 	// create a new FC for the layer if it doesn't exist and store info for creating the actual vector layer later
 	if (!labelFCs[layerName]) {
 		labelFCs[layerName] = new featureCollection([]);
@@ -81,6 +85,8 @@ function createRegionLabelStyle(text, types, labelFCs) {
 
 	if (Object.hasOwn(labelDetail, "textColor")) labelStyle.getText().getFill().setColor(labelDetail['textColor']);
 	if (Object.hasOwn(labelDetail, "dyn")) labelStyle.dyn = labelDetail['dyn'];
+	labelStyle.dyn[".getText.getFill.setAlpha"] = [[[6, 1.0], [8, 0.33]], "", ""]
+	labelStyle.dyn[".getText.getStroke.setAlpha"] = [[[6, 1.0], [8, 0.33]], "", ""]
 	
 	styleLib[typeName] = labelStyle;
 	return [typeName, layerName];
@@ -110,11 +116,17 @@ function createBackgroundStyles () {
 	var allColors = politicalColors;
 	for (var color of allColors) {
 		var style = styleLib["[Gen] Political Background"].clone();
-		style.getFill().setColor(color + "50");
+		style.getFill().setAlpha = setColorAlpha;
+		style.getFill().setColor(color);
+		style.getFill().setAlpha(0.2);
+		style.dyn = {
+			'.getFill.setAlpha': [[[6, 0.33], [8, 0.0]], "", ""]
+		}
 		styleLib["[Gen] Political Region " + color] = style;
-		var style = styleLib["[Gen] Political Fade"].clone();
-		style.getFill().setColor(color + (Math.floor(128/generationParams["political fade levels"].length)).toString(16));
-		styleLib["[Gen] Political Fade " + color] = style;
+
+		var fadeStyle = styleLib["[Gen] Political Fade"].clone();
+		fadeStyle.getFill().setColor(color + (Math.floor(128/generationParams["political fade levels"].length)).toString(16));
+		styleLib["[Gen] Political Fade " + color] = fadeStyle;
 	}
 }
 
@@ -314,6 +326,7 @@ function createPoliticalBorders(layerGroups, transform, features){
 			var hole = offsetFeature(region, -i);
 			var fadeRegion = difference(featureCollection([region, hole]));
 			if (fadeRegion) {
+				fadeRegion.properties = {};
 				fadeRegion.properties['styleName'] = "[Gen] Political Fade " + politicalColors[region.properties["colorIdx"]];
 				borderFades.features.push(fadeRegion);
 			}

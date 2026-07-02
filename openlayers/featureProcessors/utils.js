@@ -12,6 +12,7 @@ import geojson2svg from '../geojsonprocess.js';
 
 import { segmentReduce, segmentEach, distance, getCoords, lineIntersect, area, bezierSpline, concave, bboxPolygon, booleanWithin, bbox, pointToPolygonDistance, tin, multiPoint, explode, lineChunk, simplify, flatten, booleanTouches, multiPolygon, booleanPointOnLine, cleanCoords, polygonSmooth, clone, combine, featureCollection, multiLineString, polygon, truncate, point, lineString, lineOffset, polygonToLine, lineToPolygon, unkinkPolygon, booleanClockwise, rewind, lineSplit, length, along, pointToLineDistance, booleanIntersects, lineSliceAlong, voronoi, intersect, booleanPointInPolygon } from '@turf/turf';
 import { LineString } from 'ol/geom.js';
+import { asArray } from 'ol/color.js';
 
 function offsetFeature(feat, dist) {
 	//split multi feature apart and call recursive
@@ -165,7 +166,8 @@ function updateDynamicStyles(zoom, styleLib, dynamicAttributes) {
 			context.visible = true;
 		}
 		var setter = attrib.pop();
-		var suffix = keypoints[1];
+		var prefix = keypoints[1];
+		var suffix = keypoints[2];
 
 		var value = keypoints[0].at(0)[1];
 		var fromValue = keypoints[0].at(0)[1];
@@ -188,6 +190,10 @@ function updateDynamicStyles(zoom, styleLib, dynamicAttributes) {
 					break;
 				}
 			}
+		}
+
+		if (prefix) {
+			value = prefix + value;
 		}
 		
 		if (suffix) {
@@ -364,4 +370,10 @@ function keepLongestPath (longestPath, currentPath) {
 	return longestPath;
 }
 
-export {findLongestPath, offsetFeature, getCachedStyle, pushToDict, updateDynamicStyles, registerDynamicStyles, expandBB, getTextWidth, generateGraph, polygonOrderRotate, findPolyVertIdx, findPolygonCenterline };
+function setColorAlpha(alpha) {
+	var col = asArray(this.getColor());
+	col[3] = alpha;
+	this.setColor(col);
+}
+
+export {setColorAlpha, findLongestPath, offsetFeature, getCachedStyle, pushToDict, updateDynamicStyles, registerDynamicStyles, expandBB, getTextWidth, generateGraph, polygonOrderRotate, findPolyVertIdx, findPolygonCenterline };

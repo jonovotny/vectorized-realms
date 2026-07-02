@@ -128,28 +128,28 @@ function createMarkerStyle (type, rotation, markerFCs) {
 var labelDetails = {};
 labelDetails['default'] = {
 	'dyn': {
-			'.getText.setFont': [[[6, 12], [8, 16]], "px Alegreya SC"]
+			'.getText.setFont': [[[6, 12], [8, 16]], "", "px Alegreya SC"]
 		},
 	minZoom: 6,
 	zIndex: 290
 }
 labelDetails['Capital'] = {
 	'dyn': {
-			'.getText.setFont': [[[5, 10], [7, 16]], "px Alegreya SC"]
+			'.getText.setFont': [[[5, 10], [7, 16]], "", "px Alegreya SC"]
 		},
 	minZoom: 5,
 	zIndex: 295
 }
 labelDetails['Site'] = {
 	'dyn': {
-			'.getText.setFont':  [[[7, 10], [9, 16]], "px Alegreya SC"]
+			'.getText.setFont':  [[[7, 10], [9, 16]], "", "px Alegreya SC"]
 		},
 	minZoom: 7,
 	zIndex: 290
 }
 labelDetails['Bridge'] = {
 	'dyn': {
-			'.getText.setFont':  [[[7, 10], [9, 16]], "px Alegreya SC"]
+			'.getText.setFont':  [[[7, 10], [9, 16]], "", "px Alegreya SC"]
 		},
 	minZoom: 7,
 	zIndex: 290

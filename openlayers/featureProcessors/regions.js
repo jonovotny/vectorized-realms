@@ -17,9 +17,9 @@ import { LineString } from 'ol/geom.js';
 
 var labelDetails = {};
 labelDetails['default'] = {
-	'textColor': '#000',
+	'textColor': '#000000',
 	'dyn': {
-			'.getText.setFont': [[[6, 12], [8, 16]], "px Alegreya SC"]
+			'.getText.setFont': [[[6, 12], [8, 16]], "", "px Alegreya SC"]
 		},
 	minZoom: 6,
 	zIndex: 260
@@ -27,7 +27,7 @@ labelDetails['default'] = {
 labelDetails['Desert rocky'] = {
 	'textColor': '#b99150',
 	'dyn': {
-			'.getText.setFont': [[[5, 10], [7, 16]], "px Alegreya SC"]
+			'.getText.setFont': [[[5, 10], [7, 16]], "", "px Alegreya SC"]
 		},
 	minZoom: 5,
 	zIndex: 260
@@ -35,7 +35,7 @@ labelDetails['Desert rocky'] = {
 labelDetails['Desert sandy'] = {
 	'textColor': '#be7f2b',
 	'dyn': {
-			'.getText.setFont':  [[[7, 10], [9, 16]], "px Alegreya SC"]
+			'.getText.setFont':  [[[7, 10], [9, 16]], "", "px Alegreya SC"]
 		},
 	minZoom: 7,
 	zIndex: 260
@@ -43,7 +43,7 @@ labelDetails['Desert sandy'] = {
 labelDetails['Bay'] = {
 	'textColor': '#2f4887',
 	'dyn': {
-			'.getText.setFont':  [[[5, 10], [8, 24]], "px Alegreya SC"]
+			'.getText.setFont':  [[[5, 10], [8, 24]], "", "px Alegreya SC"]
 		},
 	minZoom: 5,
 	zIndex: 260
@@ -51,7 +51,7 @@ labelDetails['Bay'] = {
 labelDetails['Channel'] = {
 	'textColor': '#2f4887',
 	'dyn': {
-			'.getText.setFont':  [[[5, 10], [8, 20]], "px Alegreya SC"]
+			'.getText.setFont':  [[[5, 10], [8, 20]], "", "px Alegreya SC"]
 		},
 	minZoom: 5,
 	zIndex: 260
@@ -59,7 +59,7 @@ labelDetails['Channel'] = {
 labelDetails['Ocean'] = {
 	'textColor': '#2f4887',
 	'dyn': {
-			'.getText.setFont':  [[[4, 10], [7, 30]], "px Alegreya SC"]
+			'.getText.setFont':  [[[4, 10], [7, 30]], "", "px Alegreya SC"]
 		},
 	minZoom: 4,
 	zIndex: 260
@@ -67,7 +67,7 @@ labelDetails['Ocean'] = {
 labelDetails['River'] = {
 	'textColor': '#2f4887',
 	'dyn': {
-			'.getText.setFont':  [[[5, 10], [8, 20]], "px Alegreya SC"]
+			'.getText.setFont':  [[[5, 10], [8, 20]], "", "px Alegreya SC"]
 		},
 	minZoom: 5,
 	zIndex: 260
@@ -75,7 +75,7 @@ labelDetails['River'] = {
 labelDetails['Lake'] = {
 	'textColor': '#2f4887',
 	'dyn': {
-			'.getText.setFont':  [[[5, 10], [8, 20]], "px Alegreya SC"]
+			'.getText.setFont':  [[[5, 10], [8, 20]], "", "px Alegreya SC"]
 		},
 	minZoom: 5,
 	zIndex: 260
@@ -83,7 +83,7 @@ labelDetails['Lake'] = {
 labelDetails['Grasslands'] = {
 	'textColor': '#8e9b40',
 	'dyn': {
-			'.getText.setFont':  [[[5, 10], [8, 20]], "px Alegreya SC"]
+			'.getText.setFont':  [[[5, 10], [8, 20]], "", "px Alegreya SC"]
 		},
 	minZoom: 5,
 	zIndex: 260
@@ -91,7 +91,7 @@ labelDetails['Grasslands'] = {
 labelDetails['Political'] = {
 	'textColor': '#bf1c21',
 	'dyn': {
-			'.getText.setFont':  [[[6, 10], [9, 20]], "px Alegreya SC"]
+			'.getText.setFont':  [[[6, 10], [9, 20]], "", "px Alegreya SC"]
 		},
 	minZoom: 6,
 	zIndex: 260
@@ -99,7 +99,7 @@ labelDetails['Political'] = {
 labelDetails['Pass'] = {
 	'textColor': '#671a18',
 	'dyn': {
-			'.getText.setFont':  [[[6, 10], [9, 20]], "px Alegreya SC"]
+			'.getText.setFont':  [[[6, 10], [9, 20]], "", "px Alegreya SC"]
 		},
 	minZoom: 6,
 	zIndex: 260
@@ -107,7 +107,7 @@ labelDetails['Pass'] = {
 labelDetails['POI'] = {
 	'textColor': '#000',
 	'dyn': {
-			'.getText.setFont':  [[[7, 10], [9, 16]], "px Alegreya SC"]
+			'.getText.setFont':  [[[7, 10], [9, 16]], "", "px Alegreya SC"]
 		},
 	minZoom: 5,
 	zIndex: 260
