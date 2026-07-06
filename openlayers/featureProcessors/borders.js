@@ -85,8 +85,8 @@ function createRegionLabelStyle(text, types, labelFCs) {
 
 	if (Object.hasOwn(labelDetail, "textColor")) labelStyle.getText().getFill().setColor(labelDetail['textColor']);
 	if (Object.hasOwn(labelDetail, "dyn")) labelStyle.dyn = labelDetail['dyn'];
-	labelStyle.dyn[".getText.getFill.setAlpha"] = [[[6, 1.0], [8, 0.33]], "", ""]
-	labelStyle.dyn[".getText.getStroke.setAlpha"] = [[[6, 1.0], [8, 0.33]], "", ""]
+	labelStyle.dyn[".getText.getFill.setAlpha"] = [[[5, 1.0], [7, 0.33]], "", ""]
+	labelStyle.dyn[".getText.getStroke.setAlpha"] = [[[5, 1.0], [7, 0.33]], "", ""]
 	
 	styleLib[typeName] = labelStyle;
 	return [typeName, layerName];
@@ -120,7 +120,7 @@ function createBackgroundStyles () {
 		style.getFill().setColor(color);
 		style.getFill().setAlpha(0.2);
 		style.dyn = {
-			'.getFill.setAlpha': [[[6, 0.33], [8, 0.0]], "", ""]
+			'.getFill.setAlpha': [[[5, 0.33], [7, 0.0]], "", ""]
 		}
 		styleLib["[Gen] Political Region " + color] = style;
 
