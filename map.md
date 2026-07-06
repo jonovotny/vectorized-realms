@@ -25,3 +25,4 @@ The "Vectorized Realms Detail" represents the current status of filter styles im
 
 <div id="map"></div>
 <div id="mappad" style="height:800px"></div>
+<a id="downloadAnchorElem" style="display:none"></a>
