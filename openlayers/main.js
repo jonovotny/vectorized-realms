@@ -249,13 +249,13 @@ const faerunRaw = new ImageLayer({
   title: 'Vectorized Realms Raw Data (3e)',
   visible: false,
 });*/
-
+/*
 const TorilMaps = new LayerGroup({
   title: 'Toril/World',
   visible: true,
   //layers: [OSMMap,FRIAGlobe,FRIAMap],
   layers:[FRIAMap]
-});
+});*/
 
 const SvgLayers = new LayerGroup({
   title: 'SVG Toril',
