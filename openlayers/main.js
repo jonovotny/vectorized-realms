@@ -170,6 +170,7 @@ const OSMMap = new TileLayer({
   source: new OSM(),
 });
 
+/*
 const FRIAMap = new ImageLayer({
   source: new Static({
     url:'https://raw.githubusercontent.com/jonovotny/vectorized-realms/main/toril-2e/toril-fria-2dmap.png',
@@ -181,7 +182,7 @@ const FRIAMap = new ImageLayer({
   }),
   type: 'base',
   title: 'FR Interactive Atlas (2e)',
-});
+});*/
 
 /*const FRIAGlobe = new ImageLayer({
   source: new Static({
@@ -228,7 +229,7 @@ const faerun2000dist = new ImageLayer({
   title: 'Faerun WotC (3e) distortion',
   visible: false,
 });*/
-
+/*
 const faerunDetail = new ImageLayer({
   source: new Static({
     url:'https://raw.githubusercontent.com/jonovotny/vectorized-realms/main/faerun-3e/faerun-v016-40dpi.jpg',
@@ -237,7 +238,7 @@ const faerunDetail = new ImageLayer({
   }),
   visible: true,
   title: 'Vectorized Realms Detail (3e)'
-});
+});*/
 /*
 const faerunRaw = new ImageLayer({
   source: new Static({
@@ -334,7 +335,7 @@ const controlpoints = new VectorLayer({
  
 [ 1.043e+00  1.068e+00  2.618e+00 -2.193e+00]*/
 
-await parseSvg('_local/faerun-v016-07.svg', [-76.5, 10, -18, 49.1], SvgLayersFaerun);
+await parseSvg('https://raw.githubusercontent.com/jonovotny/vectorized-realms/main/svg/faerun-v016-07.svg', [-76.5, 10, -18, 49.1], SvgLayersFaerun);
 //await parseSvg('_local/Toril-2e-base-v3.svg', [-180, -90, 180, 90], SvgLayers);
 
 function storeVis(event) {
