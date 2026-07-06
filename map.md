@@ -3,7 +3,7 @@ layout: page
 title: Mapping Status (Faerun/Toril)
 permalink: /map/
 ---
-<script type="module" crossorigin src="{{ site.baseurl }}/assets/index-diB81t4B.js"></script>
+<script type="module" crossorigin src="{{ site.baseurl }}/assets/index-CPWnZjrk.js"></script>
 <link rel="stylesheet" crossorigin href="{{ site.baseurl }}/assets/index-ryiV-R4R.css">
 <script src="https://cdn.jsdelivr.net/npm/cesium@1.117.0/Build/Cesium/Cesium.js"></script>
 <style>
