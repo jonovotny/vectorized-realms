@@ -23,6 +23,6 @@ The "Vectorized Realms Detail" represents the current status of filter styles im
   You should be able to download the images directly from the <a href="https://github.com/jonovotny/vectorized-realms/tree/main/faerun-3e"> github repository</a>.
 </div-->
 
-<div id="map"></div>
-<div id="mappad" style="height:800px"></div>
+<!--div id="map"></div-->
+<div id="map" style="height:800px"></div>
 <a id="downloadAnchorElem" style="display:none"></a>
