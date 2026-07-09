@@ -6,6 +6,9 @@ permalink: /map/
 <script type="module" crossorigin src="{{ site.baseurl }}/assets/index-CPWnZjrk.js"></script>
 <link rel="stylesheet" crossorigin href="{{ site.baseurl }}/assets/index-ryiV-R4R.css">
 <script src="https://cdn.jsdelivr.net/npm/cesium@1.117.0/Build/Cesium/Cesium.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="stylesheet" href="node_modules/@fortawesome/fontawesome-free/css/all.css">
+<link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Alegreya SC'>
 <style>
 .alert {
   padding: 20px;
