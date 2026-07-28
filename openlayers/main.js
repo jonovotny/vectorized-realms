@@ -198,8 +198,8 @@ const FRIAMap = new ImageLayer({
 
 const faerun2000 = new ImageLayer({
   source: new Static({
-    url:'https://raw.githubusercontent.com/jonovotny/vectorized-realms/main/faerun-3e/faerun-3e.jpg',
-    //url:'_local/faerun-3e.jpg',
+    //url:'https://raw.githubusercontent.com/jonovotny/vectorized-realms/main/faerun-3e/faerun-3e.jpg',
+    url:'_local/faerun-3e.jpg',
     projection: 'EPSG:4326',
     imageExtent: [-76.5, 10, -18, 49.1],
     attributions: '&copy; WotC 2000',
@@ -335,7 +335,7 @@ const controlpoints = new VectorLayer({
  
 [ 1.043e+00  1.068e+00  2.618e+00 -2.193e+00]*/
 
-await parseSvg('https://raw.githubusercontent.com/jonovotny/vectorized-realms/main/svg/faerun-v016-07.svg', [-76.5, 10, -18, 49.1], SvgLayersFaerun);
+await parseSvg('_local/faerun-v016-07.svg', [-76.5, 10, -18, 49.1], SvgLayersFaerun);
 //await parseSvg('_local/Toril-2e-base-v3.svg', [-180, -90, 180, 90], SvgLayers);
 
 function storeVis(event) {
