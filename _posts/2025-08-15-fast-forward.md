@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Terrain fast forward
-date: 2025-08-15
+date: 2026-07-31
 published: false
 ---
 There are several terrain types left. Fortunately, they can be created from a combination of methods from previous posts. So let's go over them all in one post. I'll also include some improvements to previous styles.
@@ -9,6 +9,10 @@ There are several terrain types left. Fortunately, they can be created from a co
 # Half a mountain
 
 Let's start with cliffs. At first glance, they are mountains with just one side, but after reviewing all their occurrences on the 3e map, it turns out they are even simpler than that. With mountains, we had to account for varying flank widths between ridges and outlines, but cliff faces appear to have a uniform width throughout the map. This means we only need to define the upper ridgeline of the cliff, and can generate the background and flank lines automatically. For the background, we create an offset line of the ridge at the desired distance and connect it with the ridge line to form a polygon. Turf.js can do this for us, but we will have to correct self-intersections of this offset line at tight corners by detecting and removing ["line kinks"](https://turfjs.org/docs/api/unkinkPolygon). Flank lines are placed perpendicular to the ridge at even steps along the line. At concave turns of the ridgeline, this might lead to self-intersections between flanks. But we can use the same strategies as in the mountain case to shorten affected lines. The result looks like this:
+
+<img src="https://raw.githubusercontent.com/jonovotny/vectorized-realms/gh-pages/svg/26-08-12-ffw/cliff-original.png" width=300px/>
+<img src="https://raw.githubusercontent.com/jonovotny/vectorized-realms/gh-pages/svg/26-08-12-ffw/cliff-vector.png" width=300px/>
+<img src="https://raw.githubusercontent.com/jonovotny/vectorized-realms/gh-pages/svg/26-08-12-ffw/cliff-filtered.png" width=300px/>
 
 We have to be able to handle open cliffs with a start and end, like the one along the Sword Coast, and closed ring cliffs like the Thay plateau. Closed cliffs are the easier case, since we don't have to handle the start and end in any special way. We can change the direction of the ridge polygon to change the side of the cliff to point inwards, e.g., to create the Great Rift feature.
 

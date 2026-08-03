@@ -24,98 +24,25 @@ labelDetails['default'] = {
 	minZoom: 6,
 	zIndex: 260
 }
-labelDetails['Desert rocky'] = {
-	'textColor': '#b99150',
+labelDetails['Roads'] = {
+	'textColor': '#000000',
 	'dyn': {
 			'.getText.setFont': [[[5, 10], [7, 16]], "", "px Alegreya SC"]
 		},
 	minZoom: 5,
 	zIndex: 260
 }
-labelDetails['Desert sandy'] = {
-	'textColor': '#be7f2b',
+labelDetails['Trails'] = {
+	'textColor': '#000000',
 	'dyn': {
-			'.getText.setFont':  [[[7, 10], [9, 16]], "", "px Alegreya SC"]
-		},
-	minZoom: 7,
-	zIndex: 260
-}
-labelDetails['Bay'] = {
-	'textColor': '#2f4887',
-	'dyn': {
-			'.getText.setFont':  [[[5, 10], [8, 24]], "", "px Alegreya SC"]
-		},
-	minZoom: 5,
-	zIndex: 260
-}
-labelDetails['Channel'] = {
-	'textColor': '#2f4887',
-	'dyn': {
-			'.getText.setFont':  [[[5, 10], [8, 20]], "", "px Alegreya SC"]
-		},
-	minZoom: 5,
-	zIndex: 260
-}
-labelDetails['Ocean'] = {
-	'textColor': '#2f4887',
-	'dyn': {
-			'.getText.setFont':  [[[4, 10], [7, 30]], "", "px Alegreya SC"]
-		},
-	minZoom: 4,
-	zIndex: 260
-}
-labelDetails['River'] = {
-	'textColor': '#2f4887',
-	'dyn': {
-			'.getText.setFont':  [[[5, 10], [8, 20]], "", "px Alegreya SC"]
-		},
-	minZoom: 5,
-	zIndex: 260
-}
-labelDetails['Lake'] = {
-	'textColor': '#2f4887',
-	'dyn': {
-			'.getText.setFont':  [[[5, 10], [8, 20]], "", "px Alegreya SC"]
-		},
-	minZoom: 5,
-	zIndex: 260
-}
-labelDetails['Grasslands'] = {
-	'textColor': '#8e9b40',
-	'dyn': {
-			'.getText.setFont':  [[[5, 10], [8, 20]], "", "px Alegreya SC"]
-		},
-	minZoom: 5,
-	zIndex: 260
-}
-labelDetails['Political'] = {
-	'textColor': '#bf1c21',
-	'dyn': {
-			'.getText.setFont':  [[[6, 10], [9, 20]], "", "px Alegreya SC"]
-		},
-	minZoom: 6,
-	zIndex: 260
-}
-labelDetails['Pass'] = {
-	'textColor': '#671a18',
-	'dyn': {
-			'.getText.setFont':  [[[6, 10], [9, 20]], "", "px Alegreya SC"]
-		},
-	minZoom: 6,
-	zIndex: 260
-}
-labelDetails['POI'] = {
-	'textColor': '#000',
-	'dyn': {
-			'.getText.setFont':  [[[7, 10], [9, 16]], "", "px Alegreya SC"]
+			'.getText.setFont': [[[5, 10], [7, 16]], "", "px Alegreya SC"]
 		},
 	minZoom: 5,
 	zIndex: 260
 }
 
 
-
-function createRegionLabelStyle(text, types, labelFCs) {
+function createRoadLabelstyle(text, types, labelFCs) {
 	var labelDetail = {
 		zIndex: 0
 	};
@@ -152,7 +79,7 @@ function createRegionLabelStyle(text, types, labelFCs) {
 	return [typeName, layerName];
 }
 
-function createRegionLabels(layerGroups, transform, features, exportFeatures){
+function createRoadLabels(layerGroups, transform, features, exportFeatures){
 	// This ia a catch all for labels that do not have underlying geographic features, or are subparts of other named features (e.g. bays, mountain passes, rivers that are drawn as wide bodies of water)
 	if (!features["Named Regions"]) return;
 
@@ -216,7 +143,7 @@ function createRegionLabels(layerGroups, transform, features, exportFeatures){
 		var pathLine = lineString(longestPath);
 
 		// create region style and find correct layer
-		var [styleName, layerName] = createRegionLabelStyle(text, types, labelFCs);
+		var [styleName, layerName] = createRoadLabelstyle(text, types, labelFCs);
 		region.properties.styleName = styleName;
 
 		// Smooth the text line to avoid sharp corners
@@ -247,4 +174,4 @@ function createRegionLabels(layerGroups, transform, features, exportFeatures){
 	layerGroups.getLayers().array_.push(labelLayergroup);
 }
 
-export {createRegionLabels};
+export {createRoadLabels};
