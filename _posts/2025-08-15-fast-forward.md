@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Terrain fast forward
-date: 2026-07-31
+date: 2026-08-31
 published: false
 ---
 There are several terrain types left. Fortunately, they can be created from a combination of methods from previous posts. So let's go over them all in one post. I'll also include some improvements to previous styles.
@@ -23,11 +23,18 @@ Linear cliffs are defined as linestrings. We bevel the start and end of the clif
 
 Let's return to region patterns. When creating the [wetlands styles](/vectorized-realms/swamps), i.e., swamp and marshes, I noted that SVG patterns are most likely a better way of creating small, high contrast features like dots. So in sandy desert features like the desert of Calimshan, I started by hand-tracing two rectangular patches of points. One follows the point density and distribution in the center of the desert as the background, and the other matches the very tight points along the desert's outskirts. Since an SVG shape can only have one pattern, we instead remove all style information from the original shape and then clone it into a background and an outline layer. Each layer can then use a different style without having to duplicate any geometry (if the original data had style information, it would supersede any settings on the cloned layers). With some filters applied to each layer, we get the following result:
 
+<img src="https://raw.githubusercontent.com/jonovotny/vectorized-realms/gh-pages/svg/26-08-12-ffw/sandy-original.png" width=300px/>
+<img src="https://raw.githubusercontent.com/jonovotny/vectorized-realms/gh-pages/svg/26-08-12-ffw/sandy-filtered.png" width=300px/>
 
 The rocky desert style is a bit more complex. In between the background dots, it also features piles of round rocks and debris. We can recreate the patterns with a combination of dots and rings. By adding a random displacement filter on top of the ring shapes, we can give them a more hand-drawn look. Since the debris patches are quite large, I had to redraw about half of the Anauroch desert to create a pattern that isn't immediately noticeable as self-repeating. And with it being the only rocky desert on the map, the result looks rather convincing.
 
+<img src="https://raw.githubusercontent.com/jonovotny/vectorized-realms/gh-pages/svg/26-08-12-ffw/rocky-original.png" width=300px/>
+<img src="https://raw.githubusercontent.com/jonovotny/vectorized-realms/gh-pages/svg/26-08-12-ffw/rocky-filtered.png" width=300px/>
 
 Badlands add another feature to the pattern with their small circular hills. However, we do not have a large continuous area to copy the style of, so I redrew a few of the smaller regions and combined them into a repeating rectangular pattern.
+
+<img src="https://raw.githubusercontent.com/jonovotny/vectorized-realms/gh-pages/svg/26-08-12-ffw/badlands-original.png" width=300px/>
+<img src="https://raw.githubusercontent.com/jonovotny/vectorized-realms/gh-pages/svg/26-08-12-ffw/badlands-filtered.png" width=300px/>
 
 
 I also applied the dot patterns to previous terrains, like plains, forests, and jungles. This addressed the issues that random dots caused with browser rendering.
@@ -36,11 +43,20 @@ I also applied the dot patterns to previous terrains, like plains, forests, and 
 
 The other visual features that had browser rendering issues were the broken outlines of swamps, marshes, and moors. Since we now have a somewhat robust way of generating line offsets, we can simply generate an offset line with a dash pattern matching the one on the 3e map. We can then also apply the method to the badlands outline.
 
+<img src="https://raw.githubusercontent.com/jonovotny/vectorized-realms/gh-pages/svg/26-08-12-ffw/swamp-original.png" width=300px/>
+<img src="https://raw.githubusercontent.com/jonovotny/vectorized-realms/gh-pages/svg/26-08-12-ffw/swamp-filtered.png" width=300px/>
+
 # And finally, from the high ice...
 
 We already covered snowy mountains in the last post, but glaciers are visually different. The fill is white, with a faint blue glow along a solid brown border, easily recreated by a simple filter. Glaciers are trimmed by a cliff around their edge. Technically, the background of these cliffs includes some white patches to indicate ice, but in practice, using the same style as land cliffs is sufficient.
 
+<img src="https://raw.githubusercontent.com/jonovotny/vectorized-realms/gh-pages/svg/26-08-12-ffw/glacier-original.png" width=300px/>
+<img src="https://raw.githubusercontent.com/jonovotny/vectorized-realms/gh-pages/svg/26-08-12-ffw/glacier-filtered.png" width=300px/>
+
 Another type of ice field can be found in the sea of moving ice. The "islands" there are actually icebergs. They lack surrounding cliffs, but have thin shading lines along the southwestern edges. We can recreate this by creating an offset line and then using the simplified mountain shading system to remove line segments that would be "lit" by our virtual sun.
+
+<img src="https://raw.githubusercontent.com/jonovotny/vectorized-realms/gh-pages/svg/26-08-12-ffw/iceberg-original.png" width=300px/>
+<img src="https://raw.githubusercontent.com/jonovotny/vectorized-realms/gh-pages/svg/26-08-12-ffw/iceberg-filtered.png" width=300px/>
 
 # ...to the low seas.
 
@@ -52,6 +68,8 @@ Finally, all that molten ice needs to get to the sea eventually, so we'll have t
 
 One problem with SVG lines is that they can not change their thickness along their run. Rivers, however, lose width as they approach their source. There are generally two ways to resolve this kind of line tapering. One is to convert the line into a polygon, which would allow arbitrary changes of the line width. Yet while this would be a very flexible solution to the issue, generating the polygons from our line data isn't trivial. For now, we can use an approximation. By splitting a river line into shorter segments close to the river source, we can slowly decrease the line width. Round linecaps on each segment create enough overlap to hide any gaps between the segments.
 
+<img src="https://raw.githubusercontent.com/jonovotny/vectorized-realms/gh-pages/svg/26-08-12-ffw/river-original.png" width=300px/>
+<img src="https://raw.githubusercontent.com/jonovotny/vectorized-realms/gh-pages/svg/26-08-12-ffw/river-taper-filtered.png" width=300px/>
 
 What's left is to take care of edge cases, which is why we made sure the coast and river vertices were exactly lined up. Rivers that start from lakes should start at their full width, while rivers that originate from other rivers should continue tapering from the source river's width. To make sure the river line seamlessly connects to the coastline, we extend the river line slightly over the land boundary. Any overshoot is hidden by placing the river layer beneath the coastline, coastal shelf, and lake layers.
 
@@ -59,5 +77,6 @@ What's left is to take care of edge cases, which is why we made sure the coast a
 
 And there we have it. All natural features of the 3e map are covered, and we just have to put things together like so:
 
+<img src="https://raw.githubusercontent.com/jonovotny/vectorized-realms/gh-pages/svg/26-08-12-ffw/glacier-filtered.png" width=600px/>
 
 What's now missing are labels, structures (e.g., cities and roads), and other geographic data like political boundaries.
